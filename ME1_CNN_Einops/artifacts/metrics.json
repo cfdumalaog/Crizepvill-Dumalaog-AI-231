@@ -1,0 +1,83 @@
+{
+  "student": "Crizepvill Dumalaog",
+  "course": "AI 231",
+  "exercise": "ME1",
+  "dataset": "MNIST official train/test split",
+  "epochs": 5,
+  "seed": 42,
+  "deterministic_algorithms": true,
+  "device": "cuda",
+  "gpu": "NVIDIA GeForce RTX 3050 Laptop GPU",
+  "train_samples": 60000,
+  "test_samples": 10000,
+  "test_loss": 0.04642412075996399,
+  "test_accuracy": 0.985,
+  "architecture": {
+    "input_channels": 1,
+    "image_size": 28,
+    "conv1_channels": 8,
+    "conv2_channels": 16,
+    "conv3_channels": 32,
+    "hidden_features": 64,
+    "classes": 10,
+    "trainable_parameters": 107082
+  },
+  "history": [
+    {
+      "epoch": 1.0,
+      "train_loss": 0.35460352880954743,
+      "train_accuracy": 0.8974666666666666,
+      "seconds": 5.910544399986975
+    },
+    {
+      "epoch": 2.0,
+      "train_loss": 0.07692091634670893,
+      "train_accuracy": 0.9761166666666666,
+      "seconds": 5.782282600004692
+    },
+    {
+      "epoch": 3.0,
+      "train_loss": 0.05437459836403529,
+      "train_accuracy": 0.9835,
+      "seconds": 5.935285700019449
+    },
+    {
+      "epoch": 4.0,
+      "train_loss": 0.04244687714576721,
+      "train_accuracy": 0.9862666666666666,
+      "seconds": 5.775709899957292
+    },
+    {
+      "epoch": 5.0,
+      "train_loss": 0.03331520966887474,
+      "train_accuracy": 0.9895166666666667,
+      "seconds": 5.83891470002709
+    }
+  ],
+  "prediction_grid_indices": [
+    2305,
+    64,
+    6744,
+    2192,
+    5941,
+    702,
+    7627,
+    8234,
+    2452,
+    2054,
+    2837,
+    7313,
+    1932,
+    998,
+    6674,
+    4573
+  ],
+  "restrictions": {
+    "cnn_library": false,
+    "pytorch_neural_network_layers": false,
+    "convolution": "Tensor.as_strided + einops.rearrange + torch.einsum",
+    "pooling": "einops.reduce",
+    "dense": "torch.einsum",
+    "loss": "manual log-sum-exp cross-entropy"
+  }
+}

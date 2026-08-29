@@ -1,0 +1,30 @@
+# Python and notebook caches
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ipynb_checkpoints/
+
+# Local environments and editor state
+.venv/
+venv/
+.idea/
+.vscode/
+
+# Downloaded datasets and generated checkpoints
+data/
+*.pt
+*.pth
+
+# Existing and future generated runs
+output/
+**/artifacts/runs/
+
+# Keep the verified ME1 report artifacts committed.
+!ME1_CNN_Einops/artifacts/
+!ME1_CNN_Einops/artifacts/metrics.json
+!ME1_CNN_Einops/artifacts/training_curves.png
+!ME1_CNN_Einops/artifacts/predictions_4x4.png
+
+# Operating-system noise
+.DS_Store
+Thumbs.db
