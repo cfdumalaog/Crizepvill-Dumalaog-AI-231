@@ -6,7 +6,7 @@ exercises and coursework at the University of the Philippines Diliman.
 ## Student Information
 - **Name:** Crizepvill F. Dumalaog
 - **Student Number:** 202521406
-- **Course:** AI 231 (Advanced Computer Vision / Deep Learning)
+- **Course:** AI 231 (MLOps)
 
 ## Machine Exercises
 
