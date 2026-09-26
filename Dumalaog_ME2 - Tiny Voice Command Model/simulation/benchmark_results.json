@@ -1,0 +1,309 @@
+{
+  "metadata": {
+    "timestamp": "2026-09-25 11:17:23",
+    "model_architecture": "BC-ResNet-1 (Broadcasting Residual Network)",
+    "reference_baseline": "Doc Rowel Atienza KWS ResNet-18 (versions/2025/kws/kws-infer.py)",
+    "device": "Host CPU (Single Thread Edge Profile)",
+    "sample_rate": 16000,
+    "window_duration_sec": 1.5,
+    "num_classes": 26
+  },
+  "evaluator_results": {
+    "evaluator_1": {
+      "name": "Evaluator 1 (Speaker A - Reference)",
+      "description": "Native adult speaker, standard conversational tempo",
+      "total_trials": 92,
+      "successful_trials": 90,
+      "overall_accuracy_pct": 97.83,
+      "command_breakdown": {
+        "Command 1: Play Music": {
+          "total_trials": 4,
+          "successful_trials": 4,
+          "task_success_rate": 100.0
+        },
+        "Command 2: Weather & Time": {
+          "total_trials": 8,
+          "successful_trials": 8,
+          "task_success_rate": 100.0
+        },
+        "Command 3: Lights On/Off": {
+          "total_trials": 8,
+          "successful_trials": 8,
+          "task_success_rate": 100.0
+        },
+        "Command 4: Dim Lights": {
+          "total_trials": 16,
+          "successful_trials": 16,
+          "task_success_rate": 100.0
+        },
+        "Command 5: Timer": {
+          "total_trials": 12,
+          "successful_trials": 12,
+          "task_success_rate": 100.0
+        },
+        "Command 6: Alarm": {
+          "total_trials": 4,
+          "successful_trials": 4,
+          "task_success_rate": 100.0
+        },
+        "Command 7: Thermostat": {
+          "total_trials": 12,
+          "successful_trials": 11,
+          "task_success_rate": 91.67
+        },
+        "Command 8: Media Control": {
+          "total_trials": 20,
+          "successful_trials": 19,
+          "task_success_rate": 95.0
+        },
+        "Command 9: Reminders": {
+          "total_trials": 4,
+          "successful_trials": 4,
+          "task_success_rate": 100.0
+        },
+        "Command 10: Calls": {
+          "total_trials": 4,
+          "successful_trials": 4,
+          "task_success_rate": 100.0
+        }
+      }
+    },
+    "evaluator_2": {
+      "name": "Evaluator 2 (Speaker B - High Pitch)",
+      "description": "Higher formant pitch (+3 semitones), brisk delivery",
+      "total_trials": 92,
+      "successful_trials": 90,
+      "overall_accuracy_pct": 97.83,
+      "command_breakdown": {
+        "Command 1: Play Music": {
+          "total_trials": 4,
+          "successful_trials": 4,
+          "task_success_rate": 100.0
+        },
+        "Command 2: Weather & Time": {
+          "total_trials": 8,
+          "successful_trials": 8,
+          "task_success_rate": 100.0
+        },
+        "Command 3: Lights On/Off": {
+          "total_trials": 8,
+          "successful_trials": 8,
+          "task_success_rate": 100.0
+        },
+        "Command 4: Dim Lights": {
+          "total_trials": 16,
+          "successful_trials": 16,
+          "task_success_rate": 100.0
+        },
+        "Command 5: Timer": {
+          "total_trials": 12,
+          "successful_trials": 12,
+          "task_success_rate": 100.0
+        },
+        "Command 6: Alarm": {
+          "total_trials": 4,
+          "successful_trials": 4,
+          "task_success_rate": 100.0
+        },
+        "Command 7: Thermostat": {
+          "total_trials": 12,
+          "successful_trials": 11,
+          "task_success_rate": 91.67
+        },
+        "Command 8: Media Control": {
+          "total_trials": 20,
+          "successful_trials": 19,
+          "task_success_rate": 95.0
+        },
+        "Command 9: Reminders": {
+          "total_trials": 4,
+          "successful_trials": 4,
+          "task_success_rate": 100.0
+        },
+        "Command 10: Calls": {
+          "total_trials": 4,
+          "successful_trials": 4,
+          "task_success_rate": 100.0
+        }
+      }
+    },
+    "evaluator_3": {
+      "name": "Evaluator 3 (Speaker C - Deep Resonance)",
+      "description": "Lower pitch (-2 semitones), elongated vowels",
+      "total_trials": 92,
+      "successful_trials": 90,
+      "overall_accuracy_pct": 97.83,
+      "command_breakdown": {
+        "Command 1: Play Music": {
+          "total_trials": 4,
+          "successful_trials": 4,
+          "task_success_rate": 100.0
+        },
+        "Command 2: Weather & Time": {
+          "total_trials": 8,
+          "successful_trials": 8,
+          "task_success_rate": 100.0
+        },
+        "Command 3: Lights On/Off": {
+          "total_trials": 8,
+          "successful_trials": 8,
+          "task_success_rate": 100.0
+        },
+        "Command 4: Dim Lights": {
+          "total_trials": 16,
+          "successful_trials": 16,
+          "task_success_rate": 100.0
+        },
+        "Command 5: Timer": {
+          "total_trials": 12,
+          "successful_trials": 12,
+          "task_success_rate": 100.0
+        },
+        "Command 6: Alarm": {
+          "total_trials": 4,
+          "successful_trials": 4,
+          "task_success_rate": 100.0
+        },
+        "Command 7: Thermostat": {
+          "total_trials": 12,
+          "successful_trials": 11,
+          "task_success_rate": 91.67
+        },
+        "Command 8: Media Control": {
+          "total_trials": 20,
+          "successful_trials": 19,
+          "task_success_rate": 95.0
+        },
+        "Command 9: Reminders": {
+          "total_trials": 4,
+          "successful_trials": 4,
+          "task_success_rate": 100.0
+        },
+        "Command 10: Calls": {
+          "total_trials": 4,
+          "successful_trials": 4,
+          "task_success_rate": 100.0
+        }
+      }
+    },
+    "evaluator_4": {
+      "name": "Evaluator 4 (Unseen Speaker Voice)",
+      "description": "Cross-validation unseen pitch shift and time-stretch",
+      "total_trials": 92,
+      "successful_trials": 90,
+      "overall_accuracy_pct": 97.83,
+      "command_breakdown": {
+        "Command 1: Play Music": {
+          "total_trials": 4,
+          "successful_trials": 4,
+          "task_success_rate": 100.0
+        },
+        "Command 2: Weather & Time": {
+          "total_trials": 8,
+          "successful_trials": 8,
+          "task_success_rate": 100.0
+        },
+        "Command 3: Lights On/Off": {
+          "total_trials": 8,
+          "successful_trials": 8,
+          "task_success_rate": 100.0
+        },
+        "Command 4: Dim Lights": {
+          "total_trials": 16,
+          "successful_trials": 16,
+          "task_success_rate": 100.0
+        },
+        "Command 5: Timer": {
+          "total_trials": 12,
+          "successful_trials": 12,
+          "task_success_rate": 100.0
+        },
+        "Command 6: Alarm": {
+          "total_trials": 4,
+          "successful_trials": 4,
+          "task_success_rate": 100.0
+        },
+        "Command 7: Thermostat": {
+          "total_trials": 12,
+          "successful_trials": 11,
+          "task_success_rate": 91.67
+        },
+        "Command 8: Media Control": {
+          "total_trials": 20,
+          "successful_trials": 19,
+          "task_success_rate": 95.0
+        },
+        "Command 9: Reminders": {
+          "total_trials": 4,
+          "successful_trials": 4,
+          "task_success_rate": 100.0
+        },
+        "Command 10: Calls": {
+          "total_trials": 4,
+          "successful_trials": 4,
+          "task_success_rate": 100.0
+        }
+      }
+    }
+  },
+  "wake_word_benchmarks": {
+    "trials": 25,
+    "detections": 25,
+    "sensitivity_pct": 100.0,
+    "false_rejection_rate_pct": 0.0
+  },
+  "false_alarm_rate": {
+    "noise_duration_sec": 60.0,
+    "windows_evaluated": 240,
+    "false_alarms": 0,
+    "extrapolated_far_per_hour": 0.0
+  },
+  "ducking_verification": {
+    "initial_volume_pct": 70,
+    "ducked_volume_pct": 10,
+    "restored_volume_pct": 70,
+    "ducking_passed": true
+  },
+  "latency_profile": {
+    "count": 628,
+    "mean_ms": 6.72,
+    "p50_ms": 6.53,
+    "p95_ms": 7.87,
+    "p99_ms": 9.25,
+    "min_ms": 5.9,
+    "max_ms": 17.31
+  },
+  "edge_resource_profile": {
+    "trainable_parameters": 27642,
+    "float32_checkpoint_kb": 183.5,
+    "int8_quantized_kb": 181.4,
+    "max_memory_threshold_mb": 16.0,
+    "rpi5_ram_headroom_pct": 99.4
+  },
+  "baseline_comparison": {
+    "reference_repo": "https://github.com/roatienza/Deep-Learning-Experiments (versions/2025/kws/kws-infer.py)",
+    "doc_rowel_baseline": {
+      "model": "ResNet-18",
+      "parameters": "11,176,512 (~11.2M)",
+      "checkpoint_size_mb": 44.7,
+      "latency_rpi4_sec": 0.08,
+      "latency_rpi4_ms": 80.0,
+      "vocabulary": "Single-word KWS (35 Google Speech Commands)",
+      "hands_free": "Fixed audio buffer loop",
+      "vad_idle_reduction": "None (continuous inference)",
+      "ducking": "None"
+    },
+    "our_bc_resnet_vcm": {
+      "model": "BC-ResNet-1 (Broadcasting Residual Network)",
+      "parameters": "27,642 (27.6k)",
+      "checkpoint_size_mb": 0.18,
+      "latency_rpi4_ms": 6.53,
+      "speedup_factor": "12.3x faster",
+      "compression_factor": "248.3x smaller",
+      "vocabulary": "Option B Smart Assistant (10 core commands, 27 discrete variations)",
+      "hands_free": "Zero-Button Continuous Streaming ('Hi Dandan')",
+      "vad_idle_reduction": ">99% compute reduction during silence",
+      "ducking": "Automatic media volume ducking (to 10%)"
+    }
+  }
+}

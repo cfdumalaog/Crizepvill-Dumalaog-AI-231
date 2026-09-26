@@ -14,6 +14,9 @@ venv/
 data/
 *.pt
 *.pth
+*.onnx
+TinyVCM_RaspberryPi5.zip
+release/
 
 # Existing and future generated runs
 output/
@@ -21,3 +24,4 @@ output/
 # Operating-system noise
 .DS_Store
 Thumbs.db
+~$*.xlsx

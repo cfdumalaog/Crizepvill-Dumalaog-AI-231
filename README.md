@@ -13,12 +13,13 @@ exercises and coursework at the University of the Philippines Diliman.
 | Exercise | Topic | Location | Status |
 |---|---|---|---|
 | **ME1** | Three-layer MNIST CNN using PyTorch tensors, Einops, and `einsum` | [`Dumalaog_ME1 - CNN using Einops/ME1_MNIST_Manual_CNN.ipynb`](<Dumalaog_ME1 - CNN using Einops/ME1_MNIST_Manual_CNN.ipynb>) | Complete — **98.60%** test accuracy after 5 epochs; fully self-contained notebook. |
+| **ME2** | Tiny Voice Command Model for smart devices | [Current executed notebook](<Dumalaog_ME2 - Tiny Voice Command Model/notebooks/ME2_From_Scratch_Verified.ipynb>) | Provisional — 44.64 KB INT8, 79.28% isolated synthetic accuracy; 35.65% continuous synthetic task success. Human dataset, reliable recognition and physical Pi validation pending. |
 
 ## Repository Policy
 
 - All AI 231 coursework belongs in this repository, organized with one directory per machine exercise or project.
 - The shared Python virtual environment is located at the workspace root (`..\.venv`).
-- Each machine exercise is completely self-contained within its Jupyter notebook, containing all data processing, mathematical layer implementations, training loops, evaluation, and visual reports.
+- ME1 retains its self-contained notebook. ME2 uses an executed report notebook with shared `tinyvcm/` helpers so training and deployed audio preprocessing stay identical.
 - Generated datasets (`data/`), checkpoints (`*.pt`), and temporary files are excluded via `.gitignore`.
 - API keys, VPN configurations, credentials, and secrets must never be committed.
 
@@ -34,3 +35,7 @@ This repository structure, initial setup, and the ME1 self-contained notebook im
 - **Benchmark Metric:** **98.60%** test accuracy on the official 10,000-image MNIST test split
 - **Repository Remote:** [`https://github.com/cfdumalaog/Crizepvill-Dumalaog-AI-231`](https://github.com/cfdumalaog/Crizepvill-Dumalaog-AI-231)
 
+
+## ME2 execution provenance (2026-09-26)
+
+Codex audited the earlier ME2 claims and implemented/executed the current from-scratch DS-CNN pipeline. The dataset is synthetic, not recordings of three people. No Raspberry Pi was available. See the exercise README for actual measurements and remaining assignment work; student review is still required. Earlier ME1 provenance above is preserved unchanged.

@@ -1,0 +1,16 @@
+[Unit]
+Description=Tiny Voice Command Model (VCM) Smart Assistant
+After=network.target sound.target
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/rpi_deployment
+ExecStart=/home/pi/rpi_deployment/.venv_rpi/bin/python /home/pi/rpi_deployment/run_vcm.py
+Restart=always
+RestartSec=3
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
