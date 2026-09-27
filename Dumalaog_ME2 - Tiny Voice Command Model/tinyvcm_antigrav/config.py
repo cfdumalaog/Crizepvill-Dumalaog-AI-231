@@ -18,10 +18,10 @@ FEATURE_SHAPE = (1, MELS, TIME_STEPS)  # (1, 40, 251)
 
 # Architecture Hyperparameters
 CHANNELS = 48
-CLASSES = 31  # 31 command classes in Option B
+CLASSES = 32  # 31 command classes in Option B + WAKE_WORD
 DROPOUT = 0.15
 
-# Class Labels in Option B (alphabetically sorted)
+# Class Labels in Option B (alphabetically sorted + WAKE_WORD)
 LABELS = [
     'ALARM_6_00AM',
     'ALARM_8_00AM',
@@ -53,5 +53,6 @@ LABELS = [
     'TIMER_30s',
     'VOLUME_DOWN',
     'VOLUME_UP',
-    'WEATHER'
+    'WEATHER',
+    'WAKE_WORD'
 ]
