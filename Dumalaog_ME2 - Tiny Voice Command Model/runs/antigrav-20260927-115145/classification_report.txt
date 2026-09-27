@@ -1,0 +1,37 @@
+                             precision    recall  f1-score   support
+
+               ALARM_6_00AM     0.9667    1.0000    0.9831        58
+               ALARM_8_00AM     1.0000    0.9464    0.9725        56
+               ALARM_9_00PM     0.9508    1.0000    0.9748        58
+             BRIGHTNESS_100     0.9365    0.9833    0.9593        60
+              BRIGHTNESS_20     0.9524    1.0000    0.9756        60
+              BRIGHTNESS_60     0.9836    1.0000    0.9917        60
+                       CALL     0.9286    0.9630    0.9455        54
+                 COLOR_BLUE     0.9355    0.9667    0.9508        60
+                COLOR_GREEN     1.0000    0.9333    0.9655        60
+                  COLOR_RED     1.0000    1.0000    1.0000        60
+CREATE_REMINDER_DRINK_WATER     1.0000    0.9833    0.9916        60
+   CREATE_REMINDER_EXERCISE     0.9048    0.9500    0.9268        60
+      CREATE_REMINDER_STUDY     1.0000    0.9500    0.9744        60
+                  LIGHT_OFF     0.9492    0.9333    0.9412        60
+                   LIGHT_ON     0.9091    0.9259    0.9174        54
+             LIST_REMINDERS     0.9661    0.9828    0.9744        58
+                    MESSAGE     0.9483    0.9483    0.9483        58
+                       NEXT     0.9831    0.9667    0.9748        60
+                      PAUSE     0.9333    1.0000    0.9655        56
+                 PLAY_MUSIC     0.9508    1.0000    0.9748        58
+                       STOP     0.9643    1.0000    0.9818        54
+             TEMPERATURE_18     0.9649    0.9167    0.9402        60
+             TEMPERATURE_22     0.8788    0.9667    0.9206        60
+             TEMPERATURE_26     1.0000    0.9333    0.9655        60
+                       TIME     1.0000    0.8148    0.8980        54
+                  TIMER_10s     1.0000    0.9000    0.9474        60
+                   TIMER_1m     0.9821    0.9821    0.9821        56
+                  TIMER_30s     0.9649    0.9167    0.9402        60
+                VOLUME_DOWN     0.9423    0.9423    0.9423        52
+                  VOLUME_UP     0.9355    0.9667    0.9508        60
+                    WEATHER     0.9811    1.0000    0.9905        52
+
+                   accuracy                         0.9605      1798
+                  macro avg     0.9617    0.9604    0.9602      1798
+               weighted avg     0.9618    0.9605    0.9604      1798
