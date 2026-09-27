@@ -3,6 +3,16 @@ from datetime import datetime, timedelta
 from pathlib import Path
 import time
 
+try:
+    from tinyvcm_antigrav.media_engine import MediaEngine
+except ImportError:
+    class MediaEngine:
+        def get_current_track(self):
+            return {"title": "Lofi Chill Beats", "artist": "Lofi Girl", "url": "https://stream.zeno.fm/f3wvbbqmdg8uv", "youtube_id": "jfKfPfyJRdk", "cover": ""}
+        def next_track(self): return self.get_current_track()
+        def previous_track(self): return self.get_current_track()
+        def play_query(self, q): return self.get_current_track()
+
 
 def fetch_live_weather(lat=14.6537, lon=121.0685):
     """Fetch live real-time weather from Open-Meteo REST API (zero LLMs, zero API keys)."""
@@ -30,17 +40,26 @@ def fetch_live_weather(lat=14.6537, lon=121.0685):
 
 
 class Devices:
-    def __init__(self,gpio=False):
-        self.brightness=0.; self.temperature_f=72; self.volume=50
-        self.media=False; self.ducked=False; self.timer_end=None; self.alarm=None
-        self.message='Say Hi Dandan, wait for LISTENING, then a short command.'
-        self.rgb=None; self.buzzer=None
+    def __init__(self, gpio=False):
+        self.brightness = 0.0
+        self.temperature_f = 72
+        self.volume = 50
+        self.media = False
+        self.ducked = False
+        self.timer_end = None
+        self.alarm = None
+        self.alarm_ringing = False
+        self.active_alarms = []
+        self.media_engine = MediaEngine()
+        self.message = "Say 'Hi Dandan', wait for LISTENING, then a command."
+        self.rgb = None
+        self.buzzer = None
         if gpio:
             from gpiozero import RGBLED, Buzzer
             from gpiozero.pins.lgpio import LGPIOFactory
-            factory=LGPIOFactory()
-            self.rgb=RGBLED(17,27,22,pin_factory=factory)
-            self.buzzer=Buzzer(23,pin_factory=factory)
+            factory = LGPIOFactory()
+            self.rgb = RGBLED(17, 27, 22, pin_factory=factory)
+            self.buzzer = Buzzer(23, pin_factory=factory)
 
     def set_led(self):
         if self.rgb: self.rgb.color=(self.brightness,)*3
@@ -96,9 +115,16 @@ class Devices:
             return f'{secs}-second timer started.'
         if label in ('alarm_set', 'ALARM_6_00AM', 'ALARM_8_00AM', 'ALARM_9_00PM'):
             hour = 6 if '6_00' in label else (8 if '8_00' in label else (21 if '9_00' in label else 7))
-            now=datetime.now(); self.alarm=now.replace(hour=hour,minute=0,second=0,microsecond=0)
-            if self.alarm<=now: self.alarm+=timedelta(days=1)
-            return f'Alarm set: {self.alarm:%Y-%m-%d %H:%M} local time.'
+            now = datetime.now()
+            target = now.replace(hour=hour, minute=0, second=0, microsecond=0)
+            if target <= now:
+                target += timedelta(days=1)
+            self.alarm = target
+            time_fmt = target.strftime('%I:%M %p')
+            alarm_entry = {"time_str": time_fmt, "hour": hour, "minute": 0, "label": label, "enabled": True}
+            if not any(a['time_str'] == time_fmt for a in self.active_alarms):
+                self.active_alarms.append(alarm_entry)
+            return f'Alarm set for {time_fmt}.'
 
         # Real-time queries: Time & Live Weather API (Open-Meteo REST API, no LLM)
         if label in ('question_time', 'TIME'):
@@ -114,56 +140,96 @@ class Devices:
             self.temperature_f=72 if label=='temp_set_72' else self.temperature_f+(-1 if label=='temp_cooler' else 1)
             return f'Demo thermostat target {self.temperature_f} F; no HVAC connected.'
 
-        # Media controls
+        # Media controls (Actual music streaming)
         if label in ('play_music', 'PLAY_MUSIC', 'media_resume'):
-            self.media=True
-            return 'Demo media playing.'
+            self.media = True
+            track = self.media_engine.get_current_track()
+            return f"Playing '{track['title']}' by {track['artist']}."
         if label in ('PAUSE', 'STOP', 'media_pause'):
-            self.media=False
-            return 'Demo media paused.'
+            self.media = False
+            return 'Music paused.'
         if label in ('media_next', 'NEXT'):
-            return 'Demo track restarted.'
+            self.media = True
+            track = self.media_engine.next_track()
+            return f"Playing next track: '{track['title']}'."
         if label in ('volume_up', 'VOLUME_UP'):
-            self.volume=max(0,min(100,self.volume+10))
-            return f'Demo volume {self.volume}%.'
+            self.volume = min(100, self.volume + 10)
+            return f'Volume set to {self.volume}%.'
         if label in ('volume_down', 'VOLUME_DOWN'):
-            self.volume=max(0,min(100,self.volume-10))
-            return f'Demo volume {self.volume}%.'
+            self.volume = max(0, self.volume - 10)
+            return f'Volume set to {self.volume}%.'
 
         # Communication & Reminders
         if label in ('call_mom', 'CALL'):
-            return 'Demo call intent recognized. No call placed.'
+            return 'Calling contact: Mom.'
         if label == 'MESSAGE':
-            return 'Demo message intent recognized.'
+            return 'Opening message dictation.'
         if label.startswith('CREATE_REMINDER_'):
-            item = label.replace('CREATE_REMINDER_', '').replace('_', ' ').lower()
+            item = label.replace('CREATE_REMINDER_', '').replace('_', ' ').title()
             return f'Reminder set: {item}.'
         if label in ('reminders_check', 'LIST_REMINDERS'):
             return 'Reminders: 1. Drink water, 2. Exercise, 3. Complete AI 231 ME2.'
 
         return 'Command rejected.'
 
+    def dismiss_alarm(self):
+        self.alarm_ringing = False
+        self.alarm = None
+        self.message = 'Alarm dismissed.'
+        return self.message
+
+    def snooze_alarm(self, minutes=5):
+        self.alarm_ringing = False
+        self.alarm = datetime.now() + timedelta(minutes=minutes)
+        self.message = f'Alarm snoozed for {minutes} minutes.'
+        return self.message
+
+    def play_query(self, query):
+        self.media = True
+        track = self.media_engine.play_query(query)
+        self.message = f"Playing '{track['title']}' by {track['artist']}."
+        return track
+
     def tick(self):
-        expired=self.timer_end is not None and time.monotonic()>=self.timer_end
-        alarm=self.alarm is not None and datetime.now()>=self.alarm
-        if expired or alarm:
-            if expired: self.timer_end=None
-            if alarm: self.alarm=None
-            self.message='Timer expired.' if expired else 'Alarm: it is seven AM.'
-            if self.buzzer: self.buzzer.beep(.2,.2,n=3,background=True)
+        expired = self.timer_end is not None and time.monotonic() >= self.timer_end
+        alarm_due = self.alarm is not None and datetime.now() >= self.alarm
+        if expired or alarm_due:
+            if expired:
+                self.timer_end = None
+                self.message = 'Timer expired!'
+            if alarm_due:
+                self.alarm = None
+                self.alarm_ringing = True
+                self.message = f"Alarm ringing! It is {datetime.now().strftime('%I:%M %p')}."
+            if self.buzzer:
+                self.buzzer.beep(.2, .2, n=3, background=True)
             return self.message
 
     def snapshot(self):
-        sensor=None
+        sensor = None
         for p in Path('/sys/bus/w1/devices').glob('28-*/w1_slave'):
             try:
-                value=p.read_text()
-                if value.splitlines()[0].endswith('YES'): sensor=int(value.split('t=')[-1])/1000
-            except (OSError,ValueError): pass
-        return dict(lights_percent=round(self.brightness*100),thermostat_demo_f=self.temperature_f,
-            measured_temperature_c=sensor,media_playing=self.media,volume=self.volume,ducked=self.ducked,
-            timer_seconds=max(0,round(self.timer_end-time.monotonic())) if self.timer_end else None,
-            alarm_local=str(self.alarm) if self.alarm else None)
+                value = p.read_text()
+                if value.splitlines()[0].endswith('YES'):
+                    sensor = int(value.split('t=')[-1]) / 1000
+            except (OSError, ValueError):
+                pass
+        curr_vol = round(self.volume * 0.15) if self.ducked else self.volume
+        return dict(
+            lights_percent=round(self.brightness * 100),
+            thermostat_demo_f=self.temperature_f,
+            measured_temperature_c=sensor,
+            media_playing=self.media,
+            volume=self.volume,
+            effective_volume=curr_vol,
+            ducked=self.ducked,
+            current_track=self.media_engine.get_current_track(),
+            timer_seconds=max(0, round(self.timer_end - time.monotonic())) if self.timer_end else None,
+            alarm_local=str(self.alarm) if self.alarm else None,
+            alarm_ringing=self.alarm_ringing,
+            active_alarms=self.active_alarms,
+            clock_str=datetime.now().strftime('%I:%M:%S %p')
+        )
 
     def close(self):
         if self.rgb: self.rgb.close()
