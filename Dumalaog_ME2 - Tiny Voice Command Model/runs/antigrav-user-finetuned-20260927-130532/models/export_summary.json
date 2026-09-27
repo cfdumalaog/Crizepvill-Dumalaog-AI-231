@@ -1,0 +1,10 @@
+{
+  "fp32_size_bytes": 60466,
+  "int8_size_bytes": 39315,
+  "compression_ratio": 1.54,
+  "test_accuracy_fp32_onnx": 0.9583,
+  "test_accuracy_int8_onnx": 0.9572,
+  "prediction_parity": 0.9905,
+  "cpu_latency_p50_ms": 0.206,
+  "cpu_latency_p95_ms": 0.84
+}
