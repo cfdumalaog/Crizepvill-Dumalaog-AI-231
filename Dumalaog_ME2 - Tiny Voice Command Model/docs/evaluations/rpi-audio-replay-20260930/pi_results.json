@@ -1,0 +1,1145 @@
+{
+  "title": "ME2 - VCM on Raspberry Pi 5 \u2014 file-based command and wake evaluation",
+  "host": "cfdfnjrpi5",
+  "platform": "Linux-6.18.50+rpt-rpi-2712-aarch64-with-glibc2.41",
+  "providers": {
+    "intent": [
+      "CPUExecutionProvider"
+    ],
+    "wake": [
+      "CPUExecutionProvider"
+    ]
+  },
+  "wake_threshold": 0.95,
+  "labels": [
+    "ALARM_6_00AM",
+    "ALARM_8_00AM",
+    "ALARM_9_00PM",
+    "BRIGHTNESS_100",
+    "BRIGHTNESS_20",
+    "BRIGHTNESS_60",
+    "CALL",
+    "COLOR_BLUE",
+    "COLOR_GREEN",
+    "COLOR_RED",
+    "CREATE_REMINDER_DRINK_WATER",
+    "CREATE_REMINDER_EXERCISE",
+    "CREATE_REMINDER_STUDY",
+    "LIGHT_OFF",
+    "LIGHT_ON",
+    "LIST_REMINDERS",
+    "MESSAGE",
+    "NEXT",
+    "PAUSE",
+    "PLAY_MUSIC",
+    "STOP",
+    "TEMPERATURE_18",
+    "TEMPERATURE_22",
+    "TEMPERATURE_26",
+    "TIME",
+    "TIMER_10s",
+    "TIMER_1m",
+    "TIMER_30s",
+    "VOLUME_DOWN",
+    "VOLUME_UP",
+    "WEATHER"
+  ],
+  "models": {
+    "intent": {
+      "path": "/home/dalmacio/Desktop/dandan/models/intent_31_int8.onnx",
+      "bytes": 39315,
+      "sha256": "85696f8ebbf17c44b8641785fcdb7d2e61c68042271a818d943de58d66caa0c9"
+    },
+    "wake": {
+      "path": "/home/dalmacio/Desktop/dandan/models/wake_binary_int8.onnx",
+      "bytes": 37425,
+      "sha256": "44bf989b7f2cbd3823c2cbb975b0fbf26e4ca6c489075430433bec19db2d569e"
+    }
+  },
+  "manifest_rows": 10476,
+  "evaluated_rows": 10476,
+  "failed_rows": [],
+  "results": {
+    "personal_recordings:command": {
+      "count": 101,
+      "correct": 93,
+      "accuracy": 0.920792,
+      "macro_f1_supported_classes": 0.936169,
+      "classes_supported": 31,
+      "classes_expected": 31,
+      "missing_classes": [],
+      "per_class": {
+        "ALARM_6_00AM": {
+          "support": 2,
+          "correct": 2,
+          "accuracy_recall": 1.0,
+          "precision": 1.0,
+          "f1": 1.0
+        },
+        "ALARM_8_00AM": {
+          "support": 2,
+          "correct": 2,
+          "accuracy_recall": 1.0,
+          "precision": 0.666667,
+          "f1": 0.8
+        },
+        "ALARM_9_00PM": {
+          "support": 3,
+          "correct": 3,
+          "accuracy_recall": 1.0,
+          "precision": 1.0,
+          "f1": 1.0
+        },
+        "BRIGHTNESS_100": {
+          "support": 4,
+          "correct": 4,
+          "accuracy_recall": 1.0,
+          "precision": 1.0,
+          "f1": 1.0
+        },
+        "BRIGHTNESS_20": {
+          "support": 3,
+          "correct": 3,
+          "accuracy_recall": 1.0,
+          "precision": 1.0,
+          "f1": 1.0
+        },
+        "BRIGHTNESS_60": {
+          "support": 3,
+          "correct": 3,
+          "accuracy_recall": 1.0,
+          "precision": 1.0,
+          "f1": 1.0
+        },
+        "CALL": {
+          "support": 2,
+          "correct": 1,
+          "accuracy_recall": 0.5,
+          "precision": 1.0,
+          "f1": 0.666667
+        },
+        "COLOR_BLUE": {
+          "support": 3,
+          "correct": 3,
+          "accuracy_recall": 1.0,
+          "precision": 1.0,
+          "f1": 1.0
+        },
+        "COLOR_GREEN": {
+          "support": 3,
+          "correct": 3,
+          "accuracy_recall": 1.0,
+          "precision": 1.0,
+          "f1": 1.0
+        },
+        "COLOR_RED": {
+          "support": 3,
+          "correct": 3,
+          "accuracy_recall": 1.0,
+          "precision": 1.0,
+          "f1": 1.0
+        },
+        "CREATE_REMINDER_DRINK_WATER": {
+          "support": 3,
+          "correct": 3,
+          "accuracy_recall": 1.0,
+          "precision": 1.0,
+          "f1": 1.0
+        },
+        "CREATE_REMINDER_EXERCISE": {
+          "support": 3,
+          "correct": 3,
+          "accuracy_recall": 1.0,
+          "precision": 1.0,
+          "f1": 1.0
+        },
+        "CREATE_REMINDER_STUDY": {
+          "support": 3,
+          "correct": 3,
+          "accuracy_recall": 1.0,
+          "precision": 1.0,
+          "f1": 1.0
+        },
+        "LIGHT_OFF": {
+          "support": 5,
+          "correct": 4,
+          "accuracy_recall": 0.8,
+          "precision": 0.8,
+          "f1": 0.8
+        },
+        "LIGHT_ON": {
+          "support": 4,
+          "correct": 4,
+          "accuracy_recall": 1.0,
+          "precision": 1.0,
+          "f1": 1.0
+        },
+        "LIST_REMINDERS": {
+          "support": 2,
+          "correct": 2,
+          "accuracy_recall": 1.0,
+          "precision": 1.0,
+          "f1": 1.0
+        },
+        "MESSAGE": {
+          "support": 3,
+          "correct": 3,
+          "accuracy_recall": 1.0,
+          "precision": 1.0,
+          "f1": 1.0
+        },
+        "NEXT": {
+          "support": 2,
+          "correct": 1,
+          "accuracy_recall": 0.5,
+          "precision": 1.0,
+          "f1": 0.666667
+        },
+        "PAUSE": {
+          "support": 9,
+          "correct": 4,
+          "accuracy_recall": 0.444444,
+          "precision": 1.0,
+          "f1": 0.615385
+        },
+        "PLAY_MUSIC": {
+          "support": 4,
+          "correct": 4,
+          "accuracy_recall": 1.0,
+          "precision": 0.444444,
+          "f1": 0.615385
+        },
+        "STOP": {
+          "support": 7,
+          "correct": 7,
+          "accuracy_recall": 1.0,
+          "precision": 1.0,
+          "f1": 1.0
+        },
+        "TEMPERATURE_18": {
+          "support": 3,
+          "correct": 3,
+          "accuracy_recall": 1.0,
+          "precision": 1.0,
+          "f1": 1.0
+        },
+        "TEMPERATURE_22": {
+          "support": 4,
+          "correct": 4,
+          "accuracy_recall": 1.0,
+          "precision": 1.0,
+          "f1": 1.0
+        },
+        "TEMPERATURE_26": {
+          "support": 3,
+          "correct": 3,
+          "accuracy_recall": 1.0,
+          "precision": 1.0,
+          "f1": 1.0
+        },
+        "TIME": {
+          "support": 3,
+          "correct": 3,
+          "accuracy_recall": 1.0,
+          "precision": 0.75,
+          "f1": 0.857143
+        },
+        "TIMER_10s": {
+          "support": 3,
+          "correct": 3,
+          "accuracy_recall": 1.0,
+          "precision": 1.0,
+          "f1": 1.0
+        },
+        "TIMER_1m": {
+          "support": 3,
+          "correct": 3,
+          "accuracy_recall": 1.0,
+          "precision": 1.0,
+          "f1": 1.0
+        },
+        "TIMER_30s": {
+          "support": 3,
+          "correct": 3,
+          "accuracy_recall": 1.0,
+          "precision": 1.0,
+          "f1": 1.0
+        },
+        "VOLUME_DOWN": {
+          "support": 3,
+          "correct": 3,
+          "accuracy_recall": 1.0,
+          "precision": 1.0,
+          "f1": 1.0
+        },
+        "VOLUME_UP": {
+          "support": 1,
+          "correct": 1,
+          "accuracy_recall": 1.0,
+          "precision": 1.0,
+          "f1": 1.0
+        },
+        "WEATHER": {
+          "support": 2,
+          "correct": 2,
+          "accuracy_recall": 1.0,
+          "precision": 1.0,
+          "f1": 1.0
+        }
+      },
+      "top_confusions": [
+        {
+          "actual": "PAUSE",
+          "predicted": "PLAY_MUSIC",
+          "count": 5
+        },
+        {
+          "actual": "CALL",
+          "predicted": "TIME",
+          "count": 1
+        },
+        {
+          "actual": "LIGHT_OFF",
+          "predicted": "ALARM_8_00AM",
+          "count": 1
+        },
+        {
+          "actual": "NEXT",
+          "predicted": "LIGHT_OFF",
+          "count": 1
+        }
+      ],
+      "latency_ms_end_to_end": {
+        "p50": 5.485,
+        "p95": 5.575
+      },
+      "audio_sample_rates_after_resampling": {
+        "16000": 10476
+      }
+    },
+    "personal_recordings:wake": {
+      "count": 128,
+      "correct": 128,
+      "accuracy": 1.0,
+      "macro_f1_supported_classes": 1.0,
+      "classes_supported": 2,
+      "classes_expected": 2,
+      "missing_classes": [],
+      "per_class": {
+        "NON_WAKE": {
+          "support": 120,
+          "correct": 120,
+          "accuracy_recall": 1.0,
+          "precision": 1.0,
+          "f1": 1.0
+        },
+        "WAKE_WORD": {
+          "support": 8,
+          "correct": 8,
+          "accuracy_recall": 1.0,
+          "precision": 1.0,
+          "f1": 1.0
+        }
+      },
+      "top_confusions": [],
+      "wake_hits": 8,
+      "wake_support": 8,
+      "wake_recall": 1.0,
+      "false_accepts": 0,
+      "nonwake_support": 120,
+      "false_accept_rate": 0.0,
+      "latency_ms_end_to_end": {
+        "p50": 27.755,
+        "p95": 27.855
+      },
+      "audio_sample_rates_after_resampling": {
+        "16000": 10476
+      }
+    },
+    "reference_test:command": {
+      "count": 1798,
+      "correct": 1748,
+      "accuracy": 0.972191,
+      "macro_f1_supported_classes": 0.972218,
+      "classes_supported": 31,
+      "classes_expected": 31,
+      "missing_classes": [],
+      "per_class": {
+        "ALARM_6_00AM": {
+          "support": 58,
+          "correct": 57,
+          "accuracy_recall": 0.982759,
+          "precision": 1.0,
+          "f1": 0.991304
+        },
+        "ALARM_8_00AM": {
+          "support": 56,
+          "correct": 56,
+          "accuracy_recall": 1.0,
+          "precision": 0.982456,
+          "f1": 0.99115
+        },
+        "ALARM_9_00PM": {
+          "support": 58,
+          "correct": 58,
+          "accuracy_recall": 1.0,
+          "precision": 1.0,
+          "f1": 1.0
+        },
+        "BRIGHTNESS_100": {
+          "support": 60,
+          "correct": 60,
+          "accuracy_recall": 1.0,
+          "precision": 0.9375,
+          "f1": 0.967742
+        },
+        "BRIGHTNESS_20": {
+          "support": 60,
+          "correct": 59,
+          "accuracy_recall": 0.983333,
+          "precision": 0.967213,
+          "f1": 0.975207
+        },
+        "BRIGHTNESS_60": {
+          "support": 60,
+          "correct": 58,
+          "accuracy_recall": 0.966667,
+          "precision": 1.0,
+          "f1": 0.983051
+        },
+        "CALL": {
+          "support": 54,
+          "correct": 52,
+          "accuracy_recall": 0.962963,
+          "precision": 0.981132,
+          "f1": 0.971963
+        },
+        "COLOR_BLUE": {
+          "support": 60,
+          "correct": 55,
+          "accuracy_recall": 0.916667,
+          "precision": 0.964912,
+          "f1": 0.940171
+        },
+        "COLOR_GREEN": {
+          "support": 60,
+          "correct": 58,
+          "accuracy_recall": 0.966667,
+          "precision": 1.0,
+          "f1": 0.983051
+        },
+        "COLOR_RED": {
+          "support": 60,
+          "correct": 60,
+          "accuracy_recall": 1.0,
+          "precision": 0.895522,
+          "f1": 0.944882
+        },
+        "CREATE_REMINDER_DRINK_WATER": {
+          "support": 60,
+          "correct": 60,
+          "accuracy_recall": 1.0,
+          "precision": 0.952381,
+          "f1": 0.97561
+        },
+        "CREATE_REMINDER_EXERCISE": {
+          "support": 60,
+          "correct": 59,
+          "accuracy_recall": 0.983333,
+          "precision": 1.0,
+          "f1": 0.991597
+        },
+        "CREATE_REMINDER_STUDY": {
+          "support": 60,
+          "correct": 59,
+          "accuracy_recall": 0.983333,
+          "precision": 1.0,
+          "f1": 0.991597
+        },
+        "LIGHT_OFF": {
+          "support": 60,
+          "correct": 58,
+          "accuracy_recall": 0.966667,
+          "precision": 0.920635,
+          "f1": 0.943089
+        },
+        "LIGHT_ON": {
+          "support": 54,
+          "correct": 50,
+          "accuracy_recall": 0.925926,
+          "precision": 0.980392,
+          "f1": 0.952381
+        },
+        "LIST_REMINDERS": {
+          "support": 58,
+          "correct": 54,
+          "accuracy_recall": 0.931034,
+          "precision": 0.964286,
+          "f1": 0.947368
+        },
+        "MESSAGE": {
+          "support": 58,
+          "correct": 55,
+          "accuracy_recall": 0.948276,
+          "precision": 1.0,
+          "f1": 0.973451
+        },
+        "NEXT": {
+          "support": 60,
+          "correct": 59,
+          "accuracy_recall": 0.983333,
+          "precision": 1.0,
+          "f1": 0.991597
+        },
+        "PAUSE": {
+          "support": 56,
+          "correct": 55,
+          "accuracy_recall": 0.982143,
+          "precision": 0.982143,
+          "f1": 0.982143
+        },
+        "PLAY_MUSIC": {
+          "support": 58,
+          "correct": 58,
+          "accuracy_recall": 1.0,
+          "precision": 0.966667,
+          "f1": 0.983051
+        },
+        "STOP": {
+          "support": 54,
+          "correct": 52,
+          "accuracy_recall": 0.962963,
+          "precision": 0.928571,
+          "f1": 0.945455
+        },
+        "TEMPERATURE_18": {
+          "support": 60,
+          "correct": 56,
+          "accuracy_recall": 0.933333,
+          "precision": 0.982456,
+          "f1": 0.957265
+        },
+        "TEMPERATURE_22": {
+          "support": 60,
+          "correct": 60,
+          "accuracy_recall": 1.0,
+          "precision": 0.923077,
+          "f1": 0.96
+        },
+        "TEMPERATURE_26": {
+          "support": 60,
+          "correct": 58,
+          "accuracy_recall": 0.966667,
+          "precision": 1.0,
+          "f1": 0.983051
+        },
+        "TIME": {
+          "support": 54,
+          "correct": 49,
+          "accuracy_recall": 0.907407,
+          "precision": 1.0,
+          "f1": 0.951456
+        },
+        "TIMER_10s": {
+          "support": 60,
+          "correct": 57,
+          "accuracy_recall": 0.95,
+          "precision": 0.95,
+          "f1": 0.95
+        },
+        "TIMER_1m": {
+          "support": 56,
+          "correct": 56,
+          "accuracy_recall": 1.0,
+          "precision": 0.982456,
+          "f1": 0.99115
+        },
+        "TIMER_30s": {
+          "support": 60,
+          "correct": 57,
+          "accuracy_recall": 0.95,
+          "precision": 0.982759,
+          "f1": 0.966102
+        },
+        "VOLUME_DOWN": {
+          "support": 52,
+          "correct": 52,
+          "accuracy_recall": 1.0,
+          "precision": 0.962963,
+          "f1": 0.981132
+        },
+        "VOLUME_UP": {
+          "support": 60,
+          "correct": 59,
+          "accuracy_recall": 0.983333,
+          "precision": 1.0,
+          "f1": 0.991597
+        },
+        "WEATHER": {
+          "support": 52,
+          "correct": 52,
+          "accuracy_recall": 1.0,
+          "precision": 0.962963,
+          "f1": 0.981132
+        }
+      },
+      "top_confusions": [
+        {
+          "actual": "COLOR_BLUE",
+          "predicted": "COLOR_RED",
+          "count": 4
+        },
+        {
+          "actual": "LIGHT_ON",
+          "predicted": "LIGHT_OFF",
+          "count": 4
+        },
+        {
+          "actual": "TEMPERATURE_18",
+          "predicted": "TEMPERATURE_22",
+          "count": 4
+        },
+        {
+          "actual": "TIMER_30s",
+          "predicted": "TIMER_10s",
+          "count": 3
+        },
+        {
+          "actual": "BRIGHTNESS_60",
+          "predicted": "BRIGHTNESS_20",
+          "count": 2
+        },
+        {
+          "actual": "CALL",
+          "predicted": "STOP",
+          "count": 2
+        },
+        {
+          "actual": "COLOR_GREEN",
+          "predicted": "COLOR_RED",
+          "count": 2
+        },
+        {
+          "actual": "LIGHT_OFF",
+          "predicted": "STOP",
+          "count": 2
+        },
+        {
+          "actual": "LIST_REMINDERS",
+          "predicted": "CREATE_REMINDER_DRINK_WATER",
+          "count": 2
+        },
+        {
+          "actual": "LIST_REMINDERS",
+          "predicted": "BRIGHTNESS_100",
+          "count": 2
+        },
+        {
+          "actual": "MESSAGE",
+          "predicted": "LIST_REMINDERS",
+          "count": 2
+        },
+        {
+          "actual": "TIME",
+          "predicted": "WEATHER",
+          "count": 2
+        },
+        {
+          "actual": "ALARM_6_00AM",
+          "predicted": "ALARM_8_00AM",
+          "count": 1
+        },
+        {
+          "actual": "BRIGHTNESS_20",
+          "predicted": "BRIGHTNESS_100",
+          "count": 1
+        },
+        {
+          "actual": "COLOR_BLUE",
+          "predicted": "LIGHT_OFF",
+          "count": 1
+        },
+        {
+          "actual": "CREATE_REMINDER_EXERCISE",
+          "predicted": "BRIGHTNESS_100",
+          "count": 1
+        },
+        {
+          "actual": "CREATE_REMINDER_STUDY",
+          "predicted": "CREATE_REMINDER_DRINK_WATER",
+          "count": 1
+        },
+        {
+          "actual": "MESSAGE",
+          "predicted": "LIGHT_ON",
+          "count": 1
+        },
+        {
+          "actual": "NEXT",
+          "predicted": "CALL",
+          "count": 1
+        },
+        {
+          "actual": "PAUSE",
+          "predicted": "COLOR_BLUE",
+          "count": 1
+        }
+      ],
+      "latency_ms_end_to_end": {
+        "p50": 5.543,
+        "p95": 5.611
+      },
+      "audio_sample_rates_after_resampling": {
+        "16000": 10476
+      }
+    },
+    "reference_test:wake": {
+      "count": 1798,
+      "correct": 1798,
+      "accuracy": 1.0,
+      "macro_f1_supported_classes": 1.0,
+      "classes_supported": 1,
+      "classes_expected": 2,
+      "missing_classes": [
+        "WAKE_WORD"
+      ],
+      "per_class": {
+        "NON_WAKE": {
+          "support": 1798,
+          "correct": 1798,
+          "accuracy_recall": 1.0,
+          "precision": 1.0,
+          "f1": 1.0
+        },
+        "WAKE_WORD": {
+          "support": 0,
+          "correct": 0,
+          "accuracy_recall": null,
+          "precision": 0.0,
+          "f1": null
+        }
+      },
+      "top_confusions": [],
+      "wake_hits": 0,
+      "wake_support": 0,
+      "wake_recall": null,
+      "false_accepts": 0,
+      "nonwake_support": 1798,
+      "false_accept_rate": 0.0,
+      "latency_ms_end_to_end": {
+        "p50": 27.807,
+        "p95": 27.957
+      },
+      "audio_sample_rates_after_resampling": {
+        "16000": 10476
+      }
+    },
+    "synthetic_legacy:command": {
+      "count": 2268,
+      "correct": 1492,
+      "accuracy": 0.657848,
+      "macro_f1_supported_classes": 0.660255,
+      "classes_supported": 12,
+      "classes_expected": 31,
+      "missing_classes": [
+        "ALARM_6_00AM",
+        "ALARM_8_00AM",
+        "ALARM_9_00PM",
+        "BRIGHTNESS_100",
+        "BRIGHTNESS_20",
+        "BRIGHTNESS_60",
+        "COLOR_BLUE",
+        "COLOR_GREEN",
+        "COLOR_RED",
+        "CREATE_REMINDER_DRINK_WATER",
+        "CREATE_REMINDER_EXERCISE",
+        "CREATE_REMINDER_STUDY",
+        "MESSAGE",
+        "STOP",
+        "TEMPERATURE_18",
+        "TEMPERATURE_22",
+        "TEMPERATURE_26",
+        "TIMER_10s",
+        "TIMER_30s"
+      ],
+      "per_class": {
+        "ALARM_6_00AM": {
+          "support": 0,
+          "correct": 0,
+          "accuracy_recall": null,
+          "precision": 0.0,
+          "f1": null
+        },
+        "ALARM_8_00AM": {
+          "support": 0,
+          "correct": 0,
+          "accuracy_recall": null,
+          "precision": 0.0,
+          "f1": null
+        },
+        "ALARM_9_00PM": {
+          "support": 0,
+          "correct": 0,
+          "accuracy_recall": null,
+          "precision": 0.0,
+          "f1": null
+        },
+        "BRIGHTNESS_100": {
+          "support": 0,
+          "correct": 0,
+          "accuracy_recall": null,
+          "precision": 0.0,
+          "f1": null
+        },
+        "BRIGHTNESS_20": {
+          "support": 0,
+          "correct": 0,
+          "accuracy_recall": null,
+          "precision": 0.0,
+          "f1": null
+        },
+        "BRIGHTNESS_60": {
+          "support": 0,
+          "correct": 0,
+          "accuracy_recall": null,
+          "precision": 0.0,
+          "f1": null
+        },
+        "CALL": {
+          "support": 162,
+          "correct": 52,
+          "accuracy_recall": 0.320988,
+          "precision": 0.490566,
+          "f1": 0.38806
+        },
+        "COLOR_BLUE": {
+          "support": 0,
+          "correct": 0,
+          "accuracy_recall": null,
+          "precision": 0.0,
+          "f1": null
+        },
+        "COLOR_GREEN": {
+          "support": 0,
+          "correct": 0,
+          "accuracy_recall": null,
+          "precision": 0.0,
+          "f1": null
+        },
+        "COLOR_RED": {
+          "support": 0,
+          "correct": 0,
+          "accuracy_recall": null,
+          "precision": 0.0,
+          "f1": null
+        },
+        "CREATE_REMINDER_DRINK_WATER": {
+          "support": 0,
+          "correct": 0,
+          "accuracy_recall": null,
+          "precision": 0.0,
+          "f1": null
+        },
+        "CREATE_REMINDER_EXERCISE": {
+          "support": 0,
+          "correct": 0,
+          "accuracy_recall": null,
+          "precision": 0.0,
+          "f1": null
+        },
+        "CREATE_REMINDER_STUDY": {
+          "support": 0,
+          "correct": 0,
+          "accuracy_recall": null,
+          "precision": 0.0,
+          "f1": null
+        },
+        "LIGHT_OFF": {
+          "support": 216,
+          "correct": 114,
+          "accuracy_recall": 0.527778,
+          "precision": 0.567164,
+          "f1": 0.546763
+        },
+        "LIGHT_ON": {
+          "support": 216,
+          "correct": 149,
+          "accuracy_recall": 0.689815,
+          "precision": 0.608163,
+          "f1": 0.646421
+        },
+        "LIST_REMINDERS": {
+          "support": 216,
+          "correct": 168,
+          "accuracy_recall": 0.777778,
+          "precision": 0.976744,
+          "f1": 0.865979
+        },
+        "MESSAGE": {
+          "support": 0,
+          "correct": 0,
+          "accuracy_recall": null,
+          "precision": 0.0,
+          "f1": null
+        },
+        "NEXT": {
+          "support": 162,
+          "correct": 85,
+          "accuracy_recall": 0.524691,
+          "precision": 1.0,
+          "f1": 0.688259
+        },
+        "PAUSE": {
+          "support": 162,
+          "correct": 47,
+          "accuracy_recall": 0.290123,
+          "precision": 0.5875,
+          "f1": 0.38843
+        },
+        "PLAY_MUSIC": {
+          "support": 216,
+          "correct": 194,
+          "accuracy_recall": 0.898148,
+          "precision": 0.76378,
+          "f1": 0.825532
+        },
+        "STOP": {
+          "support": 0,
+          "correct": 0,
+          "accuracy_recall": null,
+          "precision": 0.0,
+          "f1": null
+        },
+        "TEMPERATURE_18": {
+          "support": 0,
+          "correct": 0,
+          "accuracy_recall": null,
+          "precision": 0.0,
+          "f1": null
+        },
+        "TEMPERATURE_22": {
+          "support": 0,
+          "correct": 0,
+          "accuracy_recall": null,
+          "precision": 0.0,
+          "f1": null
+        },
+        "TEMPERATURE_26": {
+          "support": 0,
+          "correct": 0,
+          "accuracy_recall": null,
+          "precision": 0.0,
+          "f1": null
+        },
+        "TIME": {
+          "support": 216,
+          "correct": 198,
+          "accuracy_recall": 0.916667,
+          "precision": 0.694737,
+          "f1": 0.790419
+        },
+        "TIMER_10s": {
+          "support": 0,
+          "correct": 0,
+          "accuracy_recall": null,
+          "precision": 0.0,
+          "f1": null
+        },
+        "TIMER_1m": {
+          "support": 162,
+          "correct": 139,
+          "accuracy_recall": 0.858025,
+          "precision": 0.945578,
+          "f1": 0.899676
+        },
+        "TIMER_30s": {
+          "support": 0,
+          "correct": 0,
+          "accuracy_recall": null,
+          "precision": 0.0,
+          "f1": null
+        },
+        "VOLUME_DOWN": {
+          "support": 162,
+          "correct": 55,
+          "accuracy_recall": 0.339506,
+          "precision": 0.617978,
+          "f1": 0.438247
+        },
+        "VOLUME_UP": {
+          "support": 162,
+          "correct": 103,
+          "accuracy_recall": 0.635802,
+          "precision": 0.575419,
+          "f1": 0.604106
+        },
+        "WEATHER": {
+          "support": 216,
+          "correct": 188,
+          "accuracy_recall": 0.87037,
+          "precision": 0.813853,
+          "f1": 0.841163
+        }
+      },
+      "top_confusions": [
+        {
+          "actual": "LIGHT_OFF",
+          "predicted": "LIGHT_ON",
+          "count": 88
+        },
+        {
+          "actual": "LIGHT_ON",
+          "predicted": "LIGHT_OFF",
+          "count": 57
+        },
+        {
+          "actual": "PAUSE",
+          "predicted": "PLAY_MUSIC",
+          "count": 53
+        },
+        {
+          "actual": "CALL",
+          "predicted": "TIME",
+          "count": 52
+        },
+        {
+          "actual": "VOLUME_DOWN",
+          "predicted": "VOLUME_UP",
+          "count": 48
+        },
+        {
+          "actual": "PAUSE",
+          "predicted": "STOP",
+          "count": 47
+        },
+        {
+          "actual": "LIST_REMINDERS",
+          "predicted": "CREATE_REMINDER_DRINK_WATER",
+          "count": 38
+        },
+        {
+          "actual": "NEXT",
+          "predicted": "CALL",
+          "count": 27
+        },
+        {
+          "actual": "CALL",
+          "predicted": "VOLUME_DOWN",
+          "count": 25
+        },
+        {
+          "actual": "CALL",
+          "predicted": "VOLUME_UP",
+          "count": 23
+        },
+        {
+          "actual": "VOLUME_UP",
+          "predicted": "WEATHER",
+          "count": 23
+        },
+        {
+          "actual": "VOLUME_DOWN",
+          "predicted": "STOP",
+          "count": 20
+        },
+        {
+          "actual": "NEXT",
+          "predicted": "LIGHT_OFF",
+          "count": 18
+        },
+        {
+          "actual": "VOLUME_DOWN",
+          "predicted": "WEATHER",
+          "count": 16
+        },
+        {
+          "actual": "TIMER_1m",
+          "predicted": "CREATE_REMINDER_DRINK_WATER",
+          "count": 15
+        },
+        {
+          "actual": "NEXT",
+          "predicted": "TIME",
+          "count": 10
+        },
+        {
+          "actual": "VOLUME_DOWN",
+          "predicted": "TIME",
+          "count": 10
+        },
+        {
+          "actual": "VOLUME_UP",
+          "predicted": "STOP",
+          "count": 10
+        },
+        {
+          "actual": "NEXT",
+          "predicted": "COLOR_BLUE",
+          "count": 9
+        },
+        {
+          "actual": "WEATHER",
+          "predicted": "CALL",
+          "count": 9
+        }
+      ],
+      "latency_ms_end_to_end": {
+        "p50": 5.533,
+        "p95": 5.595
+      },
+      "audio_sample_rates_after_resampling": {
+        "16000": 10476
+      }
+    },
+    "synthetic_legacy:wake": {
+      "count": 4383,
+      "correct": 4068,
+      "accuracy": 0.928131,
+      "macro_f1_supported_classes": 0.481363,
+      "classes_supported": 2,
+      "classes_expected": 2,
+      "missing_classes": [],
+      "per_class": {
+        "NON_WAKE": {
+          "support": 4068,
+          "correct": 4068,
+          "accuracy_recall": 1.0,
+          "precision": 0.928131,
+          "f1": 0.962726
+        },
+        "WAKE_WORD": {
+          "support": 315,
+          "correct": 0,
+          "accuracy_recall": 0.0,
+          "precision": 0.0,
+          "f1": 0.0
+        }
+      },
+      "top_confusions": [
+        {
+          "actual": "WAKE_WORD",
+          "predicted": "NON_WAKE",
+          "count": 315
+        }
+      ],
+      "wake_hits": 0,
+      "wake_support": 315,
+      "wake_recall": 0.0,
+      "false_accepts": 0,
+      "nonwake_support": 4068,
+      "false_accept_rate": 0.0,
+      "latency_ms_end_to_end": {
+        "p50": 27.759,
+        "p95": 27.896
+      },
+      "audio_sample_rates_after_resampling": {
+        "16000": 10476
+      }
+    }
+  },
+  "protocol": {
+    "intent": "Top-1 classification from the 31-class INT8 ONNX using the deployed 16 kHz, 2.5 s, 40-band log-mel frontend; no device actions are executed.",
+    "wake": "Binary INT8 ONNX at the deployed 0.95 threshold; five temporal placements per clip, max wake probability decides the label.",
+    "audio": "Mono conversion and polyphase resampling to 16 kHz are applied when needed; inference reads one WAV at a time."
+  }
+}

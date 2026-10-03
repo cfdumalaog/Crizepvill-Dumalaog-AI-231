@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "sha256": {
+    "README.md": "a4118030e1de31a19e86d8a22d45f98bb9e20e5807aa6f74b2af342e3e7d6c39",
+    "antigrav_demo.py": "ae54488515ea33fd4030435d188b70f70779798735ad25bcc3f89bf6fe33b14c",
+    "model_metadata.json": "e845a346ee53d0152a1d40b14e1332036674724d682fcda14c113ab3bf164ab4",
+    "models/antigrav_optionb_int8.onnx": "cf3c393b99bcbe991baf6c529b18d47c044a3e8c898fa41348762f7be8d24a0a",
+    "models/antigrav_wake32_int8.onnx": "551836d42f33a34c9a6d13e37e963bcdf82470ba9ae7d71f080941306e351bf3",
+    "requirements-runtime.txt": "bdcf975abda309b8a1c426cdfe87eac384996370cb25b84db4d64e5ca191d195",
+    "setup_rpi.sh": "f5f03d42b3747d887d3a15ccadd01e50cee6a2d9fcf93b8fcd6b0b5ee623b24b",
+    "tinyvcm/__init__.py": "ce11d545cd5b55504e0db1b6cace5c01a9418d378f0a0d4010fe848cd97171d9",
+    "tinyvcm/devices.py": "3e389c297aabc0b92d0f7d45a025217b2432396fe423b346b3a44dc194fe89bb",
+    "tinyvcm/microphone.py": "0471e1280c9d78c940c1e9fceca8682cdf651bc1705c19ca4c21fb286650d2f7",
+    "tinyvcm_antigrav/__init__.py": "4b0b9036ab11c7d10836f582f1f258a5a93e69b3a98c1c754c5357ff6779d975",
+    "tinyvcm_antigrav/config.py": "9bfda22abe008ea39086236f58f35c379a3fb1d8a2abfb6e40a27473a64cdec1",
+    "tinyvcm_antigrav/frontend.py": "93fd2c841b94c18520f26e89ee8d4743bc741e108cec7f6cc8d2e5852899ae3e",
+    "tinyvcm_antigrav/media_engine.py": "5f106589693828fa9b439539a37b502b350262e7ec95c87661aeee0948e8aca3",
+    "verify_release.py": "6b0a1d3f2c9b0bc064d9e9ddff436a8241a150b204afc8d2ce3689ede354525c"
+  }
+}

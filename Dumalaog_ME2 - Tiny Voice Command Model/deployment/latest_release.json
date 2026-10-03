@@ -1,0 +1,15 @@
+{
+  "status": "deployed",
+  "source_run": "me2-vcm-intent-refresh-updated-20261002",
+  "source_fingerprint": "a4e220bf77c93274a2234d55965e495c079d53c67d9ed77a9a0279e2c04a7c1f",
+  "archive": "deployment/dist/dandan-vcm-me2-vcm-intent-refresh-updated-20261002-20261003-071053-167924.zip",
+  "zip_sha256": "ce5ab7b4a7db5a12b9b3a6793d2e4d940c64a4aa14ff539bd6ca02b06a1f75b1",
+  "bundle_manifest_sha256": "5fa5fe6dbcfd67c07ab384579d1baa23d3365cc4937b46bb653160b1f6ef2bad",
+  "wake_sha256": "6c2e941580d8ea778ed664c929e893c226efb91e3e787e65837908c81153deac",
+  "intent_sha256": "34240fc6e82c453cd93c96ba82d5167fadba7c7d653ac26173fea669e2e69b68",
+  "wake_threshold": 0.95,
+  "installed_at": "/home/dalmacio/Desktop/dandan",
+  "created_at_local": "2026-10-03T07:10:54.621998",
+  "pi_host": "cfdfnjrpi5.local",
+  "last_verified_at_local": "2026-10-03T07:10:59.550370"
+}

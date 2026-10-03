@@ -1,0 +1,159 @@
+{
+  "dataset_name": "ME2 Spoken Command Dataset",
+  "dataset_rows": 17986,
+  "dataset_speakers": 100,
+  "dataset_split_counts": {
+    "test": 1798,
+    "train": 14370,
+    "val": 1818
+  },
+  "intent_labels": [
+    "ALARM_6_00AM",
+    "ALARM_8_00AM",
+    "ALARM_9_00PM",
+    "BRIGHTNESS_100",
+    "BRIGHTNESS_20",
+    "BRIGHTNESS_60",
+    "CALL",
+    "COLOR_BLUE",
+    "COLOR_GREEN",
+    "COLOR_RED",
+    "CREATE_REMINDER_DRINK_WATER",
+    "CREATE_REMINDER_EXERCISE",
+    "CREATE_REMINDER_STUDY",
+    "LIGHT_OFF",
+    "LIGHT_ON",
+    "LIST_REMINDERS",
+    "MESSAGE",
+    "NEXT",
+    "PAUSE",
+    "PLAY_MUSIC",
+    "STOP",
+    "TEMPERATURE_18",
+    "TEMPERATURE_22",
+    "TEMPERATURE_26",
+    "TIME",
+    "TIMER_10s",
+    "TIMER_1m",
+    "TIMER_30s",
+    "VOLUME_DOWN",
+    "VOLUME_UP",
+    "WEATHER"
+  ],
+  "staged_intent_labels_match": true,
+  "recorder_intent_labels_match": true,
+  "manifest_labels_match": true,
+  "ground_truth_phrase_file_count": 31,
+  "ground_truth_phrase_files_match": true,
+  "suggested_phrase_not_in_training_transcripts": [],
+  "suggested_phrase_not_most_frequent_training_transcript": [],
+  "course_command_groups": {
+    "Play music": [
+      "PLAY_MUSIC"
+    ],
+    "Questions: weather and time": [
+      "WEATHER",
+      "TIME"
+    ],
+    "Lights on and off": [
+      "LIGHT_ON",
+      "LIGHT_OFF"
+    ],
+    "Brightness and color": [
+      "BRIGHTNESS_20",
+      "BRIGHTNESS_60",
+      "BRIGHTNESS_100",
+      "COLOR_RED",
+      "COLOR_GREEN",
+      "COLOR_BLUE"
+    ],
+    "Timers": [
+      "TIMER_10s",
+      "TIMER_30s",
+      "TIMER_1m"
+    ],
+    "Alarms": [
+      "ALARM_6_00AM",
+      "ALARM_8_00AM",
+      "ALARM_9_00PM"
+    ],
+    "Thermostat setpoints": [
+      "TEMPERATURE_18",
+      "TEMPERATURE_22",
+      "TEMPERATURE_26"
+    ],
+    "Media and volume": [
+      "PAUSE",
+      "STOP",
+      "NEXT",
+      "VOLUME_UP",
+      "VOLUME_DOWN"
+    ],
+    "Reminders and lists": [
+      "CREATE_REMINDER_DRINK_WATER",
+      "CREATE_REMINDER_EXERCISE",
+      "CREATE_REMINDER_STUDY",
+      "LIST_REMINDERS"
+    ],
+    "Calls and messaging": [
+      "CALL",
+      "MESSAGE"
+    ]
+  },
+  "course_groups_cover_all_intent_labels": true,
+  "human_manifest_rows": 1025,
+  "human_manifest_has_suggested_phrase_column": true,
+  "human_rows_with_saved_suggested_phrase": 89,
+  "human_rows_without_saved_suggested_phrase": 936,
+  "human_speaker_rows": {
+    "person-01": 767,
+    "person-02": 127,
+    "person-03": 42,
+    "person-04": 20,
+    "person-05": 20,
+    "person-06": 15,
+    "person-07": 34
+  },
+  "human_mapped_command_rows": {
+    "ALARM_6_00AM": 9,
+    "ALARM_8_00AM": 10,
+    "ALARM_9_00PM": 11,
+    "BRIGHTNESS_100": 19,
+    "BRIGHTNESS_20": 13,
+    "BRIGHTNESS_60": 12,
+    "CALL": 31,
+    "COLOR_BLUE": 13,
+    "COLOR_GREEN": 15,
+    "COLOR_RED": 15,
+    "CREATE_REMINDER_DRINK_WATER": 15,
+    "CREATE_REMINDER_EXERCISE": 15,
+    "CREATE_REMINDER_STUDY": 15,
+    "LIGHT_OFF": 24,
+    "LIGHT_ON": 14,
+    "LIST_REMINDERS": 10,
+    "MESSAGE": 21,
+    "NEXT": 52,
+    "PAUSE": 98,
+    "PLAY_MUSIC": 39,
+    "STOP": 42,
+    "TEMPERATURE_18": 16,
+    "TEMPERATURE_22": 18,
+    "TEMPERATURE_26": 16,
+    "TIME": 35,
+    "TIMER_10s": 15,
+    "TIMER_1m": 28,
+    "TIMER_30s": 15,
+    "VOLUME_DOWN": 34,
+    "VOLUME_UP": 3,
+    "WEATHER": 21
+  },
+  "human_unmapped_legacy_rows": {
+    "alarm_set": 17,
+    "media_resume": 24,
+    "temp_cooler": 7,
+    "temp_warmer": 6,
+    "timer_10min": 23,
+    "timer_5min": 25
+  },
+  "intent_classes_with_no_personal_rows": []
+}

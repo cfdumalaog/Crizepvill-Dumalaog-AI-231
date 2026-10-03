@@ -1,0 +1,89 @@
+{
+  "phrase_audit": {
+    "train_rows": 10682,
+    "supported_train_rows": 10481,
+    "labels": 31,
+    "variation_rows": 93,
+    "prompts_present_as_exact_transcript": 31,
+    "prompts_modal_or_tied": 13,
+    "prompts_exactly_match_variation": 22,
+    "pinned_revision": "a90b8d106349b02c5570a1a258503386043f63b2",
+    "latest_hub_revision_checked": "6947f13073e57eb6ae67e7e2fc3680700b82aa13",
+    "variations_sha256": "6004b3b2b58137058c705b5769b0d094e05a5cff6ddcbed6de548b4a0105fcda"
+  },
+  "wake_audit": {
+    "test_hits_by_speaker": {
+      "person-01": "8/8",
+      "person-02": "2/2",
+      "person-04": "1/1"
+    },
+    "cutoff": 0.95,
+    "heldout_wake_hits": 11,
+    "heldout_wake_support": 11,
+    "personal_nonwake_false_accepts": 0,
+    "personal_nonwake_support": 136,
+    "reference_false_accepts": 0,
+    "reference_support": 1798,
+    "active_release_sha256": "6c2e941580d8ea778ed664c929e893c226efb91e3e787e65837908c81153deac",
+    "alternate_seed_sha256": "8ba3e41308e9517a691698f8730ada741f5600b45fd6009eb1eaeb74eb9e3713",
+    "manifest_sha256": "f0d087dd17ffaee55749b0af994d1d34dab0f30e44f7d7a1ef0295858960a0f3",
+    "speaker_rows": [
+      {
+        "speaker": "person-01",
+        "train": 16,
+        "validation": 3,
+        "test": 8,
+        "test_hits": "8/8",
+        "seen_in_train": true
+      },
+      {
+        "speaker": "person-02",
+        "train": 7,
+        "validation": 3,
+        "test": 2,
+        "test_hits": "2/2",
+        "seen_in_train": true
+      },
+      {
+        "speaker": "person-03",
+        "train": 10,
+        "validation": 1,
+        "test": 0,
+        "test_hits": "-",
+        "seen_in_train": true
+      },
+      {
+        "speaker": "person-04",
+        "train": 3,
+        "validation": 0,
+        "test": 1,
+        "test_hits": "1/1",
+        "seen_in_train": true
+      },
+      {
+        "speaker": "person-05",
+        "train": 3,
+        "validation": 1,
+        "test": 0,
+        "test_hits": "-",
+        "seen_in_train": true
+      },
+      {
+        "speaker": "person-06",
+        "train": 2,
+        "validation": 1,
+        "test": 0,
+        "test_hits": "-",
+        "seen_in_train": true
+      },
+      {
+        "speaker": "person-07",
+        "train": 4,
+        "validation": 0,
+        "test": 0,
+        "test_hits": "-",
+        "seen_in_train": true
+      }
+    ]
+  }
+}

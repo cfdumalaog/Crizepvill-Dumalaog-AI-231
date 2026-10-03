@@ -1,10 +1,13 @@
 """Low-voltage LED demo, real timers/clock, explicitly simulated appliance actions."""
 from datetime import datetime, timedelta
+import math
 from pathlib import Path
 import time
 
+from tinyvcm.audio_output import SystemVolumeOutput
+
 try:
-    from tinyvcm_antigrav.media_engine import MediaEngine
+    from tinyvcm_model.media_engine import MediaEngine
 except ImportError:
     class MediaEngine:
         def get_current_track(self):
@@ -15,7 +18,7 @@ except ImportError:
 
 
 def fetch_live_weather(lat=14.6537, lon=121.0685):
-    """Fetch live real-time weather from Open-Meteo REST API (zero LLMs, zero API keys)."""
+    """Fetch current Open-Meteo weather without an API key or cloud model."""
     import json
     import urllib.request
     try:
@@ -30,39 +33,62 @@ def fetch_live_weather(lat=14.6537, lon=121.0685):
             61: 'Slight rain', 63: 'Moderate rain', 65: 'Heavy rain', 80: 'Rain showers',
             95: 'Thunderstorm'
         }
-        desc = wcode_map.get(curr.get('weather_code'), 'Partly cloudy')
-        temp = curr.get('temperature_2m', 30.0)
-        humidity = curr.get('relative_humidity_2m', 60)
-        wind = curr.get('wind_speed_10m', 0.0)
-        return f"Diliman, QC: {temp:.1f}°C, {desc}, {humidity}% humidity, wind {wind:.1f} km/h (live Open-Meteo API)."
+        code = int(curr['weather_code'])
+        temp = float(curr['temperature_2m'])
+        humidity = float(curr['relative_humidity_2m'])
+        wind = float(curr['wind_speed_10m'])
+        if not all(math.isfinite(value) for value in (temp, humidity, wind)):
+            raise ValueError('Open-Meteo returned a non-finite weather value')
+        desc = wcode_map.get(code, f'weather code {code}')
+        return f"Diliman, QC: {temp:.1f}°C, {desc}, {humidity:g}% humidity, wind {wind:.1f} km/h (live Open-Meteo API)."
     except Exception:
-        return 'Live weather: 31.0°C, Partly Cloudy, 65% humidity (cached report).'
+        return 'Live weather is unavailable right now. Check the internet connection or weather service.'
 
 
 class Devices:
-    def __init__(self, gpio=False):
+    def __init__(self, gpio=False, live_weather=False):
         self.brightness = 0.0
+        self.light_color = 'white'
         self.temperature_f = 72
+        self.temperature_c = 22
         self.volume = 50
+        self.volume_output = SystemVolumeOutput(enabled=gpio)
         self.media = False
+        self.playback_state = 'stopped'
         self.ducked = False
         self.timer_end = None
         self.alarm = None
         self.alarm_ringing = False
         self.active_alarms = []
         self.media_engine = MediaEngine()
+        self.live_weather = bool(live_weather)
         self.message = "Say 'Hi Dandan', wait for LISTENING, then a command."
         self.rgb = None
         self.buzzer = None
         if gpio:
-            from gpiozero import RGBLED, Buzzer
+            from gpiozero import RGBLED
             from gpiozero.pins.lgpio import LGPIOFactory
             factory = LGPIOFactory()
             self.rgb = RGBLED(17, 27, 22, pin_factory=factory)
-            self.buzzer = Buzzer(23, pin_factory=factory)
 
     def set_led(self):
-        if self.rgb: self.rgb.color=(self.brightness,)*3
+        if self.rgb:
+            base = self._light_components(self.light_color)
+            self.rgb.color = tuple(component * self.brightness for component in base)
+
+    def set_volume(self, percent):
+        self.volume = max(0, min(100, int(percent)))
+        self.volume_output.set_percent(self.volume)
+        return f'Volume set to {self.volume}%.'
+
+    @staticmethod
+    def _light_components(color):
+        return {
+            'white': (1.0, 1.0, 1.0),
+            'red': (1.0, 0.0, 0.0),
+            'green': (0.0, 1.0, 0.0),
+            'blue': (0.0, 0.0, 1.0),
+        }.get(color, (1.0, 1.0, 1.0))
 
     def event(self,event):
         kind=event['event']
@@ -81,6 +107,9 @@ class Devices:
     def execute(self,label):
         # Lights & Brightness
         if label in ('lights_on', 'LIGHT_ON'):
+            # The three-LED demo's on command restores white/all channels.
+            # A subsequent color command selects a single LED explicitly.
+            self.light_color = 'white'
             self.brightness=1.0; self.set_led()
             return 'Lights on.'
         if label in ('lights_off', 'LIGHT_OFF'):
@@ -100,7 +129,10 @@ class Devices:
             return f'Lights at {self.brightness:.0%}.'
         if label in ('COLOR_RED', 'COLOR_GREEN', 'COLOR_BLUE'):
             c = label.split('_')[1].lower()
-            if self.rgb: self.rgb.color = (1, 0, 0) if c == 'red' else ((0, 1, 0) if c == 'green' else (0, 0, 1))
+            self.light_color = c
+            if self.brightness == 0.0:
+                self.brightness = 1.0
+            self.set_led()
             return f'LED color set to {c}.'
 
         # Timers & Alarms
@@ -126,16 +158,22 @@ class Devices:
                 self.active_alarms.append(alarm_entry)
             return f'Alarm set for {time_fmt}.'
 
-        # Real-time queries: Time & Live Weather API (Open-Meteo REST API, no LLM)
+        # The classifier stays local; weather lookup is opt-in so offline operation remains available.
         if label in ('question_time', 'TIME'):
             return datetime.now().strftime('It is %I:%M %p.')
-        if label in ('question_weather', 'WEATHER'):
-            return fetch_live_weather()
+        if label == 'question_weather':
+            if self.live_weather:
+                return fetch_live_weather()
+            return 'Demo weather intent recognized. No live weather connected.'
+        if label == 'WEATHER':
+            if self.live_weather:
+                return fetch_live_weather()
+            return 'Weather intent recognized. Live weather is unavailable in offline mode.'
 
         # Thermostat
         if label.startswith('TEMPERATURE_'):
-            self.temperature_f = int(label.split('_')[1])
-            return f'Thermostat set to {self.temperature_f} C.'
+            self.temperature_c = int(label.split('_')[1])
+            return f'Demo thermostat target {self.temperature_c} °C; no HVAC connected.'
         if label.startswith('temp_'):
             self.temperature_f=72 if label=='temp_set_72' else self.temperature_f+(-1 if label=='temp_cooler' else 1)
             return f'Demo thermostat target {self.temperature_f} F; no HVAC connected.'
@@ -143,27 +181,32 @@ class Devices:
         # Media controls (Actual music streaming)
         if label in ('play_music', 'PLAY_MUSIC', 'media_resume'):
             self.media = True
+            self.playback_state = 'playing'
             track = self.media_engine.get_current_track()
             return f"Playing '{track['title']}' by {track['artist']}."
-        if label in ('PAUSE', 'STOP', 'media_pause'):
+        if label in ('PAUSE', 'media_pause'):
             self.media = False
+            self.playback_state = 'paused'
             return 'Music paused.'
+        if label == 'STOP':
+            self.media = False
+            self.playback_state = 'stopped'
+            return 'Music stopped.'
         if label in ('media_next', 'NEXT'):
             self.media = True
+            self.playback_state = 'playing'
             track = self.media_engine.next_track()
             return f"Playing next track: '{track['title']}'."
         if label in ('volume_up', 'VOLUME_UP'):
-            self.volume = min(100, self.volume + 10)
-            return f'Volume set to {self.volume}%.'
+            return self.set_volume(self.volume + 10)
         if label in ('volume_down', 'VOLUME_DOWN'):
-            self.volume = max(0, self.volume - 10)
-            return f'Volume set to {self.volume}%.'
+            return self.set_volume(self.volume - 10)
 
         # Communication & Reminders
         if label in ('call_mom', 'CALL'):
-            return 'Calling contact: Mom.'
+            return 'Demo call intent recognized. No call placed.'
         if label == 'MESSAGE':
-            return 'Opening message dictation.'
+            return 'Demo message intent recognized.'
         if label.startswith('CREATE_REMINDER_'):
             item = label.replace('CREATE_REMINDER_', '').replace('_', ' ').title()
             return f'Reminder set: {item}.'
@@ -186,6 +229,7 @@ class Devices:
 
     def play_query(self, query):
         self.media = True
+        self.playback_state = 'playing'
         track = self.media_engine.play_query(query)
         self.message = f"Playing '{track['title']}' by {track['artist']}."
         return track
@@ -196,7 +240,7 @@ class Devices:
         if expired or alarm_due:
             if expired:
                 self.timer_end = None
-                self.message = 'Timer expired!'
+                self.message = 'Timer expired.'
             if alarm_due:
                 self.alarm = None
                 self.alarm_ringing = True
@@ -215,15 +259,26 @@ class Devices:
             except (OSError, ValueError):
                 pass
         curr_vol = round(self.volume * 0.15) if self.ducked else self.volume
+        light_rgb = tuple(round(component * self.brightness, 3) for component in self._light_components(self.light_color))
+        light_hex = '#%02x%02x%02x' % tuple(round(component * 255) for component in light_rgb)
         return dict(
             lights_percent=round(self.brightness * 100),
+            lights_color=self.light_color,
+            lights_rgb=list(light_rgb),
+            lights_hex=light_hex,
+            rgb_hardware_enabled=bool(self.rgb),
             thermostat_demo_f=self.temperature_f,
             measured_temperature_c=sensor,
             media_playing=self.media,
+            playback_state=self.playback_state,
             volume=self.volume,
             effective_volume=curr_vol,
+            volume_hardware_enabled=self.volume_output.mode != 'browser',
+            volume_hardware_mode=self.volume_output.mode,
+            volume_hardware_status=self.volume_output.status,
             ducked=self.ducked,
             current_track=self.media_engine.get_current_track(),
+            thermostat_demo_c=self.temperature_c,
             timer_seconds=max(0, round(self.timer_end - time.monotonic())) if self.timer_end else None,
             alarm_local=str(self.alarm) if self.alarm else None,
             alarm_ringing=self.alarm_ringing,

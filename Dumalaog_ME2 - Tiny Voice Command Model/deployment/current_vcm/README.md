@@ -1,0 +1,3 @@
+# ME2 - VCM on Raspberry Pi 5: current two-model candidate
+
+Wake trained from random initialization in `me2-vcm-intent-refresh-updated-20261002`. Intent provenance: `{'training': 'from_random_initialization', 'source_run': 'me2-vcm-intent-refresh-updated-20261002', 'recipe': 'refined', 'seed': 20261002, 'epochs': 60, 'dataset': 'ME2 Spoken Command Dataset train split + mapped personal train clips'}`. Separate binary wake and 31-class intent INT8 ONNX models are staged here with exact class ordering and SHA-256 hashes. The local operating wake threshold is fixed at 0.95. See `metadata.json` for held-out scores and limitations. This directory is the source for the next manual-launch Pi bundle; its presence alone does not mean the Pi has been updated.

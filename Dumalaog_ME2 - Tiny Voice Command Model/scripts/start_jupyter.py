@@ -14,8 +14,8 @@ def open_existing():
             req=Request(server['url']+'api/status',headers={'Authorization':'token '+server['token']})
             with urlopen(req,timeout=2) as response:
                 if response.status!=200: continue
-            webbrowser.open(server['url']+'lab/tree/notebooks/ME2_From_Scratch_Verified.ipynb?'+urlencode({'token':server['token']}))
-            print('Jupyter notebook opened at http://127.0.0.1:8890 (authentication token omitted).')
+            webbrowser.open(server['url']+'lab/tree/notebooks/ME2_Tiny_VCM_Training.ipynb?'+urlencode({'token':server['token']}))
+            print('Opened the ME2 training notebook in JupyterLab at http://127.0.0.1:8890 (authentication token omitted).')
             return True
         except (OSError,ValueError,KeyError): pass
     return False

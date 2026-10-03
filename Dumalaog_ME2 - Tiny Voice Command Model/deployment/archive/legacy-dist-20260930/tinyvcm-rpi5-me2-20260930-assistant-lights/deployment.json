@@ -1,0 +1,29 @@
+{
+  "title": "ME2 - VCM on Raspberry Pi 5",
+  "kind": "personalized_binary_wake_plus_31_intent",
+  "port": 7860,
+  "host": "127.0.0.1",
+  "wake_threshold": 0.95,
+  "wake_threshold_note": "User-requested operating threshold; validation-selected threshold remains in candidate_metadata.json.",
+  "vad_threshold": 0.006,
+  "inference_interval_sec": 0.12,
+  "post_wake_timeout_sec": 10.0,
+  "microphone_default": "automatic; no device index is hard-coded",
+  "autostart": false,
+  "gpio": true,
+  "gpio_led_channels_bcm": {
+    "red": 17,
+    "green": 27,
+    "blue": 22
+  },
+  "gpio_led_header_pins_physical": {
+    "red": 11,
+    "green": 13,
+    "blue": 15,
+    "ground": 6
+  },
+  "gpio_series_resistor_ohms_per_channel": 330,
+  "gpio_buzzer": false,
+  "wake_model": "models/wake_binary_int8.onnx",
+  "intent_model": "models/intent_31_int8.onnx"
+}

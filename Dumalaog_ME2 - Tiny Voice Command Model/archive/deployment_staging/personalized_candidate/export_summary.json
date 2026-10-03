@@ -1,0 +1,14 @@
+{
+  "classes": [
+    "NON_WAKE",
+    "WAKE_WORD"
+  ],
+  "validation_selected_threshold": 0.9992183446884155,
+  "validation_threshold_int8": 0.9992183446884155,
+  "int8_path": "models/binary_wake_int8.onnx",
+  "int8_size_bytes": 37425,
+  "int8_sha256": "5e74fade5beefdd86267823ea0c895fcd3a512fc04ce87b06b5d9a4e4b5dad3d",
+  "pretrained_weights_used": false,
+  "threshold_selection": "zero false accepts on validation windows",
+  "deployment_status": "experimental_candidate_not_deployed"
+}

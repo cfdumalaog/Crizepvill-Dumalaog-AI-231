@@ -1,0 +1,71 @@
+{
+  "title": "ME2 - VCM on Raspberry Pi 5",
+  "dataset_name": "ME2 Spoken Command Dataset",
+  "dataset_revision": "a90b8d106349b02c5570a1a258503386043f63b2",
+  "source_run": "classagreementvcm-20261002-a90b8d10-r3",
+  "candidate_status": "isolated_pi_trial_not_promoted",
+  "pretrained_weights_used": false,
+  "wake": {
+    "labels": [
+      "NON_WAKE",
+      "WAKE_WORD"
+    ],
+    "model": {
+      "path": "models/binary_wake_int8.onnx",
+      "sha256": "6c2e941580d8ea778ed664c929e893c226efb91e3e787e65837908c81153deac"
+    },
+    "threshold": 0.95,
+    "training": "unchanged active binary wake weights; source dataset has no wake-positive labels"
+  },
+  "intent": {
+    "classes": [
+      "ALARM_6_00AM",
+      "ALARM_8_00AM",
+      "ALARM_9_00PM",
+      "BRIGHTNESS_100",
+      "BRIGHTNESS_20",
+      "BRIGHTNESS_60",
+      "CALL",
+      "COLOR_BLUE",
+      "COLOR_GREEN",
+      "COLOR_RED",
+      "CREATE_REMINDER_DRINK_WATER",
+      "CREATE_REMINDER_EXERCISE",
+      "CREATE_REMINDER_STUDY",
+      "LIGHT_OFF",
+      "LIGHT_ON",
+      "LIST_REMINDERS",
+      "MESSAGE",
+      "NEXT",
+      "PAUSE",
+      "PLAY_MUSIC",
+      "STOP",
+      "TEMPERATURE_18",
+      "TEMPERATURE_22",
+      "TEMPERATURE_26",
+      "TIME",
+      "TIMER_10s",
+      "TIMER_1m",
+      "TIMER_30s",
+      "VOLUME_DOWN",
+      "VOLUME_UP",
+      "WEATHER"
+    ],
+    "model": {
+      "path": "models/intent_int8.onnx",
+      "sha256": "4af9e1a0a6fb8a3a6c98eb02ed49d02dab6b92b0f18c47adbadaffb77ced35d1",
+      "size_bytes": 39315
+    },
+    "architecture": "TinyDSCNN-48, initialized from random weights",
+    "confidence_threshold": 0.76,
+    "margin_threshold": 0.0
+  },
+  "comparison": {
+    "evaluation": "single paired pass on the frozen 4,418-row published test",
+    "baseline_accuracy": 0.7963852665293983,
+    "candidate_accuracy": 0.789522077,
+    "baseline_macro_f1": 0.7947377025506425,
+    "candidate_macro_f1": 0.7912,
+    "decision": "Keep the current release as default; this package is isolated for hands-on evaluation."
+  }
+}

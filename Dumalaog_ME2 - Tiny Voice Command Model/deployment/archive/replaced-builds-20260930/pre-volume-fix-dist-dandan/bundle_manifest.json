@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "sha256": {
+    "README.md": "2e2bcc005533a401f15cab070503f1681dd79d192393b1393c52de94308c9224",
+    "assets/demo_melody_1.wav": "5e00238cd3e95c3553a68155303fb893bf280bfee11e6ad7f64209000612324d",
+    "assets/demo_melody_2.wav": "e62b9615cca946aa0eb3669a77ff0208a9c862a1fa97b3e2619e5f1fb01f67b2",
+    "candidate_metadata.json": "1da3ba72ff0f55e3685fa3fc79924ea0280e3d40a6fa931cc40074bad6cbdbb8",
+    "deployment.json": "9f46de7b5b14b10fe829837c5c110a4a742db0bcf5aa313d5a9d95ce2d4f2b4c",
+    "docs/RASPBERRY_PI_5_LED_WIRING.md": "75dcfaed128c993462216b0908fe488a5ff99d66df68202415e3e5ec176ed18a",
+    "export_summary.json": "b73ba1f4088fbf9d9f1f8dcdc9f5dfecc4f41c7c633ce5a5c6c70c32a90eb58b",
+    "launch-vcm.sh": "fa3c075f1613491317a0fd3ac44367af3faf8197152241a284152d4b146b94c9",
+    "models/intent_31_int8.onnx": "85696f8ebbf17c44b8641785fcdb7d2e61c68042271a818d943de58d66caa0c9",
+    "models/wake_binary_int8.onnx": "44bf989b7f2cbd3823c2cbb975b0fbf26e4ca6c489075430433bec19db2d569e",
+    "requirements-runtime.txt": "01a70fec2a08bd01e6a4d9988680f64882bc7562217219e823f5463c780be9d9",
+    "scripts/restart_local_app.py": "b27b3d117382be09ec9cdcce178805d23781c6a156e0f14d7d063cd030de347d",
+    "tinyvcm/__init__.py": "ce11d545cd5b55504e0db1b6cace5c01a9418d378f0a0d4010fe848cd97171d9",
+    "tinyvcm/audio_output.py": "2d1f059344344dcfe0f6cfc04646ca0f486c2dd6e7dfdbd0daf207aee9755e11",
+    "tinyvcm/config.py": "6b6232107e3ddb45ce39334d7aa8b1b4a26bbcce1e8177d3d451aaded5dec728",
+    "tinyvcm/devices.py": "f086f5c163bf3848b7a8b5047eadc8fd763cefb4237f71712957e54d400bdd8e",
+    "tinyvcm/microphone.py": "b93da17d4b6dc62c3b068471ebda93d27d26a8d6020cb72944841eda2b8ab76f",
+    "tinyvcm/restart.py": "9c0d9d898b6ee4f8c1eff0a1c3aa84863f3c40841f4572b4dfb613b44b721386",
+    "tinyvcm_runtime/__init__.py": "73bbb2750e521dd93f9360215cefcb5b1e7fd451ea3a081febc48091285bbca0",
+    "tinyvcm_runtime/config.py": "c6c01f005962cfb2ed68ea6ed096dc9efc365ac97855bc07ba7cc84c43359aa1",
+    "tinyvcm_runtime/frontend.py": "93fd2c841b94c18520f26e89ee8d4743bc741e108cec7f6cc8d2e5852899ae3e",
+    "tinyvcm_runtime/media_engine.py": "0f7fea68d02d634ef0c1d0e9bfbcaa39445d4c5638ea8e09f1fe9c4fca8d336a",
+    "vcm_app.py": "3d7d9c1b863a007cb4631ed1a0b36b0003b85e10fdaf63bf74fe6f595c3ae1fc",
+    "verify_personalized_rpi.py": "b1d780f6d83b45ef3df3e58c95266da81a115535d821168ac19adcc9b882f1c6"
+  }
+}

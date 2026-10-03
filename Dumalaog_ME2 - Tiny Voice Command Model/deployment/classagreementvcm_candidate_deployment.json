@@ -1,0 +1,44 @@
+{
+  "verified_at_local": "2026-10-02T11:50:21+08:00",
+  "status": "running_isolated_candidate",
+  "pi_hostname": "cfdfnjrpi5",
+  "install_path": "/home/dalmacio/Desktop/me2-dataset-candidate",
+  "local_loopback_url": "http://127.0.0.1:7865/assistant",
+  "ssh_tunnel": "127.0.0.1:7865 -> Pi 127.0.0.1:7865",
+  "autostart": false,
+  "gpio_enabled": false,
+  "wake_threshold": 0.95,
+  "intent_confidence_threshold": 0.76,
+  "intent_margin_threshold": 0.0,
+  "package": {
+    "path": "deployment/dist/me2-dataset-candidate-20261002.zip",
+    "sha256": "256ab7f6d06b7fbc47efce1a1ce762e6c10cc781d1f3e780fb0425c069cfb531",
+    "verified_payload_files": 24
+  },
+  "models": {
+    "wake_sha256": "6c2e941580d8ea778ed664c929e893c226efb91e3e787e65837908c81153deac",
+    "intent_sha256": "4af9e1a0a6fb8a3a6c98eb02ed49d02dab6b92b0f18c47adbadaffb77ced35d1",
+    "int8_combined_bytes": 76740
+  },
+  "pi_verification": {
+    "integrity": "passed",
+    "arm64_cpu_provider": true,
+    "wake_model_only_p95_ms": 1.384,
+    "wake_frontend_plus_model_p95_ms": 5.51,
+    "intent_model_only_p95_ms": 1.369,
+    "intent_frontend_plus_model_p95_ms": 5.225,
+    "api_http_status": 200,
+    "reported_model_source_run": "classagreementvcm-20261002-a90b8d10-r3",
+    "reported_wake_sha256": "6c2e941580d8ea778ed664c929e893c226efb91e3e787e65837908c81153deac",
+    "reported_intent_sha256": "4af9e1a0a6fb8a3a6c98eb02ed49d02dab6b92b0f18c47adbadaffb77ced35d1",
+    "microphone": "No microphone connected",
+    "microphone_stream_active": false,
+    "error": null
+  },
+  "default_release_untouched": {
+    "path": "/home/dalmacio/Desktop/dandan",
+    "wake_sha256": "6c2e941580d8ea778ed664c929e893c226efb91e3e787e65837908c81153deac",
+    "intent_sha256": "12984401fe312758dbd7ecd53ae9358b0a41b27ffcd024a9ae263614e2e7b977"
+  },
+  "live_speech_test": "blocked_until_a_microphone_is_connected"
+}

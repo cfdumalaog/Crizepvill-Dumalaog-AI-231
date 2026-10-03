@@ -1,0 +1,206 @@
+{
+  "status": "passed",
+  "protocol": "Direct GPIO API test, bypasses speech models; pin levels observed, optical output not measured.",
+  "results": [
+    {
+      "command": "COLOR_RED",
+      "expected_rgb": [
+        1.0,
+        0.0,
+        0.0
+      ],
+      "actual_rgb": [
+        1.0,
+        0.0,
+        0.0
+      ],
+      "color": "red",
+      "verified_pin_levels": {
+        "17": 1,
+        "22": 0,
+        "27": 0
+      },
+      "pins": "17: op dh pn | hi // GPIO17 = output\n22: op dl pn | lo // GPIO22 = output\n27: op dl pn | lo // GPIO27 = output"
+    },
+    {
+      "command": "LIGHT_OFF",
+      "expected_rgb": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "actual_rgb": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": "red",
+      "verified_pin_levels": {
+        "17": 0,
+        "22": 0,
+        "27": 0
+      },
+      "pins": "17: op dl pn | lo // GPIO17 = output\n22: op dl pn | lo // GPIO22 = output\n27: op dl pn | lo // GPIO27 = output"
+    },
+    {
+      "command": "LIGHT_ON",
+      "expected_rgb": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "actual_rgb": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "color": "white",
+      "verified_pin_levels": {
+        "17": 1,
+        "22": 1,
+        "27": 1
+      },
+      "pins": "17: op dh pn | hi // GPIO17 = output\n22: op dh pn | hi // GPIO22 = output\n27: op dh pn | hi // GPIO27 = output"
+    },
+    {
+      "command": "COLOR_GREEN",
+      "expected_rgb": [
+        0.0,
+        1.0,
+        0.0
+      ],
+      "actual_rgb": [
+        0.0,
+        1.0,
+        0.0
+      ],
+      "color": "green",
+      "verified_pin_levels": {
+        "17": 0,
+        "22": 0,
+        "27": 1
+      },
+      "pins": "17: op dl pn | lo // GPIO17 = output\n22: op dl pn | lo // GPIO22 = output\n27: op dh pn | hi // GPIO27 = output"
+    },
+    {
+      "command": "LIGHT_OFF",
+      "expected_rgb": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "actual_rgb": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": "green",
+      "verified_pin_levels": {
+        "17": 0,
+        "22": 0,
+        "27": 0
+      },
+      "pins": "17: op dl pn | lo // GPIO17 = output\n22: op dl pn | lo // GPIO22 = output\n27: op dl pn | lo // GPIO27 = output"
+    },
+    {
+      "command": "LIGHT_ON",
+      "expected_rgb": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "actual_rgb": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "color": "white",
+      "verified_pin_levels": {
+        "17": 1,
+        "22": 1,
+        "27": 1
+      },
+      "pins": "17: op dh pn | hi // GPIO17 = output\n22: op dh pn | hi // GPIO22 = output\n27: op dh pn | hi // GPIO27 = output"
+    },
+    {
+      "command": "COLOR_BLUE",
+      "expected_rgb": [
+        0.0,
+        0.0,
+        1.0
+      ],
+      "actual_rgb": [
+        0.0,
+        0.0,
+        1.0
+      ],
+      "color": "blue",
+      "verified_pin_levels": {
+        "17": 0,
+        "22": 1,
+        "27": 0
+      },
+      "pins": "17: op dl pn | lo // GPIO17 = output\n22: op dh pn | hi // GPIO22 = output\n27: op dl pn | lo // GPIO27 = output"
+    },
+    {
+      "command": "LIGHT_OFF",
+      "expected_rgb": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "actual_rgb": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": "blue",
+      "verified_pin_levels": {
+        "17": 0,
+        "22": 0,
+        "27": 0
+      },
+      "pins": "17: op dl pn | lo // GPIO17 = output\n22: op dl pn | lo // GPIO22 = output\n27: op dl pn | lo // GPIO27 = output"
+    },
+    {
+      "command": "LIGHT_ON",
+      "expected_rgb": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "actual_rgb": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "color": "white",
+      "verified_pin_levels": {
+        "17": 1,
+        "22": 1,
+        "27": 1
+      },
+      "pins": "17: op dh pn | hi // GPIO17 = output\n22: op dh pn | hi // GPIO22 = output\n27: op dh pn | hi // GPIO27 = output"
+    },
+    {
+      "command": "LIGHT_OFF",
+      "expected_rgb": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "actual_rgb": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "color": "white",
+      "verified_pin_levels": {
+        "17": 0,
+        "22": 0,
+        "27": 0
+      },
+      "pins": "17: op dl pn | lo // GPIO17 = output\n22: op dl pn | lo // GPIO22 = output\n27: op dl pn | lo // GPIO27 = output"
+    }
+  ]
+}

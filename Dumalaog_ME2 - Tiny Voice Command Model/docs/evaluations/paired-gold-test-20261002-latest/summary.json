@@ -1,0 +1,94 @@
+{
+  "dataset": "ME2 Spoken Command Dataset",
+  "revision": "6947f13073e57eb6ae67e7e2fc3680700b82aa13",
+  "test_parquet_sha256": "40e9b66b4e12bc5b012bfa2dc7367602740ac394467e48d4924364c46f912f32",
+  "test_rows": 4443,
+  "class_order": [
+    "ALARM_6_00AM",
+    "ALARM_8_00AM",
+    "ALARM_9_00PM",
+    "BRIGHTNESS_100",
+    "BRIGHTNESS_20",
+    "BRIGHTNESS_60",
+    "CALL",
+    "COLOR_BLUE",
+    "COLOR_GREEN",
+    "COLOR_RED",
+    "CREATE_REMINDER_DRINK_WATER",
+    "CREATE_REMINDER_EXERCISE",
+    "CREATE_REMINDER_STUDY",
+    "LIGHT_OFF",
+    "LIGHT_ON",
+    "LIST_REMINDERS",
+    "MESSAGE",
+    "NEXT",
+    "PAUSE",
+    "PLAY_MUSIC",
+    "STOP",
+    "TEMPERATURE_18",
+    "TEMPERATURE_22",
+    "TEMPERATURE_26",
+    "TIME",
+    "TIMER_10s",
+    "TIMER_1m",
+    "TIMER_30s",
+    "VOLUME_DOWN",
+    "VOLUME_UP",
+    "WEATHER"
+  ],
+  "models": {
+    "gold_train_candidate": {
+      "model_path": "runs\\classagreementvcm-20261002-a90b8d10-r3\\models\\intent_gold_int8.onnx",
+      "model_sha256": "4af9e1a0a6fb8a3a6c98eb02ed49d02dab6b92b0f18c47adbadaffb77ced35d1",
+      "raw_supported_accuracy": 0.8236775818639799,
+      "raw_supported_macro_f1": 0.82550529777708,
+      "supported_rows": 4367,
+      "oos_or_unmapped_rows": 76,
+      "gate": {
+        "confidence": 0.76,
+        "margin": 0.0,
+        "known_correct": 2817,
+        "known_wrong": 30,
+        "known_reject": 1520,
+        "oos_accepts": 1
+      },
+      "common_active_gate": {
+        "confidence": 0.68,
+        "margin": 0.15,
+        "known_correct": 3016,
+        "known_wrong": 62,
+        "known_reject": 1289,
+        "oos_accepts": 1
+      }
+    },
+    "option_b_plus_personal_active": {
+      "model_path": "deployment\\current_vcm\\models\\intent_int8.onnx",
+      "model_sha256": "12984401fe312758dbd7ecd53ae9358b0a41b27ffcd024a9ae263614e2e7b977",
+      "raw_supported_accuracy": 0.8429127547515457,
+      "raw_supported_macro_f1": 0.8425099948525195,
+      "supported_rows": 4367,
+      "oos_or_unmapped_rows": 76,
+      "gate": {
+        "confidence": 0.68,
+        "margin": 0.15,
+        "known_correct": 3584,
+        "known_wrong": 283,
+        "known_reject": 500,
+        "oos_accepts": 36
+      },
+      "common_active_gate": {
+        "confidence": 0.68,
+        "margin": 0.15,
+        "known_correct": 3584,
+        "known_wrong": 283,
+        "known_reject": 500,
+        "oos_accepts": 36
+      }
+    }
+  },
+  "limitations": [
+    "The Gold candidate was trained on the previous pinned revision a90b8d106349b02c5570a1a258503386043f63b2; this is a frozen-model evaluation on the requested test revision, not a retraining run.",
+    "The active Option-B-derived model includes personal recordings; no pure Option-B-only ONNX was retained in active or archived ONNX artifacts.",
+    "The dataset contains no positive wake examples; this evaluates intent only."
+  ]
+}

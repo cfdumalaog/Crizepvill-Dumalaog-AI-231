@@ -7,6 +7,9 @@ HOP = 160
 NFFT = 512
 WINDOW = 400
 MELS = 40
+# Historical 26-label taxonomy for the legacy 1.5-second pipeline only.
+# The active recorder and 31-class intent model use
+# tinyvcm_model.recording_labels / tinyvcm_model.config.LABELS.
 LABELS = [
     'play_music', 'media_pause', 'media_resume', 'media_next', 'volume_up', 'volume_down',
     'question_weather', 'question_time', 'lights_on', 'lights_off',

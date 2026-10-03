@@ -1,0 +1,34 @@
+{
+  "classes": [
+    "NON_WAKE",
+    "WAKE_WORD"
+  ],
+  "wake_class_index": 1,
+  "validation_selected_threshold": 0.9985431432723999,
+  "validation_threshold_int8": 0.9985431432723999,
+  "local_operating_threshold": 0.9,
+  "local_operating_threshold_source": "User-requested desktop wake-sensitivity setting; validation threshold remains unchanged.",
+  "int8_path": "models/binary_wake_int8.onnx",
+  "int8_size_bytes": 37425,
+  "int8_sha256": "f7d1c3f7826bc16426eac02c10c05e077502f28bbc764c81510c7af08fbfb002",
+  "pretrained_weights_used": false,
+  "threshold_selection": "validation threshold selected with zero false accepts on validation clips",
+  "model_signature": {
+    "input_name": "input",
+    "input_shape": [
+      "batch",
+      1,
+      40,
+      251
+    ],
+    "input_type": "tensor(float)",
+    "output_name": "logits",
+    "output_shape": [
+      "batch",
+      2
+    ],
+    "output_type": "tensor(float)",
+    "cpu_smoke": "passed"
+  },
+  "deployment_status": "experimental_desktop_active_not_pi_deployed"
+}

@@ -1,4 +1,4 @@
-"""Script to generate the comprehensive ME2 Option B TinyDSCNN-48 Antigrav Jupyter Notebook."""
+"""Script to generate the comprehensive ME2 Option B TinyDSCNN-48 VCM Jupyter Notebook."""
 import json
 from pathlib import Path
 import nbformat as nbf
@@ -23,7 +23,7 @@ def build_notebook():
 
     # Cell 1: Student Header
     cells.append(nbf.v4.new_markdown_cell("""# AI 231 MEX2: Embedded Voice Command System (Option B Dataset)
-## From-Scratch Edge Keyword Spotting with TinyDSCNN-48 Antigrav Edition
+## From-Scratch Edge Keyword Spotting with TinyDSCNN-48 VCM Edition
 
 **Student**: Crizepvill F. Dumalaog (SN: 202521406)  
 **Course**: AI 231 (Deep Learning Systems) — Machine Exercise 2  
@@ -35,7 +35,7 @@ def build_notebook():
 ---
 
 ### Academic Integrity & AI Pair-Programming Declaration
-In accordance with course guidelines, this model was trained **purely from scratch** (zero pretrained weights or transfer learning) on an NVIDIA GeForce RTX 3050 Laptop GPU. AI pair-programming (Antigrav) was utilized for code scaffolding, automated pipeline auditing, vector architectural visualization, and ONNX quantization verification. All mathematical derivations, audio frontend equations, model architecture specifications, and training results were empirically verified on actual hardware.
+In accordance with course guidelines, this model was trained **purely from scratch** (zero pretrained weights or transfer learning) on an NVIDIA GeForce RTX 3050 Laptop GPU. AI pair-programming (VCM) was utilized for code scaffolding, automated pipeline auditing, vector architectural visualization, and ONNX quantization verification. All mathematical derivations, audio frontend equations, model architecture specifications, and training results were empirically verified on actual hardware.
 """))
 
     # Cell 2: Imports & Environment Verification
@@ -56,7 +56,7 @@ import onnxruntime as ort
 
 # Add project root to sys.path
 PROJECT_ROOT = Path('.').resolve()
-if not (PROJECT_ROOT / 'tinyvcm_antigrav').exists() and (PROJECT_ROOT.parent / 'tinyvcm_antigrav').exists():
+if not (PROJECT_ROOT / 'tinyvcm_model').exists() and (PROJECT_ROOT.parent / 'tinyvcm_model').exists():
     PROJECT_ROOT = PROJECT_ROOT.parent
 
 if str(PROJECT_ROOT) not in sys.path:
@@ -84,8 +84,8 @@ To prevent acoustic leakage and ensure genuine generalization to unseen voices:
 """))
 
     # Cell 4: Code - Dataset Audit Execution
-    cells.append(nbf.v4.new_code_cell("""from tinyvcm_antigrav.config import MANIFEST_PATH, OPTION_B_DATA, LABELS
-from tinyvcm_antigrav.data import audit_dataset
+    cells.append(nbf.v4.new_code_cell("""from tinyvcm_model.config import MANIFEST_PATH, OPTION_B_DATA, LABELS
+from tinyvcm_model.data import audit_dataset
 
 rows, labels, audit_report = audit_dataset()
 
@@ -133,7 +133,7 @@ The edge runtime captures continuous audio from the Fifine USB Microphone at $16
 """))
 
     # Cell 6: Code - Frontend Demonstration & Visualization
-    cells.append(nbf.v4.new_code_cell("""from tinyvcm_antigrav.frontend import Frontend, fit_audio
+    cells.append(nbf.v4.new_code_cell("""from tinyvcm_model.frontend import Frontend, fit_audio
 
 frontend = Frontend()
 
@@ -158,7 +158,7 @@ plt.show()
 """))
 
     # Cell 7: Markdown - Architecture & Depthwise Separable Efficiency Proof
-    cells.append(nbf.v4.new_markdown_cell("""## 3. TinyDSCNN-48 Antigrav Architecture & Efficiency Proof
+    cells.append(nbf.v4.new_markdown_cell("""## 3. TinyDSCNN-48 VCM Architecture & Efficiency Proof
 
 ### Mathematical Efficiency of Depthwise Separable Convolutions
 Standard 2D convolution applies a 3D kernel across all spatial dimensions and all input channels simultaneously:
@@ -196,13 +196,13 @@ This yields a **$7.58\\times$ computational speedup** and an **$8.58\\times$ par
 """))
 
     # Cell 8: Code - Instantiate Model & Check Parameter Count
-    cells.append(nbf.v4.new_code_cell("""from tinyvcm_antigrav.model import TinyDSCNN
+    cells.append(nbf.v4.new_code_cell("""from tinyvcm_model.model import TinyDSCNN
 
 model = TinyDSCNN(classes=len(LABELS), channels=48)
 total_params = sum(p.numel() for p in model.parameters())
 trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
 
-print(f"Model:            TinyDSCNN-48 Antigrav Edition")
+print(f"Model:            TinyDSCNN-48 VCM Edition")
 print(f"Classes:          {len(LABELS)}")
 print(f"Total Parameters: {total_params:,}")
 print(f"Trainable Params: {trainable_params:,}")
@@ -227,12 +227,12 @@ The model was trained for **35 epochs** using:
 """))
 
     # Cell 10: Code - Load Training Run Metrics & Plot Dynamic Curves
-    cells.append(nbf.v4.new_code_cell("""# Find latest antigrav run directory
+    cells.append(nbf.v4.new_code_cell("""# Find latest vcm run directory
 runs_dir = PROJECT_ROOT / 'runs'
-antigrav_runs = sorted(list(runs_dir.glob('antigrav-*')))
+vcm_runs = sorted(list(runs_dir.glob('vcm-*')))
 
-if antigrav_runs:
-    latest_run = antigrav_runs[-1]
+if vcm_runs:
+    latest_run = vcm_runs[-1]
     print(f"Loading metrics from latest training run: {latest_run.name}")
     
     with (latest_run / 'run_info.json').open('r') as f:
@@ -275,7 +275,7 @@ if antigrav_runs:
     plt.tight_layout()
     plt.show()
 else:
-    print("No runs found yet. Execute train_optionb_antigrav.py to generate run records.")
+    print("No runs found yet. Execute train_optionb_vcm.py to generate run records.")
 """))
 
     # Cell 11: Markdown - ONNX Quantization & Benchmarking
@@ -290,8 +290,8 @@ To deploy onto the Raspberry Pi 5 without PyTorch runtime overhead:
 
     # Cell 12: Code - Benchmark & Export Verification
     cells.append(nbf.v4.new_code_cell("""models_dir = PROJECT_ROOT / 'models'
-fp32_model = models_dir / 'antigrav_optionb_fp32.onnx'
-int8_model = models_dir / 'antigrav_optionb_int8.onnx'
+fp32_model = models_dir / 'vcm_optionb_fp32.onnx'
+int8_model = models_dir / 'vcm_optionb_int8.onnx'
 
 if int8_model.exists():
     fp32_size = fp32_model.stat().st_size
@@ -362,7 +362,7 @@ print(f"Model Intent 'TIMER_10s' -> {timer_10s}")
 
     # Write notebook
     nb['cells'] = cells
-    nb_path = ROOT / 'notebooks' / 'ME2_OptionB_TinyDSCNN48_Antigrav.ipynb'
+    nb_path = ROOT / 'notebooks' / 'ME2_OptionB_TinyDSCNN48_VCM.ipynb'
     with open(nb_path, 'w', encoding='utf-8') as f:
         nbf.write(nb, f)
     print(f"Generated {nb_path} with {len(cells)} cells.")

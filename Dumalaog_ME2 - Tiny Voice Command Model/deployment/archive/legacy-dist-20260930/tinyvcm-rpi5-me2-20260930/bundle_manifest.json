@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "sha256": {
+    "README.md": "7b87494e9813bf3a278645ebfc9de5206b79d02aa8b6697f0dfb774994f8f8bd",
+    "antigrav_demo.py": "79c6c90211cfdf7a89992d94adb6f43982b03111e3da22896c76ca7f2d0b37a9",
+    "assets/demo_melody_1.wav": "5e00238cd3e95c3553a68155303fb893bf280bfee11e6ad7f64209000612324d",
+    "assets/demo_melody_2.wav": "e62b9615cca946aa0eb3669a77ff0208a9c862a1fa97b3e2619e5f1fb01f67b2",
+    "candidate_metadata.json": "0f43b5f4674abd2cefe31e958bbe0fc55aeaf6bedee84482e6ba3cb2234a0be4",
+    "deployment.json": "dca3ff6af0d0316f64a22536e7eb564e2fd3495297dd2e555036b7043c741784",
+    "export_summary.json": "976ab12ce35c691c64a758002d6f47e09579093bb9ffe85fc06df4c2ea536c9c",
+    "models/intent_31_int8.onnx": "a4e915bf77b14df23bd4cecb446569921289aa7992ba5cb18599dfcfbc481e30",
+    "models/wake_binary_int8.onnx": "035592b1949ee9586b91a6eacf715ff2aa600701a6a76b2207e666bc68a71bc9",
+    "requirements-runtime.txt": "bdcf975abda309b8a1c426cdfe87eac384996370cb25b84db4d64e5ca191d195",
+    "scripts/restart_local_app.py": "447f2139978fbca7fede8c111249e50c436c26db0586a4aff3368f9aac6436cb",
+    "start-vcm.sh": "048b2e678434440aebebfbe886796919c15e00eff08ec88a08affba7b882213a",
+    "tinyvcm/__init__.py": "ce11d545cd5b55504e0db1b6cace5c01a9418d378f0a0d4010fe848cd97171d9",
+    "tinyvcm/config.py": "d43bf6d9df35f64b7b4daaa9bd583a087b09eba29ce0775529762310e1e76af1",
+    "tinyvcm/devices.py": "64ff41f4f4a46f4f787d6ee3cb4a2fd9db7b80c5b75ad4b480a799f131765c06",
+    "tinyvcm/microphone.py": "b93da17d4b6dc62c3b068471ebda93d27d26a8d6020cb72944841eda2b8ab76f",
+    "tinyvcm/restart.py": "9c0d9d898b6ee4f8c1eff0a1c3aa84863f3c40841f4572b4dfb613b44b721386",
+    "tinyvcm_antigrav/__init__.py": "4b0b9036ab11c7d10836f582f1f258a5a93e69b3a98c1c754c5357ff6779d975",
+    "tinyvcm_antigrav/config.py": "a21462c9845b0181171ae0a060d0173320a3209e35e0dc2b3e48d3ce91869141",
+    "tinyvcm_antigrav/frontend.py": "93fd2c841b94c18520f26e89ee8d4743bc741e108cec7f6cc8d2e5852899ae3e",
+    "tinyvcm_antigrav/media_engine.py": "0f7fea68d02d634ef0c1d0e9bfbcaa39445d4c5638ea8e09f1fe9c4fca8d336a",
+    "verify_personalized_rpi.py": "7e61787a2b95dc286a7d3c46df5c6a455c3338745a5af5af66a5625c38dd6167"
+  }
+}

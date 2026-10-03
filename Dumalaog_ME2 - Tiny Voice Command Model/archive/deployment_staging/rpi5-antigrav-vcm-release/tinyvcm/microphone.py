@@ -1,0 +1,75 @@
+"""Bounded audio queue: PortAudio callback never runs inference or device actions."""
+import math
+import queue
+import time
+import numpy as np
+from scipy.signal import resample_poly
+import sounddevice as sd
+from .config import SR
+
+
+class Microphone:
+    def __init__(self,device=None,hop=.15):
+        self.device=device; self.hop=hop; self.stream=None
+        self.queue=queue.Queue(maxsize=24)
+        self.dropped=0; self.status=''; self.name='not started'
+        self.pending=np.zeros(0,dtype=np.float32)
+        self.rate=SR
+
+    def _callback(self,data,frames,info,status):
+        if status: self.status=str(status)
+        try: self.queue.put_nowait(data.copy())
+        except queue.Full: self.dropped+=1
+
+    def start(self):
+        devices=sd.query_devices(); hosts=sd.query_hostapis()
+        candidates=[]
+        for i,d in enumerate(devices):
+            if not d['max_input_channels'] or (self.device is not None and i!=self.device): continue
+            name=d['name'].lower(); host=hosts[d['hostapi']]['name']
+            score=20*('array' in name)+10*('mic' in name)+15*('usb' in name)+8*('WASAPI' in host)+6*('WDM-KS' in host)
+            score-=50*any(s in name for s in ('stereo mix','loopback','virtual','speaker'))
+            candidates.append((score,i,d))
+        errors=[]
+        for _,i,d in sorted(candidates,reverse=True):
+            for ch in dict.fromkeys([1,int(d['max_input_channels']),min(2,int(d['max_input_channels']))]):
+                try:
+                    rate=int(d['default_samplerate'])
+                    stream=sd.InputStream(device=i,samplerate=rate,channels=ch,dtype='float32',
+                        blocksize=int(rate*.05),callback=self._callback)
+                    stream.start()
+                    first=self.queue.get(timeout=1)
+                    self.stream=stream; self.rate=rate; self.device=i
+                    self.name=f'{d["name"]} / {hosts[d["hostapi"]]["name"]} / {rate} Hz / {ch} ch'
+                    self.pending=first.mean(axis=1)
+                    return
+                except Exception as exc:
+                    errors.append(f'device {i}, {ch} ch: {exc}')
+                    if 'stream' in locals(): stream.close()
+                    while not self.queue.empty(): self.queue.get_nowait()
+        raise RuntimeError('No usable microphone. '+ '; '.join(errors[-4:]))
+
+    def read(self,timeout=.3):
+        needed=round(self.rate*self.hop)
+        while len(self.pending)<needed:
+            try: data=self.queue.get(timeout=timeout)
+            except queue.Empty: return None
+            self.pending=np.concatenate([self.pending,data.mean(axis=1)])
+        raw,self.pending=self.pending[:needed],self.pending[needed:]
+        div=math.gcd(self.rate,SR)
+        return resample_poly(raw,SR//div,self.rate//div).astype(np.float32) if self.rate!=SR else raw
+
+    def close(self):
+        if self.stream:
+            self.stream.stop(); self.stream.close(); self.stream=None
+
+
+if __name__=='__main__':
+    mic=Microphone()
+    try:
+        mic.start(); start=time.monotonic(); samples=0; peak=0.
+        while time.monotonic()-start<3:
+            chunk=mic.read()
+            if chunk is not None: samples+=len(chunk); peak=max(peak,float(np.max(np.abs(chunk))))
+        print({'device':mic.name,'resampled_samples':samples,'peak':peak,'dropped_blocks':mic.dropped})
+    finally: mic.close()

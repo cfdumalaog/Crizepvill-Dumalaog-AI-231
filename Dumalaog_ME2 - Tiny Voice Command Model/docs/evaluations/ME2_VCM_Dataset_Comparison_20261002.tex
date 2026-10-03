@@ -1,0 +1,113 @@
+\documentclass[10pt]{article}
+\usepackage[margin=0.7in]{geometry}
+\usepackage{booktabs,longtable,array}
+\usepackage{xcolor}
+\usepackage[hidelinks]{hyperref}
+\usepackage{microtype}
+\setlength{\parskip}{4pt}
+\setlength{\parindent}{0pt}
+\newcommand{\classlabel}[1]{\texttt{\detokenize{#1}}}
+\title{ME2 - VCM on Raspberry Pi 5\\[2pt]\large Dataset-Trained Candidate Comparison}
+\author{Evaluation record}
+\date{2026-10-02}
+\begin{document}
+\maketitle
+\vspace{-1.2em}
+
+\textbf{Decision.} The new intent model is installed as a separate Raspberry Pi trial, but the current model remains the default. On the single frozen test pass, the candidate scored slightly lower overall. It did better on smaller real/varied-source slices and had fewer out-of-scope actions at its own validation-selected gate. The Pi app is running, but live speech cannot be tested until a microphone is attached.
+
+\section*{Why this dataset was not used earlier}
+The initial pass audited the repulled files but did not fit a model: several source licenses and participant/voice permissions were not evidenced. The user then directed a private coursework training and comparison. The candidate was trained and scored locally; only model and runtime files were sent to the user's Pi, not raw dataset audio. Rights/consent evidence remains open before broader redistribution.
+
+\section*{Training and test protocol}
+Source: \textbf{ME2 Spoken Command Dataset}, revision \texttt{a90b8d106349b02c5570a1a258503386043f63b2}. The intent model is TinyDSCNN-48 with 14,527 parameters, initialized randomly; no pretrained weights, ASR, LLM, or cloud inference were used. It was trained on the 31 supported command/value labels for 100 epochs on an RTX 3050, with epoch 82 selected from train-derived, source/speaker-group validation. The 8,201 fitting clips and 2,122 validation clips came only from the train partition. The 66,390 numeral clips and 196-row holdout remained untouched.
+
+The model and action gates were frozen before a single paired evaluation of the 4,418-row published test: 4,371 supported commands and 47 true out-of-scope clips. The dataset contains no wake-positive clips. The binary wake model was therefore retained byte-identically; its test result measures only negative false accepts.
+
+The candidate INT8 intent file is 39,315 bytes. Paired with the 37,425-byte wake file, the two models total 76,740 bytes (74.9 KiB). Validation FP32-to-INT8 prediction agreement was 95.63\%.
+
+\section*{Aggregate results}
+\begin{center}
+\begin{tabular}{lrrrr}
+\toprule
+Model & Accuracy & Macro F1 & Top-level accuracy & Top-level macro F1\\
+\midrule
+Current & 79.64\% & 79.47\% & 81.38\% & 76.74\%\\
+Dataset candidate & 78.95\% & 79.12\% & 82.25\% & 76.56\%\\
+Candidate change & $-0.69$ pp & $-0.35$ pp & $+0.87$ pp & $-0.18$ pp\\
+\bottomrule
+\end{tabular}
+\end{center}
+The top-level metrics collapse the 31 command/value labels into 19 intent names. Source-specific test accuracy was current versus candidate: FluentSpeechCommands 22.45\%/62.59\% (n=147), SLURP 16.82\%/26.04\% (n=553), SNIPS 16.83\%/32.67\% (n=101), other real voice 12.85\%/24.02\% (n=179), and group synthetic 98.22\%/92.84\% (n=3,368). The overall test is heavily weighted toward the synthetic group; these unequal source slices do not establish a balanced real-world winner.
+
+\section*{Action gates and wake}
+Gate values are probabilities used to accept/reject a prediction; they are not accuracy targets.
+\begin{center}
+\begin{tabular}{lrrrr}
+\toprule
+Gate & Confidence & Margin & Correct-action coverage & OOS false actions\\
+\midrule
+Current deployed & 0.68 & 0.15 & 77.30\% & 22/47\\
+Current, validation-calibrated & 0.98 & 0.00 & 65.41\% & 2/47\\
+Candidate, validation-calibrated & 0.76 & 0.00 & 61.36\% & 0/47\\
+\bottomrule
+\end{tabular}
+\end{center}
+Candidate accepted-command accuracy was 98.82\% at 61.36\% correct-action coverage. Wake remained at 0.95 and accepted one of 4,418 non-wake test clips (0.02\%). There were no wake-positive test examples, so wake recall is not measured.
+
+\section*{Per-class F1}
+Each command/value label has 141 test clips. Only two candidate classes reach 95\% F1, so the project's 95\%-per-class target remains unmet.
+\small
+\begin{longtable}{>{\raggedright\arraybackslash}p{2.75in}rrr}
+\toprule
+Label & Current & Candidate & Change (pp)\\
+\midrule
+\endfirsthead
+\toprule
+Label & Current & Candidate & Change (pp)\\
+\midrule
+\endhead
+\classlabel{ALARM_6_00AM} & 86.02\% & 83.15\% & -2.87\\
+\classlabel{ALARM_8_00AM} & 72.58\% & 87.23\% & +14.65\\
+\classlabel{ALARM_9_00PM} & 76.38\% & 92.14\% & +15.76\\
+\classlabel{BRIGHTNESS_100} & 88.59\% & 89.89\% & +1.30\\
+\classlabel{BRIGHTNESS_20} & 92.42\% & 90.51\% & -1.91\\
+\classlabel{BRIGHTNESS_60} & 96.35\% & 96.35\% & +0.00\\
+\classlabel{CALL} & 67.55\% & 72.06\% & +4.51\\
+\classlabel{COLOR_BLUE} & 79.66\% & 66.41\% & -13.25\\
+\classlabel{COLOR_GREEN} & 80.15\% & 78.95\% & -1.20\\
+\classlabel{COLOR_RED} & 84.50\% & 71.48\% & -13.02\\
+\classlabel{CREATE_REMINDER_DRINK_WATER} & 82.57\% & 93.91\% & +11.34\\
+\classlabel{CREATE_REMINDER_EXERCISE} & 84.54\% & 92.47\% & +7.93\\
+\classlabel{CREATE_REMINDER_STUDY} & 96.06\% & 95.17\% & -0.89\\
+\classlabel{LIGHT_OFF} & 62.45\% & 49.80\% & -12.65\\
+\classlabel{LIGHT_ON} & 67.13\% & 63.87\% & -3.26\\
+\classlabel{LIST_REMINDERS} & 79.85\% & 80.60\% & +0.74\\
+\classlabel{MESSAGE} & 87.77\% & 83.69\% & -4.08\\
+\classlabel{NEXT} & 80.47\% & 72.36\% & -8.11\\
+\classlabel{PAUSE} & 75.94\% & 80.67\% & +4.73\\
+\classlabel{PLAY_MUSIC} & 55.41\% & 48.43\% & -6.98\\
+\classlabel{STOP} & 62.35\% & 67.31\% & +4.96\\
+\classlabel{TEMPERATURE_18} & 80.00\% & 91.03\% & +11.03\\
+\classlabel{TEMPERATURE_22} & 93.43\% & 87.20\% & -6.23\\
+\classlabel{TEMPERATURE_26} & 94.89\% & 92.96\% & -1.93\\
+\classlabel{TIME} & 70.97\% & 69.15\% & -1.82\\
+\classlabel{TIMER_10s} & 88.44\% & 94.29\% & +5.85\\
+\classlabel{TIMER_1m} & 89.49\% & 89.20\% & -0.29\\
+\classlabel{TIMER_30s} & 87.92\% & 93.23\% & +5.31\\
+\classlabel{VOLUME_DOWN} & 71.43\% & 59.52\% & -11.90\\
+\classlabel{VOLUME_UP} & 61.11\% & 54.62\% & -6.49\\
+\classlabel{WEATHER} & 67.27\% & 65.15\% & -2.11\\
+\bottomrule
+\end{longtable}
+\normalsize
+
+\section*{Raspberry Pi candidate status}
+Installed and manually running at \texttt{/home/dalmacio/Desktop/me2-dataset-candidate}, bound to 127.0.0.1:7865. It has GPIO disabled and boot autostart off. Wake threshold is 0.95; candidate intent gates are confidence 0.76 and margin 0.00. The app/API responded successfully; all 24 packaged hashes, ARM64 CPU inference and 2/31 output counts passed. Measured frontend-plus-model p95 was 5.510 ms wake and 5.225 ms intent. The current \texttt{/home/dalmacio/Desktop/dandan} model hashes were checked unchanged. The Pi reports no microphone, so live speech testing remains pending.
+
+\textbf{Next step:} attach a microphone and compare both models using the same speaker, mic placement, command prompts and room conditions in randomized order. Measure wake hits and false wakes per hour, plus accepted/rejected intent results. Keep the current model as the default unless the personal Pi trial shows a clear benefit without worsening lights-off/color behavior or OOS rejection. Do not retune against the frozen test.
+
+\vfill
+\footnotesize
+Machine evidence: \texttt{runs/classagreementvcm-20261002-a90b8d10-r3/frozen\_test\_comparison.json}; detailed discussion: \texttt{ME2\_VCM\_Dataset\_Comparison\_20261002.md}. Candidate install receipt: \texttt{deployment/classagreementvcm\_candidate\_deployment.json}.
+\end{document}

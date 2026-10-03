@@ -1,137 +1,58 @@
-# Tiny Voice Command Model — AI 231 ME2
+# ME2 - VCM on Raspberry Pi 5
 
-**Status: a trained, running prototype; human recognition and Raspberry Pi validation are unfinished.**
-The current implementation is `tinyvcm/` + `demo.py`, trained in
-[`notebooks/ME2_From_Scratch_Verified.ipynb`](notebooks/ME2_From_Scratch_Verified.ipynb).
-It uses random initialization and no pretrained recognition model, ASR, LLM or cloud inference.
+A small, offline speech-to-action demo for AI 231 Machine Exercise 2. Two separate **scratch-trained TinyDSCNN-48** models run in sequence: the binary wake detector (`NON_WAKE`, `WAKE_WORD`) is the only classifier used during standby; only after “Hi Dandan” or “Hello Dandan” does the 31-class intent model select a fixed coded action. The command window returns to standby after ten seconds, even if unrelated audio continues. No pretrained model, ASR, LLM or cloud classifier is used.
 
-## Open and use it on this PC
+## Start here
 
-From the shared workspace root, use its existing `.venv`:
+For training and the local VCM demo, use the shared workspace `.venv`. For recording, use the compiled native desktop app: double-click `launchers\ME2-VCM-Recorder\ME2 - VCM Recorder\ME2 - VCM Recorder.exe`. It captures directly from the selected Windows input with no web server or browser permission dialog; its live spectrogram updates during capture. Select a speaker ID, condition, label and suggested phrase, confirm consent, then Start → Stop → Save. The browser-based recorder remains available for development via `launchers\Start-Recorder.bat`, but use only one capture application at a time. To rebuild the native app, run `scripts\build_desktop_recorder.ps1` from PowerShell. The training and evaluation notebook is **`notebooks/ME2_Tiny_VCM_Training.ipynb`**; `launchers\Open-Notebooks.bat` opens JupyterLab.
 
-```powershell
-.\Start-VCM-Notebook.ps1
-.\Start-PC-Demo.ps1
-.\Start-VCM-Recorder.ps1
-```
+The VCM's microphone dropdown changes the Python capture device live and reconnects after disconnects; no model reload is needed. The desktop recorder has separate microphone and playback-device dropdowns, visible Start/Stop controls, take playback, Clear/Record Another, Restart App, and an Excel manifest refresh. Its label dropdown contains the same 31 intents and wake/negative labels as the browser recorder; phrase variations and consent requirements are unchanged. New takes store the exact selected prompt and its `canonical` or `v1`/`v2`/`v3` ID in the manifest.
 
-The notebook opens in JupyterLab on port 8890. The assistant dashboard is at
-<http://127.0.0.1:7861>; the human recording tool is at <http://127.0.0.1:7862>.
-Only start a launcher if its service is not already running. Ctrl+C stops a
-foreground service; the dashboard's mute button suspends recognition.
+## New dataset-trained candidate (2026-10-02)
 
-While unmuted, the native microphone continuously processes local audio, seeking
-**Hi Dandan** or **Hello Dandan**. Wait for the wake chime/LISTENING indicator,
-then say a short command. The command window expires after seven seconds.
-A completed command returns to standby. This follows the wake-then-command idea
-of a voice assistant, with a small fixed vocabulary. One-breath wake+command and
-free-form conversation are not supported. Live audio is not saved or uploaded.
+The updated **ME2 Spoken Command Dataset** was used to train a separate TinyDSCNN-48 intent candidate from random initialization and compare it once on the frozen 4,418-clip test. Its intent accuracy/macro F1 are **78.95% / 79.12%**, slightly below the current model's **79.64% / 79.47%**. The candidate scores better on several smaller real/varied-source slices and has fewer OOS false actions at its validation-selected gate, but the test is synthetic-heavy and neither model reaches 95% F1 on all 31 labels. The current model remains the default.
 
-## Actual results, 2026-09-26
+The Gold-trained candidate was removed from the Pi on 2026-10-03 at the user's request. Only the active ME2 model pair and wake model are retained; no model promotion occurred. Full results, per-class F1, gates and limitations: `docs/evaluations/ME2_VCM_Dataset_Comparison_20261002.md` and `.pdf`. The complete phrase reference is `output/pdf/ME2_VCM_Intents_and_Phrase_Variations.pdf`: it lists all 19 intent families, all 31 supported labels, all 93 dataset phrase variations, and each exact recorder ground-truth prompt. Regenerate it with `scripts/generate_intent_phrase_reference.py`.
 
-Authoritative run: `runs/20260926-111536`, 100 CUDA epochs from fresh random weights.
-The best validation checkpoint was epoch 84. The network is **TinyDSCNN48**,
-14,282 parameters, not the published BC-ResNet-1. Its common 16 kHz frontend
-uses a 25 ms window, 10 ms hop and 40 mel bands over 1.5 seconds (40 × 151).
+## Dataset and measured result
 
-| Measurement | Observed result | Scope |
-|---|---:|---|
-| Serialized INT8 ONNX | 44,640 bytes | Nine convolutions and one dense layer have INT8 weights |
-| Validation accuracy | 90.80% | Held-out speech-rate groups of training TTS voices |
-| FP32 / INT8 test accuracy | 81.08% / 79.28% | 1,221 files including held-out Zira synthetic voice and generated noise |
-| Continuous correct wake+command sequences | 77/216 (35.65%) | Exploratory synthetic file replay, not human microphone trials |
-| Wakes in that replay | 194/216 (89.81%) | Does not measure false wakes/hour |
-| Neural inference p50 / p95 | 0.501 / 0.679 ms | Windows PC, one CPU thread; not Raspberry Pi |
-| Frontend + neural inference p50 / p95 | 1.150 / 1.826 ms | Windows PC; excludes audio context and endpoint waiting |
-| Separate inference-process RSS | 73.45 MB | Windows PC; training-process RAM is much larger |
-| Accuracy with synthetic noise at 20 / 10 / 0 dB SNR | 73.76 / 59.49 / 18.40% | Held-out synthetic speech mixed with generated noise |
+### Common Gold benchmark and dataset relationship (2026-10-02)
 
-**Continuous recognition is not reliable enough for submission.** The old
-4,383-file collection was generated using Windows SAPI voices David/Hazel/Zira;
-these are not three people. The current audit selects 3,735 attributable files
-(1,688 train / 826 validation / 1,221 test), keeps source variants together, and
-rejects duplicate hashes across splits. It does not establish human accuracy.
-The synthetic baseline has 26 classes; human training adds an unrelated-speech
-class. Three real speakers, a real Pi and physical actuators are still required.
+Option B is **not a strict subset** of the Gold dataset. Their sources overlap substantially: the source audit matched 8,023 Option B WAV files byte-for-byte to Gold `group_synthetic` clips in the audited Gold snapshot, with 11,262/11,274 Gold `group_synthetic` filenames matching Option B manifest basenames. The datasets still differ in size, source mix, split and label schema; treat them as related/overlapping, not interchangeable or independent.
 
-## What to do after recording
+On the newest Hub commit `6947f13073e57eb6ae67e7e2fc3680700b82aa13`, both frozen INT8 intent models were evaluated on the exact same 4,443-row Gold test shard. Gold-train candidate scored 82.37% accuracy / 82.55% macro F1; active Option-B-plus-personal scored 84.29% / 84.25%. Gold candidate's frozen gate 0.76/0.00 made 1/76 OOS false actions and rejected 1,520 valid commands; active gate 0.68/0.15 made 36/76 OOS false actions and rejected 500 valid commands. Applying the same 0.68/0.15 gate to both yielded Gold 3,016 correct accepted / 62 wrong accepted / 1,289 rejected vs active 3,584 / 283 / 500. The active model includes personal recordings, and no pure Option-B-only ONNX was retained, so this does not isolate Option B alone. Full per-class results: `docs/evaluations/paired-gold-test-20261002-latest/`.
 
-1. Mute the assistant. Select an anonymous ID such as `person-01`, the actual
-   condition and the correct class. Confirm the speaker's consent.
-2. Record the suggested phrase naturally, stop and listen back. Click **Save this
-   take** and wait for the saved confirmation. The saved audio can be played back.
-3. Repeat, aiming for ten takes per class per condition. Change Class and record
-   the next phrase. Alternate both wake variants for the wake class. Record
-   unrelated speech, silence and background noise under their respective labels.
-4. Cover at least two conditions for each person, preferably all three. Repeat
-   with at least two other actual people using their own stable IDs. Five people
-   are preferable because three-way speaker holdout leaves only one training
-   person when there are exactly three.
-5. Files save automatically under `data/human/`, with `manifest.csv`. Saving does
-   not update the model. In the notebook set `DATA_MODE = "human"`, then
-   **Kernel → Restart Kernel and Run All Cells**. The audit runs before training
-   and explains missing speakers, conditions or classes. Keep the current
-   synthetic notebook as the baseline evidence when starting a human run.
-6. Validate on held-out people and continuous negatives. Tune using validation
-   data only. Re-export, run the standalone benchmark and rebuild the release
-   before deploying the new model. See [benchmark protocol](docs/BENCHMARK.md).
+The latest test is not just 25 rows appended to the earlier version: 4,192/4,418 audio waveforms remain byte-identical, 226 were removed and 251 added; OOS grew from 47 to 76. The paired evaluator reproduces previous-revision scores exactly when run on that earlier shard. Compare the two models within one immutable test revision; do not interpret cross-revision score changes as model improvement. Keep Gold test for benchmarking only; train on Gold train and derive validation from train. The dataset has no positive wake examples.
 
-The 1.5-second limit is provisional. If natural phrases do not fit, increase the
-shared window and retrain; do not rush speakers or cut off words. The current
-collector rejects overlong speech and audible clipping. Synthetic speech must
-never be presented as human collection. The held-out speaker is the last sorted
-ID, validation the penultimate, and the other IDs form training.
+The separately documented live benchmark is [`airimonda/vcm-benchmark`](https://github.com/airimonda/vcm-benchmark). Its current cached holdout has 202 clips (186 commands, 16 OOS) and tests live Pi audio; it does not replay the 4,443-row static Gold test. Based on the previously generated unscored trial plan, expect about 61 minutes for full mode or 34 minutes for quick mode, before guided microphone/log setup and sound checks. The script displays a run-specific estimate before approval. The ME2 Pi app was stopped after candidate cleanup and must be started intentionally before a future live run. No holdout trials were scored.
 
-## Ten command categories retained
+The complete recording checklist is `docs/evaluations/recording-variation-checklist-20261002.md`. The earlier transcript audit has 105 candidate phrase/label disagreements, 102 unmapped legacy rows, and one same-audio label collision (`CREATE_REMINDER_STUDY`/`MESSAGE`); these require human listening before any relabeling. Of 93 official variations, prior ASR gives no confident candidate for 79 and at least one candidate for 14; none is verified truth, and historical `suggested_phrase` was mostly blank.
 
-| Category | Supported fixed vocabulary | Current action |
-|---|---|---|
-| Music | Play music | Local demonstration melody |
-| Questions | What time is it; what is the weather | Actual local clock; weather unavailable offline |
-| Lights | Turn on/off the lights | Virtual lights; optional wired RGB LED on Pi |
-| Dimming | 25/50/75/100 percent | Virtual brightness; optional PWM LED |
-| Timer | One/five/ten minutes | Real elapsed-time timer and chime |
-| Alarm | Seven AM | Actual next local 7 AM and chime |
-| Thermostat | Cooler/warmer/72 degrees | Simulated setpoint; optional DS18B20 readout |
-| Media | Pause/resume/next; volume up/down | Controls the local demonstration melody |
-| Reminders | Check my reminders | In-memory demonstration list |
-| Calls | Call mom | Labeled simulation; no phone call is placed |
+The **ME2 Spoken Command Dataset** has 17,986 reference command clips and 100 reference speaker IDs across 31 fixed labels. The current human manifest has 936 takes from three speaker IDs, representing 700 unique PCM groups; one cross-label duplicate is preserved and excluded from training. The latest scratch-trained candidate used 374 eligible unique personal clips plus reference training data. Every intent class has personal examples, but the recordings are imbalanced toward person-01 and quiet-near conditions. The audit checks recorder labels, phrase files, model order and manifest labels. Each suggested phrase comes from `docs/ground_truth_phrases/<LABEL>.txt` and matches the most frequent exact training transcript; `LIGHT_OFF` is `Kill the lights` (200 clips). New manifest rows record the displayed prompt in `suggested_phrase`; it is not an automatic transcript, and earlier prompt text cannot be recovered. The reference train/validation/test split is speaker-disjoint; personal train/test clips share speakers.
 
-These are fixed intents, not arbitrary slot values or a general question-answering
-system. Timers and alarms do not survive a restart. Runtime audio uses the native
-mic sample rate and resamples to 16 kHz; the PC Realtek WDM-KS 48 kHz input was
-successfully captured with zero dropped chunks in a short check.
+The latest pair, `me2-vcm-20261001-wake-refresh`, is now verified deployed on the Pi. Wake retrained from random initialization for 30 epochs; intent weights remain byte-identical to the scratch-trained `me2-vcm-20261001-human936` model because the mapped intent corpus and splits are unchanged. The run freezes the human CSV before training. INT8 intent scores **96.89% accuracy / 96.90% macro F1** on the reused 1,798-clip reference test and **92.17% / 92.44%** on the 115-clip personal holdout. Five reference and 12 personal classes remain below 95% F1. At the retained **0.95 wake cutoff**, five-placement replay accepted **11/11** personal wakes, **0/136** personal non-wakes, and **0/1,798** reference commands. The separate validation-selected cutoff 0.9975437522 accepted 10/11 wakes; it is not the deployed cutoff. The prior pair scored 97.22% reference accuracy; the latest pair is deployed for testing, not claimed to be the best. The personal split overlaps speakers and the reference test is reused. Full per-class results are in `docs/evaluations/phrase-prompt-training-audit-20261001.md`.
 
-## Raspberry Pi package
+On the candidate's held-out personal light-command rows, red scored 2/3, green 3/3, blue 3/3 and `LIGHT_OFF` 3/5. Two off clips were confused with `MESSAGE` and `ALARM_8_00AM`; collect more prompt-aligned `Kill the lights` examples. The three RGB action routes and color/off/on cycles passed settled GPIO checks on the Pi. LIGHT_ON now sets white/all channels at 100%; brightness scales the selected color. A 0.95 intent-confidence rejection cutoff would keep only 2/14 tested color/off predictions, so it is not configured; confidence thresholds change coverage and do not guarantee accuracy.
 
-Use [`TinyVCM_RaspberryPi5.zip`](TinyVCM_RaspberryPi5.zip), which contains `vcm/`,
-or copy `release/`. Read [installation and wiring](deployment/README.md).
-This is an **application bundle, not a bootable SD image**. Flash Raspberry Pi OS
-64-bit, boot it, copy the bundle and run its installer. One-time package downloads
-are needed; inference then runs offline. The Windows environment cannot be copied
-to ARM Linux. No Raspberry Pi was available for installation, latency, memory or
-physical GPIO validation. The <10 ms Pi inference goal remains unverified.
+The models take 16 kHz mono audio, a 2.5-second window, and 40-band log-mel features of shape 1×40×251. The binary and intent heads have 13,106 and 14,527 parameters. Their static INT8 ONNX files total **76,740 bytes (74.9 KiB)**, below the 500 KB model budget. The network layout and layer connections are in `docs/ME2_TinyDSCNN48_connections.pdf` and the technical report.
 
-## Organization and provenance
+## Actions and deployment
 
-- `notebooks/ME2_From_Scratch_Verified.ipynb`: current executed six-code-cell report,
-  epoch output, feature plot, curves and confusion matrix.
-- `tinyvcm/`: shared audited data pipeline, PyTorch training, frontend, ONNX runtime,
-  microphone worker, wake state and device implementation.
-- `demo.py`, `record_dataset.py`: current local assistant and data collector.
-- `runs/`: measured metrics, manifests, weights and plots; `latest.json` identifies
-  the current model. `scripts/`: notebook builder, launcher, replay and packaging.
-- `deployment/`: canonical installer/runtime requirements/wiring; `release/` and
-  ZIP are generated deliverables. Checkpoints/datasets/releases stay out of Git.
-- `src/`, `simulation/`, `rpi_deployment/`, old apps/notebook/spreadsheet/transcript:
-  preserved historical work. Their earlier accuracy, real-speaker, fully-INT8,
-  Pi performance and completion claims are superseded by this audit.
-- `docs/legacy/`: original README/handoff snapshots, explicitly historical.
-- Class lessons already exist at `../../AI 222/Deep-Learning-Experiments` and were
-  fast-forward updated to `ec3c5be`. No lesson pretrained weights are used here.
+Assistant and Studio both show the live RGB light state. On the Pi, the manual launcher enables the three GPIO LED channels; the Assistant also offers local demo buttons for off/on and red/green/blue. On Windows, those controls update the on-screen simulation. Studio also shows brightness, a numeric volume bar, and a thermostat target. Play/pause/stop/next use bundled original local melodies. Weather calls Open-Meteo when internet is available; no API key is needed. Calls, messages, alarms, reminders and timers are fixed demo actions, not external services or telephony. Public internet access remains on hold.
 
-Verification includes 12 focused pipeline/runtime tests, saved notebook execution
-with no errors, actual integer ONNX operators on the PC, release hashes, Bash
-syntax and native microphone capture. Software tests do not certify speech quality
-or physical hardware. AI assistance: Codex implemented and executed the current
-pipeline; student understanding and final review remain necessary.
+The current manual package is `deployment/dist/dandan-vcm-me2-vcm-20261001-wake-refresh-20261001-152052-043003.zip`; `deployment/latest_release.json` records its prepared/pending status; `last_pi_deployment.json` records the already verified wake/RGB deployment. The final reporting-only package is pending because the Pi became unreachable; its trained model hashes are unchanged. Both live API model hashes match the latest run. The Pi is installed at `/home/dalmacio/Desktop/dandan`; Windows launchers/packages stay in `C:\Users\danda\Desktop\dandan`. `Start-VCM.bat` now syncs the latest completed pair before starting or connecting to the Assistant, and `Update-VCM.bat` retries sync directly. Training also syncs by default. Boot autostart is disabled. Neither Kiko folder nor the separate `/home/dalmacio/vcm` project was inspected. All 24 bundle payloads and ARM64 inference passed; frontend-plus-model p95 was **5.781 ms wake / 5.330 ms intent**. The last reachable Pi check found no capture hardware; reconnect a USB microphone and refresh/select it before voice testing. Controlled voice trials remain open. The previous Pi app is preserved at `/home/dalmacio/archive/dandan-predeploy-20261001-085717-83f1e59c71`.
+
+## Project map
+
+- `notebooks/ME2_Tiny_VCM_Training.ipynb`: one active training/evaluation notebook.
+- `vcm_app.py`: the unified assistant; `tinyvcm_model/`: training, frontend and model code; `tinyvcm/`: microphone and device actions.
+- `desktop_recorder.py`: native microphone capture, live spectrogram, save/manifest/export controls; `launchers/ME2-VCM-Recorder/ME2 - VCM Recorder/` contains the compiled Windows app folder.
+- `record_dataset.py`: browser recorder retained for development; `scripts/build_desktop_recorder.ps1` builds the app from the shared environment.
+- `deployment/current_vcm/`: the only active two-model pair, metadata, hashes and class order.
+- `docs/ME2_VCM_Technical_Report.tex`: editable technical report source; its existing PDF is an older build. `docs/evaluations/ME2_VCM_Dataset_Comparison_20261002.tex` is the comparison-report source; its built-in LaTeX compile could not run in this environment, so the checked three-page PDF was generated separately from the same frozen metrics. `docs/slides/ME2_VCM_Gold_Live_Benchmark_20261003.pptx` is the updated two-slide demo with the documented Pi benchmark runtime; the October 2 deck remains unchanged as the earlier comparison snapshot.
+- `archive/`: previous notebooks, models, runs and deployment experiments; not the active release.
+- `HANDOFF_INDEX.md`: current evidence, unresolved gaps and change log.
+
+The audited Excel view is `data/human/manifest.xlsx`: canonical phrases, original recording rows, all 31 intent scores and wake results. Historical prompts remain blank; current canonical phrases are not spoken transcripts. Refresh with `scripts/export_manifest_excel.py` or the new recorder-source button after saving any loaded take and restarting once. Current combined audit: `docs/evaluations/wake-refresh-20261001.md`. All 63 project tests pass; Pi and Windows per-class intent metrics match exactly.
+
+Live intent acceptance uses confidence at least 0.68 and a top-two probability margin at least 0.15 for every class; both values are included in the new API/metadata and workbook columns. The reported saved-file accuracy/F1 uses argmax without these live rejection gates.

@@ -1,0 +1,121 @@
+{
+  "status": "experimental_candidate_not_deployed",
+  "created_from_run": "personalized-vcm-20260928-155109",
+  "training": {
+    "pretrained_weights_used": false,
+    "seed": 231,
+    "intent_training": "Option B train split plus 3 exact-mapped person-01 examples per batch",
+    "wake_training": "positive person-01 wake clips plus Option B command/background negatives",
+    "speaker_count_for_personal_data": 1
+  },
+  "frontend": {
+    "sample_rate_hz": 16000,
+    "mono": true,
+    "window_seconds": 2.5,
+    "feature": "40-band log-mel frontend used by tinyvcm_antigrav.frontend.Frontend"
+  },
+  "wake": {
+    "labels": [
+      "NON_WAKE",
+      "WAKE_WORD"
+    ],
+    "wake_class_index": 1,
+    "threshold": 0.9992183446884155,
+    "threshold_selection": "INT8 validation threshold with zero false accepts on validation windows",
+    "threshold_source": "wake_broad_negatives/models/export_summary.json",
+    "threshold_validation_constraint": "zero false accepts on validation windows",
+    "heldout_personal_wake_hits": 4,
+    "heldout_personal_wake_support": 5,
+    "heldout_command_false_accepts": 0,
+    "heldout_command_support": 1798,
+    "model": {
+      "path": "models/binary_wake_int8.onnx",
+      "size_bytes": 37425,
+      "sha256": "5e74fade5beefdd86267823ea0c895fcd3a512fc04ce87b06b5d9a4e4b5dad3d",
+      "signature": {
+        "input_name": "input",
+        "input_shape": [
+          "batch",
+          1,
+          40,
+          251
+        ],
+        "input_type": "tensor(float)",
+        "output_name": "logits",
+        "output_shape": [
+          "batch",
+          2
+        ],
+        "output_type": "tensor(float)"
+      }
+    }
+  },
+  "intent": {
+    "labels": [
+      "ALARM_6_00AM",
+      "ALARM_8_00AM",
+      "ALARM_9_00PM",
+      "BRIGHTNESS_100",
+      "BRIGHTNESS_20",
+      "BRIGHTNESS_60",
+      "CALL",
+      "COLOR_BLUE",
+      "COLOR_GREEN",
+      "COLOR_RED",
+      "CREATE_REMINDER_DRINK_WATER",
+      "CREATE_REMINDER_EXERCISE",
+      "CREATE_REMINDER_STUDY",
+      "LIGHT_OFF",
+      "LIGHT_ON",
+      "LIST_REMINDERS",
+      "MESSAGE",
+      "NEXT",
+      "PAUSE",
+      "PLAY_MUSIC",
+      "STOP",
+      "TEMPERATURE_18",
+      "TEMPERATURE_22",
+      "TEMPERATURE_26",
+      "TIME",
+      "TIMER_10s",
+      "TIMER_1m",
+      "TIMER_30s",
+      "VOLUME_DOWN",
+      "VOLUME_UP",
+      "WEATHER"
+    ],
+    "personal_heldout_accuracy": 0.8571428571428571,
+    "personal_heldout_clips": 28,
+    "optionb_test_accuracy": 0.9610678531701891,
+    "optionb_test_clips": 1798,
+    "model": {
+      "path": "models/intent_int8.onnx",
+      "size_bytes": 39315,
+      "sha256": "c91c73860b24eea13b74620970febd18c1cf531629de727d23ce55361d8196a4",
+      "signature": {
+        "input_name": "input",
+        "input_shape": [
+          "batch",
+          1,
+          40,
+          251
+        ],
+        "input_type": "tensor(float)",
+        "output_name": "logits",
+        "output_shape": [
+          "batch",
+          31
+        ],
+        "output_type": "tensor(float)"
+      }
+    }
+  },
+  "limitations": [
+    "Only one real personal speaker is present; this is not a multi-speaker validation.",
+    "Wake test support is five held-out clips from that same speaker.",
+    "The PC physical microphone was silent during the controlled mic probe; live audio was tested through Stereo Mix loopback.",
+    "Model-only latency was measured on PC CPU and does not establish Raspberry Pi latency or full-pipeline latency.",
+    "The original Option B test set was used by earlier work; its score is a comparison, not a new untouched benchmark.",
+    "This directory contains the model pair and metadata, not the complete Pi application image or installer."
+  ]
+}

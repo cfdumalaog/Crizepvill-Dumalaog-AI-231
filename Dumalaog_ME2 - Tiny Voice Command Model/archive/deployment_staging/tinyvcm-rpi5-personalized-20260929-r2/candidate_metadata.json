@@ -1,0 +1,179 @@
+{
+  "title": "ME2 - VCM on Raspberry Pi 5",
+  "status": "experimental_desktop_active_not_pi_deployed",
+  "source_run": "personalized-vcm-retrain-20260928-190911",
+  "created_from_scratch": true,
+  "dataset": {
+    "raw_manifest_rows": 524,
+    "unique_pcm_groups": 292,
+    "exact_duplicate_rows_removed": 232,
+    "speaker_ids": [
+      "person-01",
+      "person-02",
+      "person-03"
+    ],
+    "unique_wake_clips": 50,
+    "unique_intent_clip_counts": {
+      "ALARM_6_00AM": 9,
+      "ALARM_8_00AM": 10,
+      "CALL": 7,
+      "LIGHT_OFF": 24,
+      "LIGHT_ON": 14,
+      "LIST_REMINDERS": 10,
+      "NEXT": 8,
+      "PAUSE": 19,
+      "PLAY_MUSIC": 14,
+      "STOP": 10,
+      "TIME": 13,
+      "TIMER_1m": 12,
+      "VOLUME_DOWN": 15,
+      "VOLUME_UP": 3,
+      "WEATHER": 7
+    },
+    "unmapped_labels_excluded_from_intent_training": {
+      "alarm_set": 11,
+      "media_resume": 6,
+      "temp_cooler": 7,
+      "temp_warmer": 6,
+      "timer_10min": 10,
+      "timer_5min": 9
+    },
+    "personal_split_policy": "content-deduplicated, deterministic per-label 70/15/15; all three partitions only when n>=3; speakers may occur in multiple partitions, so clip holdout is not speaker holdout"
+  },
+  "frontend": {
+    "sample_rate_hz": 16000,
+    "channels": 1,
+    "window_seconds": 2.5,
+    "feature_shape": [
+      1,
+      40,
+      251
+    ],
+    "feature": "40-band log-mel from tinyvcm_antigrav Frontend"
+  },
+  "wake": {
+    "selected_variant": "personal-hard-negative",
+    "labels": [
+      "NON_WAKE",
+      "WAKE_WORD"
+    ],
+    "wake_class_index": 1,
+    "threshold": 0.9985431432723999,
+    "local_operating_threshold": 0.9,
+    "local_operating_threshold_source": "User-requested desktop wake-sensitivity setting; validation threshold remains unchanged.",
+    "validation_metrics": {
+      "wake_recall": 1.0,
+      "false_accepts": 0,
+      "wake_support": 7,
+      "nonwake_support": 1848,
+      "selection_constraint": "zero false accepts on validation windows"
+    },
+    "heldout_personal_wake_hits": 7,
+    "heldout_personal_wake_support": 8,
+    "heldout_personal_wake_recall": 0.875,
+    "false_accepts_personal_nonwake": 0,
+    "personal_nonwake_support": 57,
+    "false_accepts_optionb_commands": 0,
+    "optionb_command_support": 1798,
+    "model": {
+      "path": "models/binary_wake_int8.onnx",
+      "size_bytes": 37425,
+      "sha256": "f7d1c3f7826bc16426eac02c10c05e077502f28bbc764c81510c7af08fbfb002",
+      "signature": {
+        "input_name": "input",
+        "input_shape": [
+          "batch",
+          1,
+          40,
+          251
+        ],
+        "input_type": "tensor(float)",
+        "output_name": "logits",
+        "output_shape": [
+          "batch",
+          2
+        ],
+        "output_type": "tensor(float)",
+        "cpu_smoke": "passed"
+      }
+    }
+  },
+  "intent": {
+    "classes": [
+      "ALARM_6_00AM",
+      "ALARM_8_00AM",
+      "ALARM_9_00PM",
+      "BRIGHTNESS_100",
+      "BRIGHTNESS_20",
+      "BRIGHTNESS_60",
+      "CALL",
+      "COLOR_BLUE",
+      "COLOR_GREEN",
+      "COLOR_RED",
+      "CREATE_REMINDER_DRINK_WATER",
+      "CREATE_REMINDER_EXERCISE",
+      "CREATE_REMINDER_STUDY",
+      "LIGHT_OFF",
+      "LIGHT_ON",
+      "LIST_REMINDERS",
+      "MESSAGE",
+      "NEXT",
+      "PAUSE",
+      "PLAY_MUSIC",
+      "STOP",
+      "TEMPERATURE_18",
+      "TEMPERATURE_22",
+      "TEMPERATURE_26",
+      "TIME",
+      "TIMER_10s",
+      "TIMER_1m",
+      "TIMER_30s",
+      "VOLUME_DOWN",
+      "VOLUME_UP",
+      "WEATHER"
+    ],
+    "parameter_count": 14527,
+    "personal_test": {
+      "count": 42,
+      "accuracy": 0.8809523809523809,
+      "macro_f1_supported_classes": 0.9181481481481482
+    },
+    "optionb_test": {
+      "count": 1798,
+      "accuracy": 0.9599555061179088,
+      "macro_f1_supported_classes": 0.9602352974013529
+    },
+    "canonical_int8_optionb_accuracy": 0.9627363737486095,
+    "canonical_int8_personal_accuracy": 0.4523809523809524,
+    "model": {
+      "path": "models/intent_int8.onnx",
+      "size_bytes": 39315,
+      "sha256": "c5d995fb96809220013197246177ef8be9ad183ba0aab73ea058faac24c0c0a3",
+      "signature": {
+        "input_name": "input",
+        "input_shape": [
+          "batch",
+          1,
+          40,
+          251
+        ],
+        "input_type": "tensor(float)",
+        "output_name": "logits",
+        "output_shape": [
+          "batch",
+          31
+        ],
+        "output_type": "tensor(float)",
+        "cpu_smoke": "passed"
+      }
+    }
+  },
+  "limitations": [
+    "Personal manifest contains 3 speaker IDs (person-01, person-02, person-03); per-label clip splitting permits speaker overlap across train/validation/test, so these results do not establish unseen-speaker accuracy.",
+    "Personal held-out support is low for several intent classes and is reported per class.",
+    "Option B test clips have prior project evaluations and are not a pristine first-use benchmark.",
+    "Command-window false wake counts are not continuous-audio false activations per hour; no Pi hardware was used.",
+    "INT8 latency here is local Windows PC CPU model-only latency, not Raspberry Pi frontend-plus-model latency.",
+    "This experiment does not automatically replace the canonical model files or change the Pi release."
+  ]
+}

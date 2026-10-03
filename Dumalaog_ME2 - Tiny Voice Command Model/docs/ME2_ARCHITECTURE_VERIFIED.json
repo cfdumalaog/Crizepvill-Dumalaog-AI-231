@@ -1,0 +1,88 @@
+{
+  "intent_stages": [
+    [
+      "Input log-mel",
+      "(1, 40, 251)",
+      0
+    ],
+    [
+      "5x5 stem / BN / ReLU",
+      "(48, 20, 126)",
+      1296
+    ],
+    [
+      "DS block 1",
+      "(48, 20, 126)",
+      2928
+    ],
+    [
+      "DS block 2",
+      "(48, 20, 63)",
+      2928
+    ],
+    [
+      "DS block 3",
+      "(48, 20, 63)",
+      2928
+    ],
+    [
+      "DS block 4",
+      "(48, 20, 63)",
+      2928
+    ],
+    [
+      "Global average pool",
+      "(48,)",
+      0
+    ],
+    [
+      "Linear head: 31 logits",
+      "(31,)",
+      1519
+    ]
+  ],
+  "wake_stages": [
+    [
+      "Input log-mel",
+      "(1, 40, 251)",
+      0
+    ],
+    [
+      "5x5 stem / BN / ReLU",
+      "(48, 20, 126)",
+      1296
+    ],
+    [
+      "DS block 1",
+      "(48, 20, 126)",
+      2928
+    ],
+    [
+      "DS block 2",
+      "(48, 20, 63)",
+      2928
+    ],
+    [
+      "DS block 3",
+      "(48, 20, 63)",
+      2928
+    ],
+    [
+      "DS block 4",
+      "(48, 20, 63)",
+      2928
+    ],
+    [
+      "Global average pool",
+      "(48,)",
+      0
+    ],
+    [
+      "Linear head: 2 logits",
+      "(2,)",
+      98
+    ]
+  ],
+  "intent_parameters": 14527,
+  "wake_parameters": 13106
+}

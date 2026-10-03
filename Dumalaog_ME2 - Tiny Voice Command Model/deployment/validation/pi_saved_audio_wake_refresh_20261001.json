@@ -1,0 +1,402 @@
+{
+  "platform": "aarch64",
+  "source_run": "me2-vcm-20261001-wake-refresh",
+  "wake_sha256": "6c2e941580d8ea778ed664c929e893c226efb91e3e787e65837908c81153deac",
+  "intent_sha256": "12984401fe312758dbd7ecd53ae9358b0a41b27ffcd024a9ae263614e2e7b977",
+  "protocol": "Frozen file-based features; five placements per personal WAV; reused reference test; speaker-overlapping personal holdout; no audio playback or device actions.",
+  "wake": {
+    "threshold": 0.95,
+    "wake_hits": 11,
+    "wake_support": 11,
+    "personal_false_accepts": 0,
+    "personal_negative_support": 136,
+    "reference_false_accepts": 0,
+    "reference_negative_support": 1798
+  },
+  "reference_intent": {
+    "accuracy": 0.9688542825361512,
+    "count": 1798,
+    "per_class": {
+      "ALARM_6_00AM": {
+        "precision": 1.0,
+        "recall": 0.9482758620689655,
+        "f1": 0.9734513274336283,
+        "support": 58
+      },
+      "ALARM_8_00AM": {
+        "precision": 0.9333333333333333,
+        "recall": 1.0,
+        "f1": 0.9655172413793104,
+        "support": 56
+      },
+      "ALARM_9_00PM": {
+        "precision": 0.9827586206896551,
+        "recall": 0.9827586206896551,
+        "f1": 0.9827586206896551,
+        "support": 58
+      },
+      "BRIGHTNESS_100": {
+        "precision": 0.8939393939393939,
+        "recall": 0.9833333333333333,
+        "f1": 0.9365079365079364,
+        "support": 60
+      },
+      "BRIGHTNESS_20": {
+        "precision": 0.9814814814814815,
+        "recall": 0.8833333333333333,
+        "f1": 0.9298245614035088,
+        "support": 60
+      },
+      "BRIGHTNESS_60": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 60
+      },
+      "CALL": {
+        "precision": 0.9464285714285714,
+        "recall": 0.9814814814814815,
+        "f1": 0.9636363636363636,
+        "support": 54
+      },
+      "COLOR_BLUE": {
+        "precision": 1.0,
+        "recall": 0.95,
+        "f1": 0.9743589743589743,
+        "support": 60
+      },
+      "COLOR_GREEN": {
+        "precision": 1.0,
+        "recall": 0.9833333333333333,
+        "f1": 0.9915966386554621,
+        "support": 60
+      },
+      "COLOR_RED": {
+        "precision": 0.967741935483871,
+        "recall": 1.0,
+        "f1": 0.9836065573770492,
+        "support": 60
+      },
+      "CREATE_REMINDER_DRINK_WATER": {
+        "precision": 0.9523809523809523,
+        "recall": 1.0,
+        "f1": 0.975609756097561,
+        "support": 60
+      },
+      "CREATE_REMINDER_EXERCISE": {
+        "precision": 0.9516129032258065,
+        "recall": 0.9833333333333333,
+        "f1": 0.9672131147540983,
+        "support": 60
+      },
+      "CREATE_REMINDER_STUDY": {
+        "precision": 1.0,
+        "recall": 0.9666666666666667,
+        "f1": 0.983050847457627,
+        "support": 60
+      },
+      "LIGHT_OFF": {
+        "precision": 0.9516129032258065,
+        "recall": 0.9833333333333333,
+        "f1": 0.9672131147540983,
+        "support": 60
+      },
+      "LIGHT_ON": {
+        "precision": 0.9636363636363636,
+        "recall": 0.9814814814814815,
+        "f1": 0.9724770642201834,
+        "support": 54
+      },
+      "LIST_REMINDERS": {
+        "precision": 0.9354838709677419,
+        "recall": 1.0,
+        "f1": 0.9666666666666666,
+        "support": 58
+      },
+      "MESSAGE": {
+        "precision": 0.9818181818181818,
+        "recall": 0.9310344827586207,
+        "f1": 0.9557522123893805,
+        "support": 58
+      },
+      "NEXT": {
+        "precision": 0.9830508474576272,
+        "recall": 0.9666666666666667,
+        "f1": 0.9747899159663865,
+        "support": 60
+      },
+      "PAUSE": {
+        "precision": 0.9824561403508771,
+        "recall": 1.0,
+        "f1": 0.9911504424778761,
+        "support": 56
+      },
+      "PLAY_MUSIC": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 58
+      },
+      "STOP": {
+        "precision": 0.9473684210526315,
+        "recall": 1.0,
+        "f1": 0.972972972972973,
+        "support": 54
+      },
+      "TEMPERATURE_18": {
+        "precision": 0.8636363636363636,
+        "recall": 0.95,
+        "f1": 0.9047619047619048,
+        "support": 60
+      },
+      "TEMPERATURE_22": {
+        "precision": 0.9818181818181818,
+        "recall": 0.9,
+        "f1": 0.9391304347826087,
+        "support": 60
+      },
+      "TEMPERATURE_26": {
+        "precision": 1.0,
+        "recall": 0.95,
+        "f1": 0.9743589743589743,
+        "support": 60
+      },
+      "TIME": {
+        "precision": 0.9433962264150944,
+        "recall": 0.9259259259259259,
+        "f1": 0.9345794392523364,
+        "support": 54
+      },
+      "TIMER_10s": {
+        "precision": 1.0,
+        "recall": 0.9333333333333333,
+        "f1": 0.9655172413793104,
+        "support": 60
+      },
+      "TIMER_1m": {
+        "precision": 0.9649122807017544,
+        "recall": 0.9821428571428571,
+        "f1": 0.9734513274336283,
+        "support": 56
+      },
+      "TIMER_30s": {
+        "precision": 1.0,
+        "recall": 0.9833333333333333,
+        "f1": 0.9915966386554621,
+        "support": 60
+      },
+      "VOLUME_DOWN": {
+        "precision": 0.9622641509433962,
+        "recall": 0.9807692307692307,
+        "f1": 0.9714285714285713,
+        "support": 52
+      },
+      "VOLUME_UP": {
+        "precision": 1.0,
+        "recall": 0.9333333333333333,
+        "f1": 0.9655172413793104,
+        "support": 60
+      },
+      "WEATHER": {
+        "precision": 1.0,
+        "recall": 0.9807692307692307,
+        "f1": 0.9902912621359222,
+        "support": 52
+      }
+    },
+    "macro_f1": 0.968993140798928
+  },
+  "personal_intent": {
+    "accuracy": 0.9217391304347826,
+    "count": 115,
+    "per_class": {
+      "ALARM_6_00AM": {
+        "precision": 0.6666666666666666,
+        "recall": 1.0,
+        "f1": 0.8,
+        "support": 2
+      },
+      "ALARM_8_00AM": {
+        "precision": 0.6666666666666666,
+        "recall": 1.0,
+        "f1": 0.8,
+        "support": 2
+      },
+      "ALARM_9_00PM": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 3
+      },
+      "BRIGHTNESS_100": {
+        "precision": 1.0,
+        "recall": 0.75,
+        "f1": 0.8571428571428571,
+        "support": 4
+      },
+      "BRIGHTNESS_20": {
+        "precision": 0.75,
+        "recall": 1.0,
+        "f1": 0.8571428571428571,
+        "support": 3
+      },
+      "BRIGHTNESS_60": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 3
+      },
+      "CALL": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 7
+      },
+      "COLOR_BLUE": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 3
+      },
+      "COLOR_GREEN": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 3
+      },
+      "COLOR_RED": {
+        "precision": 1.0,
+        "recall": 0.6666666666666666,
+        "f1": 0.8,
+        "support": 3
+      },
+      "CREATE_REMINDER_DRINK_WATER": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 3
+      },
+      "CREATE_REMINDER_EXERCISE": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 3
+      },
+      "CREATE_REMINDER_STUDY": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 3
+      },
+      "LIGHT_OFF": {
+        "precision": 0.75,
+        "recall": 0.6,
+        "f1": 0.6666666666666665,
+        "support": 5
+      },
+      "LIGHT_ON": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 4
+      },
+      "LIST_REMINDERS": {
+        "precision": 0.6666666666666666,
+        "recall": 1.0,
+        "f1": 0.8,
+        "support": 2
+      },
+      "MESSAGE": {
+        "precision": 0.75,
+        "recall": 1.0,
+        "f1": 0.8571428571428571,
+        "support": 3
+      },
+      "NEXT": {
+        "precision": 1.0,
+        "recall": 0.8333333333333334,
+        "f1": 0.9090909090909091,
+        "support": 6
+      },
+      "PAUSE": {
+        "precision": 1.0,
+        "recall": 0.7272727272727273,
+        "f1": 0.8421052631578948,
+        "support": 11
+      },
+      "PLAY_MUSIC": {
+        "precision": 0.75,
+        "recall": 0.8571428571428571,
+        "f1": 0.7999999999999999,
+        "support": 7
+      },
+      "STOP": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 7
+      },
+      "TEMPERATURE_18": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 3
+      },
+      "TEMPERATURE_22": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 4
+      },
+      "TEMPERATURE_26": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 3
+      },
+      "TIME": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 3
+      },
+      "TIMER_10s": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 3
+      },
+      "TIMER_1m": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 3
+      },
+      "TIMER_30s": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 3
+      },
+      "VOLUME_DOWN": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 3
+      },
+      "VOLUME_UP": {
+        "precision": 0.5,
+        "recall": 1.0,
+        "f1": 0.6666666666666666,
+        "support": 1
+      },
+      "WEATHER": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 2
+      }
+    },
+    "macro_f1": 0.9243857444197003
+  }
+}

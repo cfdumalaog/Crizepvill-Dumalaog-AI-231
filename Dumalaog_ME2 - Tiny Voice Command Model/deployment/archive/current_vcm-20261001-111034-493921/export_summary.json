@@ -1,0 +1,11 @@
+{
+  "classes": [
+    "NON_WAKE",
+    "WAKE_WORD"
+  ],
+  "validation_selected_threshold": 0.9998268485069275,
+  "local_operating_threshold": 0.95,
+  "int8_path": "models/binary_wake_int8.onnx",
+  "int8_sha256": "2f77e2cb809b770814dc5ba3390d636a3c2e4b037b96a2252cfedb927a108308",
+  "pretrained_weights_used": false
+}

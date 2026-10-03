@@ -15,11 +15,34 @@ data/
 *.pt
 *.pth
 *.onnx
-TinyVCM_RaspberryPi5.zip
+*.zip
 release/
+**/deployment/dist/
+**/launchers/ME2-VCM-Recorder/
+**/.codex-finalizer/
+**/tmp/
+
+# LaTeX and build intermediate artifacts
+*.aux
+*.log
+*.out
+*.toc
+*.synctex.gz
+**/.pdf-preview/
+**/.runtime/
+**/.slide-build/
+
+# Keep the selected ME2 ONNX pair and the single manual Pi ZIP reviewable.
+!/Dumalaog_ME2 - Tiny Voice Command Model/deployment/current_vcm/models/binary_wake_int8.onnx
+!/Dumalaog_ME2 - Tiny Voice Command Model/deployment/current_vcm/models/intent_int8.onnx
+!/Dumalaog_ME2 - Tiny Voice Command Model/deployment/dist/
+/Dumalaog_ME2 - Tiny Voice Command Model/deployment/dist/*
+!/Dumalaog_ME2 - Tiny Voice Command Model/deployment/dist/TinyVCM_RPi5_ME2_20260930.zip
 
 # Existing and future generated runs
 output/
+outputs/
+node_modules/
 runs/
 
 # Operating-system noise

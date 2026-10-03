@@ -1,0 +1,32 @@
+﻿label,prompt,prompt_count,modal_count,is_modal,exact_variation,train_support,transcript_count
+ALARM_6_00AM,Wake me up at 6 AM,82,111,False,False,333,28
+ALARM_8_00AM,Wake me up at 8 AM,108,108,True,False,333,16
+ALARM_9_00PM,Set an alarm for 9 PM,90,111,False,False,333,15
+BRIGHTNESS_100,Brightness 100 percent,111,111,True,True,333,3
+BRIGHTNESS_20,Adjust brightness to 20 percent,55,109,False,True,333,34
+BRIGHTNESS_60,Brightness 60 percent,111,111,True,True,333,3
+CALL,Make a phone call,92,98,False,True,333,42
+COLOR_BLUE,Change color to blue,55,92,False,False,333,61
+COLOR_GREEN,Change color to green,55,89,False,False,333,55
+COLOR_RED,Set color to red,55,90,False,False,333,67
+CREATE_REMINDER_DRINK_WATER,Create a reminder to drink water,111,111,True,False,333,3
+CREATE_REMINDER_EXERCISE,Remind me to exercise,111,111,True,False,333,3
+CREATE_REMINDER_STUDY,Create a reminder to study,111,111,True,False,333,9
+LIGHT_OFF,Kill the lights,55,55,True,True,333,96
+LIGHT_ON,Turn on the lights,55,62,False,True,333,87
+LIST_REMINDERS,Show my reminders,65,111,False,True,333,23
+MESSAGE,Send my message,111,111,True,True,333,14
+NEXT,Next song,58,84,False,True,333,23
+PAUSE,Pause audio,55,110,False,True,333,16
+PLAY_MUSIC,Start music,55,62,False,True,333,107
+STOP,Stop playing,55,63,False,True,333,15
+TEMPERATURE_18,Change the temperature to 18 degrees,111,111,True,True,333,8
+TEMPERATURE_22,Temperature 22 degrees,111,111,True,True,333,13
+TEMPERATURE_26,Change the temperature to 26 degrees,108,111,False,True,333,10
+TIME,What time is it?,72,87,False,True,333,31
+TIMER_10s,Countdown for 10 seconds,111,111,True,True,333,3
+TIMER_1m,Start a timer for 1 minute,70,111,False,True,333,25
+TIMER_30s,Countdown for 30 seconds,111,111,True,True,333,4
+VOLUME_DOWN,Turn the volume down,60,68,False,True,333,53
+VOLUME_UP,Increase the volume,55,60,False,True,333,75
+WEATHER,What's the weather?,71,71,True,True,333,107
