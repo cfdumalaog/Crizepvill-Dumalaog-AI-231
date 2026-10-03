@@ -91,7 +91,7 @@ def verify_state(metadata):
         'wake_model_sha256': metadata['wake']['model']['sha256'],
         'intent_model_sha256': metadata['intent']['model']['sha256'],
         'classes_count': 31, 'binary_wake_enabled': True,
-        'wake_threshold': .95, 'timeout_sec': 10.0,
+        'wake_threshold': .95, 'timeout_sec': 15.0,
     }
     for key, value in expected.items():
         if current.get(key) != value:

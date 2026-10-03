@@ -1,7 +1,11 @@
 from collections import deque
 from types import SimpleNamespace
 
-from vcm_app import VCMAssistant, accepts_intent_prediction
+from vcm_app import (
+    MAX_SPEECH_TIMEOUT_GRACE_SEC,
+    VCMAssistant,
+    accepts_intent_prediction,
+)
 
 
 def _listening_assistant(deadline):
@@ -20,12 +24,34 @@ def _listening_assistant(deadline):
     return assistant
 
 
-def test_continuous_vad_or_pending_audio_cannot_extend_wake_session():
+def test_active_utterance_is_not_cut_off_at_inactivity_deadline():
     assistant = _listening_assistant(deadline=10.0)
     assistant.speech_active = True
+
+    expired = assistant._expire_session_if_due(now=10.01)
+
+    assert expired is False
+    assert assistant.state == "LISTENING"
+    assert assistant.devices.ducked is True
+
+
+def test_pending_utterance_gets_a_command_inference_opportunity():
+    assistant = _listening_assistant(deadline=10.0)
     assistant.pending_command = True
 
     expired = assistant._expire_session_if_due(now=10.01)
+
+    assert expired is False
+    assert assistant.state == "LISTENING"
+
+
+def test_sustained_speech_or_noise_cannot_extend_session_forever():
+    assistant = _listening_assistant(deadline=10.0)
+    assistant.speech_active = True
+
+    expired = assistant._expire_session_if_due(
+        now=10.0 + MAX_SPEECH_TIMEOUT_GRACE_SEC + 0.01
+    )
 
     assert expired is True
     assert assistant.state == "STANDBY"
@@ -42,6 +68,15 @@ def test_wake_session_remains_open_until_its_deadline():
     assert expired is False
     assert assistant.state == "LISTENING"
     assert assistant.inactivity_deadline == 10.0
+
+
+def test_silence_still_expires_at_the_deadline():
+    assistant = _listening_assistant(deadline=10.0)
+
+    expired = assistant._expire_session_if_due(now=10.0)
+
+    assert expired is True
+    assert assistant.state == "STANDBY"
 
 
 def test_each_speech_utterance_queues_at_most_one_command():

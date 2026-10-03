@@ -202,7 +202,7 @@ print(json.dumps({'state':s,'manifest':hashlib.sha256((p/'bundle_manifest.json')
                      and s.get('wake_model_sha256') == release['wake_sha256']
                      and s.get('intent_model_sha256') == release['intent_sha256']
                      and s.get('model_source_run') == source.name
-                     and s.get('wake_threshold') == .95 and s.get('timeout_sec') == 10.0)
+                     and s.get('wake_threshold') == .95 and s.get('timeout_sec') == 15.0)
         if not ready:
             remote_dir = '/home/dalmacio/.cache/me2-vcm-deploy/' + release['zip_sha256'][:16]
             run(['ssh', *options, target, 'mkdir -p ' + shlex.quote(remote_dir)], capture_output=True, timeout=15)

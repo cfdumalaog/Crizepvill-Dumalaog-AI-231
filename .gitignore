@@ -31,6 +31,7 @@ release/
 **/.pdf-preview/
 **/.runtime/
 **/.slide-build/
+**/archive/slides/
 
 # Keep the selected ME2 ONNX pair and the single manual Pi ZIP reviewable.
 !/Dumalaog_ME2 - Tiny Voice Command Model/deployment/current_vcm/models/binary_wake_int8.onnx

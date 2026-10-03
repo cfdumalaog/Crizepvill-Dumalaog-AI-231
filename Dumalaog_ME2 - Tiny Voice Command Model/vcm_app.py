@@ -33,6 +33,10 @@ from tinyvcm.restart import queue_restart
 
 LIGHT_DEMO_COMMANDS = frozenset({"LIGHT_OFF", "LIGHT_ON", "COLOR_RED", "COLOR_GREEN", "COLOR_BLUE"})
 
+# Allow a command already in progress to finish just beyond the inactivity
+# deadline, while bounding how long continuous VAD/noise can hold the session.
+MAX_SPEECH_TIMEOUT_GRACE_SEC = 8.0
+
 # The class live benchmark scores these 31 output labels against 19 intents and
 # their slot values; it does not require a transcript or an exact phrase guess.
 BENCHMARK_INTENT_SLOT = {
@@ -333,9 +337,16 @@ class VCMAssistant:
             self.command_consumed = True
 
     def _expire_session_if_due(self, now=None):
-        """Expire solely from the accepted wake/command deadline, never VAD activity."""
+        """Expire on inactivity, but let a bounded in-progress utterance finish."""
         now = time.monotonic() if now is None else now
         if self.state == 'LISTENING' and now >= self.inactivity_deadline:
+            # Do not cut off a user who started speaking near the deadline.
+            # A pending endpoint also needs one inference opportunity. Neither
+            # condition extends the deadline indefinitely: sustained VAD/noise
+            # is bounded by a short grace after the original deadline.
+            if ((self.speech_active or self.pending_command) and
+                    now < self.inactivity_deadline + MAX_SPEECH_TIMEOUT_GRACE_SEC):
+                return False
             self.trigger_timeout()
             return True
         return False
@@ -430,7 +441,6 @@ class VCMAssistant:
         try:
             while not self.stop_event.is_set():
                 now = time.monotonic()
-                self._expire_session_if_due(now)
 
                 with self.microphone_lock:
                     stream = self.mic.stream
@@ -453,6 +463,7 @@ class VCMAssistant:
                     else:
                         chunk = self.mic.read()
                 if not active:
+                    self._expire_session_if_due(time.monotonic())
                     self.devices.tick()
                     self.stop_event.wait(0.2)
                     continue
@@ -535,6 +546,11 @@ class VCMAssistant:
                                 self.inactivity_deadline = now + self.timeout_sec
                                 self.cooldown_until = now + 1.2
                 
+                # Check inactivity after consuming the current audio chunk and
+                # processing any queued utterance. This closes the race where a
+                # command starts just as the previous deadline expires.
+                self._expire_session_if_due(time.monotonic())
+
                 # Update device timers / ticks
                 self.devices.tick()
         except Exception as exc:

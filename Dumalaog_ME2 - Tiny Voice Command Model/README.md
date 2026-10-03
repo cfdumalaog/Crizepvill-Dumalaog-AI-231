@@ -1,6 +1,6 @@
 # ME2 - VCM on Raspberry Pi 5
 
-A small, offline speech-to-action demo for AI 231 Machine Exercise 2. Two separate **scratch-trained TinyDSCNN-48** models run in sequence: the binary wake detector (`NON_WAKE`, `WAKE_WORD`) is the only classifier used during standby; only after “Hi Dandan” or “Hello Dandan” does the 31-class intent model select a fixed coded action. The command window returns to standby after ten seconds, even if unrelated audio continues. No pretrained model, ASR, LLM or cloud classifier is used.
+A small, offline speech-to-action demo for AI 231 Machine Exercise 2. Two separate **scratch-trained TinyDSCNN-48** models run in sequence: the binary wake detector (`NON_WAKE`, `WAKE_WORD`) is the only classifier used during standby; only after “Hi Dandan” or “Hello Dandan” does the 31-class intent model select a fixed coded action. The command-session inactivity timeout defaults to ten seconds (the Pi benchmark launch uses fifteen). The deadline is checked after each microphone chunk, so it cannot cut off an utterance or an intent inference already in progress; that work gets at most eight seconds beyond the original deadline. Ordinary microphone activity does not continually reset the session. No pretrained model, ASR, LLM or cloud classifier is used.
 
 ## Start here
 

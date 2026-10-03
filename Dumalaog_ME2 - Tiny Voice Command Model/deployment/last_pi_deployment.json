@@ -4,8 +4,8 @@
   "architecture": "aarch64",
   "installed_at": "/home/dalmacio/Desktop/dandan",
   "source_run": "me2-vcm-intent-refresh-updated-20261002",
-  "zip_sha256": "ce5ab7b4a7db5a12b9b3a6793d2e4d940c64a4aa14ff539bd6ca02b06a1f75b1",
-  "backup": "/home/dalmacio/archive/dandan-predeploy-20261003-071057-ce5ab7b4a7",
+  "zip_sha256": "2336378b0bd6ba48803b39a1cf5e9db2d60b8f1489734ccc3eb6bcfd273ebc64",
+  "backup": "/home/dalmacio/archive/dandan-predeploy-20261003-124654-2336378b0b",
   "autostart": false,
   "verification": {
     "integrity": "passed",
@@ -21,12 +21,12 @@
           "CPUExecutionProvider"
         ],
         "model_only_ms": {
-          "p50": 1.307,
-          "p95": 1.343
+          "p50": 1.329,
+          "p95": 1.761
         },
         "frontend_plus_model_ms": {
-          "p50": 5.516,
-          "p95": 5.608
+          "p50": 5.597,
+          "p95": 6.975
         }
       },
       {
@@ -37,12 +37,12 @@
           "CPUExecutionProvider"
         ],
         "model_only_ms": {
-          "p50": 1.308,
-          "p95": 1.333
+          "p50": 1.331,
+          "p95": 1.689
         },
         "frontend_plus_model_ms": {
-          "p50": 5.276,
-          "p95": 5.385
+          "p50": 5.364,
+          "p95": 6.831
         }
       }
     ]
@@ -54,11 +54,11 @@
     "classes_count": 31,
     "binary_wake_enabled": true,
     "wake_threshold": 0.95,
-    "timeout_sec": 10.0,
+    "timeout_sec": 15.0,
     "state": "STANDBY",
-    "microphone": "[0] fifine Microphone: USB Audio (hw:2,0) / ALSA / 44100 Hz / 1 ch",
+    "microphone": "[1] fifine Microphone: USB Audio (hw:2,0) / ALSA / 44100 Hz / 1 ch",
     "microphone_stream_active": true,
-    "audio_age_sec": 0.08,
+    "audio_age_sec": 0.04,
     "dropped": 0,
     "error": null
   }

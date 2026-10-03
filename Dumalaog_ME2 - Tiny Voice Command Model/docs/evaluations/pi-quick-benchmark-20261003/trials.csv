@@ -1,0 +1,126 @@
+order,kind,false_wake,clip_idx,accent_group,transcript,true_intent,true_variation,true_slot,pred_intent,pred_slot,pred_variation,pred_variation_id,pred_raw,correct_intent,correct_command,slot_exact,slot_abs_error,slot_phonetic_dist,n_command_events,wake_logged,latency_s,infer_ms,audio_ms,speaker_id,is_synthetic,wake_take,audio_file
+0,no_wake,False,175,Synthetic,Remind me to drink water,CREATE_REMINDER,Remind me to Drink water,Drink water,NO_RESPONSE,,,,,,,,,,0,False,,,,s10,True,0,audio/trial_000.wav
+1,wake,,137,Synthetic,Brightness 100 percent,BRIGHTNESS,Brightness 100 percent,100 percent,BRIGHTNESS,100 percent,,,BRIGHTNESS_100,True,True,True,0.0,0.0,1,True,,5.751615000008314,2500.0,s10,True,1,audio/trial_001.wav
+2,no_wake,False,77,Synthetic,List my reminders,LIST_REMINDERS,List my reminders,,NO_RESPONSE,,,,,,,,,,0,False,,,,s10,True,0,audio/trial_002.wav
+3,wake,,71,Synthetic,Send my message,MESSAGE,Send my message,,MESSAGE,,,,MESSAGE,True,True,,,,1,True,,6.659225000021252,2500.0,s10,True,2,audio/trial_003.wav
+4,wake,,44,Filipino (group),Skip song,NEXT,Skip song,,NO_RESPONSE,,,,,False,False,,,,0,True,,,,202520785,False,3,audio/trial_004.wav
+5,wake,,182,Filipino (group),Create a reminder to Study,CREATE_REMINDER,Create a reminder to Study,Study,CREATE_REMINDER,study,,,CREATE_REMINDER_STUDY,True,True,True,,0.0,1,True,,7.0331590000023425,2500.0,202520785,False,1,audio/trial_005.wav
+6,wake,,5,Synthetic,Play some music,PLAY_MUSIC,Play some music,,PLAY_MUSIC,,,,PLAY_MUSIC,True,True,,,,1,True,,6.424721000257705,2500.0,s10,True,2,audio/trial_006.wav
+7,wake,,186,Filipino (open-source),They first met while both studying at University College Dublin.,OUT_OF_SCOPE,,,NO_RESPONSE,,,,,True,True,,,,0,True,,,,0365b018a15ab96510f1368f4910554f97f6c278320e780c89e4989e9fdef0e557feb655cc9a89282ab0b8effbf5c920cf83193d6e0536e03d2ea84c6dca7559,False,3,audio/trial_007.wav
+8,wake,,119,Synthetic,Temperature 26 degrees,TEMPERATURE,Temperature 26 degrees,26 degrees,TEMPERATURE,26 degrees,,,TEMPERATURE_26,True,True,True,0.0,0.0,1,True,,6.99749100022018,2500.0,s10,True,1,audio/trial_008.wav
+9,wake,,142,Filipino (group),Set the brightness to 100 percent,BRIGHTNESS,Adjust brightness to 100 percent,100 percent,BRIGHTNESS,100 percent,,,BRIGHTNESS_100,True,True,True,0.0,0.0,1,True,,5.4577019996031595,2500.0,202520785,False,2,audio/trial_009.wav
+10,wake,,113,Synthetic,Set an alarm for 9 PM,ALARM,Set an alarm for 9:00 PM,9:00 PM,ALARM,9 PM,,,ALARM_9_00PM,True,True,True,0.0,0.0,1,True,,5.894006000289664,2500.0,s10,True,3,audio/trial_010.wav
+11,wake,,163,Synthetic,Set color to red,COLOR,Set color to Red,Red,COLOR,red,,,COLOR_RED,True,True,True,,0.0,1,True,,6.336422999993374,2500.0,s10,True,1,audio/trial_011.wav
+12,no_wake,False,51,Synthetic,Increase the volume,VOLUME_UP,Increase the volume,,NO_RESPONSE,,,,,,,,,,0,False,,,,s10,True,0,audio/trial_012.wav
+13,wake,,9,Synthetic,What's the weather?,WEATHER,What's the weather?,,WEATHER,,,,WEATHER,True,True,,,,1,True,,6.0125459999653685,2500.0,s10,True,2,audio/trial_013.wav
+14,wake,,185,Synthetic,Create a reminder to exercise,CREATE_REMINDER,Create a reminder to Exercise,Exercise,CREATE_REMINDER,exercise,,,CREATE_REMINDER_EXERCISE,True,True,True,,0.0,1,True,,7.249366999985796,2500.0,s10,True,3,audio/trial_014.wav
+15,wake,,56,Filipino (group),Lower the volume,VOLUME_DOWN,Lower the volume,,VOLUME_DOWN,,,,VOLUME_DOWN,True,True,,,,1,True,,5.935395000051358,2500.0,202520785,False,1,audio/trial_015.wav
+16,wake,,41,Synthetic,End playback,STOP,End playback,,STOP,,,,STOP,True,True,,,,1,True,,6.9750829998156405,2500.0,s10,True,2,audio/trial_016.wav
+17,wake,,194,Native English,Bring some juice,OUT_OF_SCOPE,,,PLAY_MUSIC,,,,PLAY_MUSIC,False,False,,,,1,True,,5.487423999966268,2500.0,R3mXwwoaX9IoRVKe,False,3,audio/trial_017.wav
+18,wake,,95,Synthetic,Start a timer for 1 minute,TIMER,Start a timer for 1 minute,1 minute,TIMER,1 minute,,,TIMER_1m,True,True,True,0.0,0.0,1,True,,6.070417000046291,2500.0,s10,True,1,audio/trial_018.wav
+19,wake,,18,Filipino (group),Lights on,LIGHT_ON,Lights on,,LIGHT_ON,,,,LIGHT_ON,True,True,,,,1,True,,7.037158000002819,2500.0,202520785,False,2,audio/trial_019.wav
+20,wake,,74,Filipino (group),Show my reminders,LIST_REMINDERS,Show my reminders,,LIST_REMINDERS,,,,LIST_REMINDERS,True,True,,,,1,True,,7.190366000031645,2500.0,202520785,False,3,audio/trial_020.wav
+21,wake,,53,Synthetic,Turn the volume up,VOLUME_UP,Turn the volume up,,VOLUME_UP,,,,VOLUME_UP,True,True,,,,1,True,,7.352867999998125,2500.0,s10,True,1,audio/trial_021.wav
+22,wake,,152,Filipino (group),Change the lights to Blue,COLOR,Change color to Blue,Blue,NO_RESPONSE,,,,,False,False,,,,0,True,,,,202520785,False,2,audio/trial_022.wav
+23,wake,,129,Synthetic,Set the temperature to 22 degrees,TEMPERATURE,Set the temperature to 22 degrees,22 degrees,TEMPERATURE,22 degrees,,,TEMPERATURE_22,True,True,True,0.0,0.0,1,True,,6.038619999799266,2500.0,s10,True,3,audio/trial_023.wav
+24,wake,,80,Filipino (group),Timer 30 seconds,TIMER,Timer 30 seconds,30 seconds,NO_RESPONSE,,,,,False,False,,,,0,True,,,,202520785,False,1,audio/trial_024.wav
+25,wake,,28,Filipino (group),Turn off the lights,LIGHT_OFF,Shut off the lights,,LIGHT_ON,,,,LIGHT_ON,False,False,,,,1,True,,5.578055000114546,2500.0,202520785,False,2,audio/trial_025.wav
+26,wake,,0,Filipino (group),Play a song,PLAY_MUSIC,Play music,,NO_RESPONSE,,,,,False,False,,,,0,True,,,,202520785,False,3,audio/trial_026.wav
+27,wake,,124,Filipino (group),Change the temperature to 26 degrees,TEMPERATURE,Change the temperature to 26 degrees,26 degrees,TEMPERATURE,26 degrees,,,TEMPERATURE_26,True,True,True,0.0,0.0,1,True,,6.222383000022091,2500.0,202520785,False,1,audio/trial_027.wav
+28,wake,,192,Native English,Go get me some juice,OUT_OF_SCOPE,,,NO_RESPONSE,,,,,True,True,,,,0,True,,,,R3mXwwoaX9IoRVKe,False,2,audio/trial_028.wav
+29,wake,,69,Synthetic,Send a message,MESSAGE,Send a message,,MESSAGE,,,,MESSAGE,True,True,,,,1,True,,7.0979740003167535,2500.0,s10,True,3,audio/trial_029.wav
+30,wake,,27,Synthetic,Kill the lights,LIGHT_OFF,Kill the lights,,LIGHT_OFF,,,,LIGHT_OFF,True,True,,,,1,True,,6.291792000411078,2500.0,s10,True,1,audio/trial_030.wav
+31,no_wake,False,80,Filipino (group),Timer 30 seconds,TIMER,Timer 30 seconds,30 seconds,NO_RESPONSE,,,,,,,,,,0,False,,,,202520785,False,0,audio/trial_031.wav
+32,wake,,90,Filipino (group),Start a timer for 10 seconds,TIMER,Start a timer for 10 seconds,10 seconds,TIMER,10 seconds,,,TIMER_10s,True,True,True,0.0,0.0,1,True,,6.145047999780218,2500.0,202520785,False,2,audio/trial_032.wav
+33,wake,,120,Filipino (group),Change the temperature to 18 degrees,TEMPERATURE,Change the temperature to 18 degrees,18 degrees,NO_RESPONSE,,,,,False,False,,,,0,True,,,,202520785,False,3,audio/trial_033.wav
+34,wake,,133,Synthetic,Brightness 20 percent,BRIGHTNESS,Brightness 20 percent,20 percent,BRIGHTNESS,20 percent,,,BRIGHTNESS_20,True,True,True,0.0,0.0,1,True,,5.4808129998491495,2500.0,s10,True,1,audio/trial_034.wav
+35,wake,,161,Synthetic,Switch color to green,COLOR,Switch color to Green,Green,COLOR,green,,,COLOR_GREEN,True,True,True,,0.0,1,True,,6.136733000403183,2500.0,s100,True,2,audio/trial_035.wav
+36,wake,,195,Native English,More heat,OUT_OF_SCOPE,,,PLAY_MUSIC,,,,PLAY_MUSIC,False,False,,,,1,True,,6.086250999942422,2500.0,R3mXwwoaX9IoRVKe,False,3,audio/trial_036.wav
+37,wake,,43,Synthetic,Next song,NEXT,Next song,,NEXT,,,,NEXT,True,True,,,,1,True,,5.474145999869506,2500.0,s10,True,1,audio/trial_037.wav
+38,wake,,46,Filipino (group),Play next song,NEXT,Play next song,,NEXT,,,,NEXT,True,True,,,,1,True,,7.493352999972558,2500.0,202520785,False,2,audio/trial_038.wav
+39,no_wake,False,67,Synthetic,Message,MESSAGE,Message,,NO_RESPONSE,,,,,,,,,,0,False,,,,s10,True,0,audio/trial_039.wav
+40,wake,,196,Synthetic,Open the garage door.,OUT_OF_SCOPE,,,NO_RESPONSE,,,,,True,True,,,,0,True,,,,s10,True,3,audio/trial_040.wav
+41,wake,,198,Synthetic,Book a table for two tonight.,OUT_OF_SCOPE,,,NO_RESPONSE,,,,,True,True,,,,0,True,,,,s10,True,1,audio/trial_041.wav
+42,wake,,59,Synthetic,Turn the volume down,VOLUME_DOWN,Turn the volume down,,VOLUME_DOWN,,,,VOLUME_DOWN,True,True,,,,1,True,,6.322514999737905,2500.0,s10,True,2,audio/trial_042.wav
+43,wake,,197,Synthetic,My sister is visiting next month.,OUT_OF_SCOPE,,,BRIGHTNESS,60 percent,,,BRIGHTNESS_60,False,False,,,,1,True,,5.505757999799243,2500.0,s10,True,3,audio/trial_043.wav
+44,wake,,144,Synthetic,Brightness level 20 percent,BRIGHTNESS,Brightness level 20 percent,20 percent,BRIGHTNESS,20 percent,,,BRIGHTNESS_20,True,True,True,0.0,0.0,1,True,,6.767523000235087,2500.0,s10,True,1,audio/trial_044.wav
+45,wake,,199,Synthetic,Start the washing machine.,OUT_OF_SCOPE,,,NO_RESPONSE,,,,,True,True,,,,0,True,,,,s100,True,2,audio/trial_045.wav
+46,wake,,175,Synthetic,Remind me to drink water,CREATE_REMINDER,Remind me to Drink water,Drink water,CREATE_REMINDER,drink water,,,CREATE_REMINDER_DRINK_WATER,True,True,True,,0.0,1,True,,5.556647000048542,2500.0,s10,True,3,audio/trial_046.wav
+47,no_wake,False,133,Synthetic,Brightness 20 percent,BRIGHTNESS,Brightness 20 percent,20 percent,NO_RESPONSE,,,,,,,,,,0,False,,,,s10,True,0,audio/trial_047.wav
+48,wake,,201,Synthetic,We're going to the beach on Saturday.,OUT_OF_SCOPE,,,TEMPERATURE,18 degrees,,,TEMPERATURE_18,False,False,,,,1,True,,6.7109669998899335,2500.0,s100,True,1,audio/trial_048.wav
+49,wake,,139,Synthetic,Adjust brightness to 20 percent,BRIGHTNESS,Adjust brightness to 20 percent,20 percent,BRIGHTNESS,20 percent,,,BRIGHTNESS_20,True,True,True,0.0,0.0,1,True,,5.5359060002047045,2500.0,s10,True,2,audio/trial_049.wav
+50,wake,,76,Filipino (group),List my reminders,LIST_REMINDERS,List my reminders,,LIST_REMINDERS,,,,LIST_REMINDERS,True,True,,,,1,True,,7.1803459995862795,2500.0,202520785,False,3,audio/trial_050.wav
+51,wake,,92,Filipino (group),Start a timer for 30 seconds,TIMER,Start a timer for 30 seconds,30 seconds,BRIGHTNESS,100 percent,,,BRIGHTNESS_100,False,False,,,,1,True,,6.272550999710802,2500.0,202520785,False,1,audio/trial_051.wav
+52,wake,,73,Synthetic,Reminders,LIST_REMINDERS,Reminders,,LIST_REMINDERS,,,,LIST_REMINDERS,True,True,,,,1,True,,6.309643999884429,2500.0,s10,True,2,audio/trial_052.wav
+53,wake,,22,Filipino (group),Turn on the lights,LIGHT_ON,Turn on the lights,,LIGHT_ON,,,,LIGHT_ON,True,True,,,,1,True,,5.936524999924586,2500.0,202520785,False,3,audio/trial_053.wav
+54,wake,,62,Filipino (group),Make a call,CALL,Make a call,,CALL,,,,CALL,True,True,,,,1,True,,5.487331000040285,2500.0,202520785,False,1,audio/trial_054.wav
+55,no_wake,False,65,Synthetic,Make a phone call,CALL,Make a phone call,,NO_RESPONSE,,,,,,,,,,0,False,,,,s10,True,0,audio/trial_055.wav
+56,wake,,193,Native English,Fetch my socks,OUT_OF_SCOPE,,,MESSAGE,,,,MESSAGE,False,False,,,,1,True,,7.281700000021374,2500.0,R3mXwwoaX9IoRVKe,False,2,audio/trial_056.wav
+57,wake,,7,Synthetic,Weather,WEATHER,Weather,,NO_RESPONSE,,,,,False,False,,,,0,True,,,,s10,True,3,audio/trial_057.wav
+58,wake,,35,Synthetic,Pause song,PAUSE,Pause song,,PAUSE,,,,PAUSE,True,True,,,,1,True,,6.177881999974488,2500.0,s10,True,1,audio/trial_058.wav
+59,wake,,188,Filipino (open-source),Then they scrambled round the rocks to the other side of the house.,OUT_OF_SCOPE,,,NO_RESPONSE,,,,,True,True,,,,0,True,,,,0365b018a15ab96510f1368f4910554f97f6c278320e780c89e4989e9fdef0e557feb655cc9a89282ab0b8effbf5c920cf83193d6e0536e03d2ea84c6dca7559,False,2,audio/trial_059.wav
+60,wake,,158,Synthetic,Switch color to blue,COLOR,Switch color to Blue,Blue,COLOR,blue,,,COLOR_BLUE,True,True,True,,0.0,1,True,,5.6675569999242725,2500.0,s10,True,3,audio/trial_060.wav
+61,wake,,15,Synthetic,What time is it?,TIME,What time is it?,,TIME,,,,TIME,True,True,,,,1,True,,9.271703000194975,2500.0,s10,True,1,audio/trial_061.wav
+62,wake,,191,Native English,Set language to Chinese,OUT_OF_SCOPE,,,NO_RESPONSE,,,,,True,True,,,,0,True,,,,R3mXwwoaX9IoRVKe,False,2,audio/trial_062.wav
+63,wake,,31,Synthetic,Pause,PAUSE,Pause,,LIGHT_OFF,,,,LIGHT_OFF,False,False,,,,1,True,,7.046306000120239,2500.0,s10,True,3,audio/trial_063.wav
+64,wake,,169,Synthetic,Reminder drink water,CREATE_REMINDER,Reminder Drink water,Drink water,CREATE_REMINDER,drink water,,,CREATE_REMINDER_DRINK_WATER,True,True,True,,0.0,1,True,,6.0392489999685495,2500.0,s10,True,1,audio/trial_064.wav
+65,no_wake,False,54,Filipino (group),Volume down,VOLUME_DOWN,Volume down,,NO_RESPONSE,,,,,,,,,,0,False,,,,202520785,False,0,audio/trial_065.wav
+66,wake,,190,Native English,Decrease the heating,OUT_OF_SCOPE,,,PLAY_MUSIC,,,,PLAY_MUSIC,False,False,,,,1,True,,7.300737000150548,2500.0,R3mXwwoaX9IoRVKe,False,2,audio/trial_066.wav
+67,wake,,51,Synthetic,Increase the volume,VOLUME_UP,Increase the volume,,VOLUME_UP,,,,VOLUME_UP,True,True,,,,1,True,,5.762892999882752,2500.0,s10,True,3,audio/trial_067.wav
+68,wake,,187,Filipino (open-source),Then they scrambled round the rocks to the other side of the house.,OUT_OF_SCOPE,,,NO_RESPONSE,,,,,True,True,,,,0,True,,,,0365b018a15ab96510f1368f4910554f97f6c278320e780c89e4989e9fdef0e557feb655cc9a89282ab0b8effbf5c920cf83193d6e0536e03d2ea84c6dca7559,False,1,audio/trial_068.wav
+69,wake,,154,Filipino (group),Change the lights to Green,COLOR,Change color to Green,Green,CREATE_REMINDER,study,,,CREATE_REMINDER_STUDY,False,False,,,,1,True,,6.296384000052058,2500.0,202520785,False,2,audio/trial_069.wav
+70,wake,,87,Synthetic,Countdown for 30 seconds,TIMER,Countdown for 30 seconds,30 seconds,TIMER,30 seconds,,,TIMER_30s,True,True,True,0.0,0.0,1,True,,5.51870199979021,2500.0,s10,True,3,audio/trial_070.wav
+71,wake,,106,Filipino (group),Wake me up at 9:00 PM,ALARM,Wake me up at 9:00 PM,9:00 PM,NO_RESPONSE,,,,,False,False,,,,0,True,,,,202520785,False,1,audio/trial_071.wav
+72,wake,,64,Filipino (group),Make a phone call,CALL,Make a phone call,,NO_RESPONSE,,,,,False,False,,,,0,True,,,,202520785,False,2,audio/trial_072.wav
+73,wake,,151,Synthetic,Change color to red,COLOR,Change color to Red,Red,COLOR,red,,,COLOR_RED,True,True,True,,0.0,1,True,,5.640056000174809,2500.0,s10,True,3,audio/trial_073.wav
+74,wake,,109,Synthetic,Set an alarm for 6 AM,ALARM,Set an alarm for 6:00 AM,6:00 AM,ALARM,6 AM,,,ALARM_6_00AM,True,True,True,0.0,0.0,1,True,,6.6950030000043625,2500.0,s10,True,1,audio/trial_074.wav
+75,wake,,126,Filipino (group),Set the temperature to 18 degrees,TEMPERATURE,Set the temperature to 18 degrees,18 degrees,NO_RESPONSE,,,,,False,False,,,,0,True,,,,202520785,False,2,audio/trial_075.wav
+76,wake,,10,Filipino (group),Tell me the weather,WEATHER,Tell me the weather,,NO_RESPONSE,,,,,False,False,,,,0,True,,,,202520785,False,3,audio/trial_076.wav
+77,wake,,170,Filipino (group),Reminder Study,CREATE_REMINDER,Reminder Study,Study,CREATE_REMINDER,study,,,CREATE_REMINDER_STUDY,True,True,True,,0.0,1,True,,6.013360999986617,2500.0,202520785,False,1,audio/trial_077.wav
+78,wake,,179,Synthetic,Remind me to exercise,CREATE_REMINDER,Remind me to Exercise,Exercise,CREATE_REMINDER,exercise,,,CREATE_REMINDER_EXERCISE,True,True,True,,0.0,1,True,,6.098027999996702,2500.0,s10,True,2,audio/trial_078.wav
+79,wake,,149,Synthetic,Brightness level 100 percent,BRIGHTNESS,Brightness level 100 percent,100 percent,BRIGHTNESS,100 percent,,,BRIGHTNESS_100,True,True,True,0.0,0.0,1,True,,6.748579000031896,2500.0,s100,True,3,audio/trial_079.wav
+80,wake,,189,Native English,Kitchen heat up,OUT_OF_SCOPE,,,NO_RESPONSE,,,,,True,True,,,,0,True,,,,R3mXwwoaX9IoRVKe,False,1,audio/trial_080.wav
+81,wake,,66,Filipino (group),Message,MESSAGE,Message,,NO_RESPONSE,,,,,False,False,,,,0,True,,,,202520785,False,2,audio/trial_081.wav
+82,wake,,78,Filipino (group),Timer 10 seconds,TIMER,Timer 10 seconds,10 seconds,NO_RESPONSE,,,,,False,False,,,,0,True,,,,202520785,False,3,audio/trial_082.wav
+83,wake,,24,Filipino (group),Lights off,LIGHT_OFF,Lights out,,LIGHT_OFF,,,,LIGHT_OFF,True,True,,,,1,True,,6.177418999868678,2500.0,202520785,False,1,audio/trial_083.wav
+84,wake,,55,Synthetic,Volume down,VOLUME_DOWN,Volume down,,VOLUME_DOWN,,,,VOLUME_DOWN,True,True,,,,1,True,,6.2855689998286834,2500.0,s10,True,2,audio/trial_084.wav
+85,no_wake,False,6,Filipino (group),Weather,WEATHER,Weather,,NO_RESPONSE,,,,,,,,,,0,False,,,,202520785,False,0,audio/trial_085.wav
+86,no_wake,False,43,Synthetic,Next song,NEXT,Next song,,NO_RESPONSE,,,,,,,,,,0,False,,,,s10,True,0,audio/trial_086.wav
+87,wake,,101,Synthetic,Alarm 9 PM,ALARM,Alarm 9:00 PM,9:00 PM,NO_RESPONSE,,,,,False,False,,,,0,True,,,,s100,True,3,audio/trial_087.wav
+88,wake,,96,Filipino (group),Alarm 6:00 AM,ALARM,Alarm 6:00 AM,6:00 AM,ALARM,8 AM,,,ALARM_8_00AM,True,False,False,120.0,0.5,1,True,,6.354440999984945,2500.0,202520785,False,1,audio/trial_088.wav
+89,wake,,89,Synthetic,Countdown for 1 minute,TIMER,Countdown for 1 minute,1 minute,TIMER,1 minute,,,TIMER_1m,True,True,True,0.0,0.0,1,True,,6.4639060001354665,2500.0,s10,True,2,audio/trial_089.wav
+90,wake,,131,Synthetic,Set the temperature to 26 degrees,TEMPERATURE,Set the temperature to 26 degrees,26 degrees,TEMPERATURE,26 degrees,,,TEMPERATURE_26,True,True,True,0.0,0.0,1,True,,5.556129000069632,2500.0,s10,True,3,audio/trial_090.wav
+91,wake,,200,Synthetic,Find flights to Cebu.,OUT_OF_SCOPE,,,MESSAGE,,,,MESSAGE,False,False,,,,1,True,,5.917339999996329,2500.0,s100,True,1,audio/trial_091.wav
+92,wake,,172,Filipino (group),Reminder Exercise,CREATE_REMINDER,Reminder Exercise,Exercise,CREATE_REMINDER,exercise,,,CREATE_REMINDER_EXERCISE,True,True,True,,0.0,1,True,,5.602036999789561,2500.0,202520785,False,2,audio/trial_092.wav
+93,wake,,12,Filipino (group),Time,TIME,Time,,NO_RESPONSE,,,,,False,False,,,,0,True,,,,202520785,False,3,audio/trial_093.wav
+94,wake,,117,Synthetic,Temperature 22 degrees,TEMPERATURE,Temperature 22 degrees,22 degrees,TEMPERATURE,22 degrees,,,TEMPERATURE_22,True,True,True,0.0,0.0,1,True,,6.138474000181304,2500.0,s10,True,1,audio/trial_094.wav
+95,wake,,105,Synthetic,Wake me up at 8 AM,ALARM,Wake me up at 8:00 AM,8:00 AM,ALARM,8 AM,,,ALARM_8_00AM,True,True,True,0.0,0.0,1,True,,6.305977000010898,2500.0,s10,True,2,audio/trial_095.wav
+96,wake,,82,Filipino (group),Timer 1 minute,TIMER,Timer 1 minute,1 minute,TIMER,1 minute,,,TIMER_1m,True,True,True,0.0,0.0,1,True,,6.025120000231254,2500.0,202520785,False,3,audio/trial_096.wav
+97,wake,,165,Synthetic,Set color to blue,COLOR,Set color to Blue,Blue,COLOR,blue,,,COLOR_BLUE,True,True,True,,0.0,1,True,,5.499812999914866,2500.0,s10,True,1,audio/trial_097.wav
+98,no_wake,False,120,Filipino (group),Change the temperature to 18 degrees,TEMPERATURE,Change the temperature to 18 degrees,18 degrees,NO_RESPONSE,,,,,,,,,,0,False,,,,202520785,False,0,audio/trial_098.wav
+99,wake,,33,Synthetic,Pause audio,PAUSE,Pause audio,,PAUSE,,,,PAUSE,True,True,,,,1,True,,6.2771060001978185,2500.0,s10,True,2,audio/trial_099.wav
+100,wake,,39,Synthetic,Stop playing,STOP,Stop playing,,STOP,,,,STOP,True,True,,,,1,True,,6.097936000060145,2500.0,s10,True,3,audio/trial_100.wav
+101,wake,,99,Synthetic,Alarm 8 AM,ALARM,Alarm 8:00 AM,8:00 AM,ALARM,8 AM,,,ALARM_8_00AM,True,True,True,0.0,0.0,1,True,,6.170788999952492,2500.0,s10,True,1,audio/trial_101.wav
+102,wake,,123,Synthetic,Change the temperature to 22 degrees,TEMPERATURE,Change the temperature to 22 degrees,22 degrees,TEMPERATURE,22 degrees,,,TEMPERATURE_22,True,True,True,0.0,0.0,1,True,,6.34551500024827,2500.0,s10,True,2,audio/trial_102.wav
+103,wake,,140,Filipino (group),Change the brightness to 60 percent,BRIGHTNESS,Adjust brightness to 60 percent,60 percent,NO_RESPONSE,,,,,False,False,,,,0,True,,,,202520785,False,3,audio/trial_103.wav
+104,no_wake,False,0,Filipino (group),Play a song,PLAY_MUSIC,Play music,,NO_RESPONSE,,,,,,,,,,0,False,,,,202520785,False,0,audio/trial_104.wav
+105,wake,,177,Synthetic,Remind me to study,CREATE_REMINDER,Remind me to Study,Study,CREATE_REMINDER,study,,,CREATE_REMINDER_STUDY,True,True,True,,0.0,1,True,,6.714596000165329,2500.0,s10,True,1,audio/trial_105.wav
+106,wake,,180,Filipino (group),Create a reminder to Drink water,CREATE_REMINDER,Create a reminder to Drink water,Drink water,CREATE_REMINDER,drink water,,,CREATE_REMINDER_DRINK_WATER,True,True,True,,0.0,1,True,,5.968692000351439,2500.0,202520785,False,2,audio/trial_106.wav
+107,wake,,48,Filipino (group),Volume up,VOLUME_UP,Volume up,,NEXT,,,,NEXT,False,False,,,,1,True,,5.6982239998433215,2500.0,202520785,False,3,audio/trial_107.wav
+108,wake,,2,Filipino (group),Start the music,PLAY_MUSIC,Start music,,NO_RESPONSE,,,,,False,False,,,,0,True,,,,202520785,False,1,audio/trial_108.wav
+109,wake,,103,Synthetic,Wake me up at 6 AM,ALARM,Wake me up at 6:00 AM,6:00 AM,ALARM,6 AM,,,ALARM_6_00AM,True,True,True,0.0,0.0,1,True,,7.086880999850109,2500.0,s10,True,2,audio/trial_109.wav
+110,no_wake,False,105,Synthetic,Wake me up at 8 AM,ALARM,Wake me up at 8:00 AM,8:00 AM,NO_RESPONSE,,,,,,,,,,0,False,,,,s10,True,0,audio/trial_110.wav
+111,wake,,17,Synthetic,Tell me the time,TIME,Tell me the time,,TIME,,,,TIME,True,True,,,,1,True,,7.007508999777201,2500.0,s10,True,3,audio/trial_111.wav
+112,wake,,147,Synthetic,Brightness level 60 percent,BRIGHTNESS,Brightness level 60 percent,60 percent,BRIGHTNESS,60 percent,,,BRIGHTNESS_60,True,True,True,0.0,0.0,1,True,,6.350904000100854,2500.0,s100,True,1,audio/trial_112.wav
+113,wake,,84,Filipino (group),Countdown for 10 seconds,TIMER,Countdown for 10 seconds,10 seconds,TIMER,10 seconds,,,TIMER_10s,True,True,True,0.0,0.0,1,True,,6.235290999939025,2500.0,202520785,False,2,audio/trial_113.wav
+114,wake,,21,Synthetic,Power on the lights,LIGHT_ON,Power on the lights,,LIGHT_ON,,,,LIGHT_ON,True,True,,,,1,True,,6.47912800013728,2500.0,s10,True,3,audio/trial_114.wav
+115,wake,,111,Synthetic,Set an alarm for 8 AM,ALARM,Set an alarm for 8:00 AM,8:00 AM,ALARM,8 AM,,,ALARM_8_00AM,True,True,True,0.0,0.0,1,True,,5.4950530002315645,2500.0,s10,True,1,audio/trial_115.wav
+116,wake,,36,Filipino (group),Stop music,STOP,Stop,,NEXT,,,,NEXT,False,False,,,,1,True,,6.754671000180679,2500.0,202520785,False,2,audio/trial_116.wav
+117,wake,,157,Synthetic,Switch color to red,COLOR,Switch color to Red,Red,COLOR,red,,,COLOR_RED,True,True,True,,0.0,1,True,,6.054138999843417,2500.0,s100,True,3,audio/trial_117.wav
+118,no_wake,False,15,Synthetic,What time is it?,TIME,What time is it?,,NO_RESPONSE,,,,,,,,,,0,False,,,,s10,True,0,audio/trial_118.wav
+119,wake,,134,Filipino (group),Brightness 60 percent,BRIGHTNESS,Brightness 60 percent,60 percent,STOP,,,,STOP,False,False,,,,1,True,,6.372255999849585,2500.0,202520785,False,1,audio/trial_119.wav
+120,wake,,115,Synthetic,Temperature 18 degrees,TEMPERATURE,Temperature 18 degrees,18 degrees,TEMPERATURE,18 degrees,,,TEMPERATURE_18,True,True,True,0.0,0.0,1,True,,6.515850999676331,2500.0,s10,True,2,audio/trial_120.wav
+121,wake,,167,Synthetic,Set color to green,COLOR,Set color to Green,Green,COLOR,green,,,COLOR_GREEN,True,True,True,,0.0,1,True,,5.7088540002041555,2500.0,s10,True,3,audio/trial_121.wav
+122,no_wake,False,32,Filipino (group),Pause the music,PAUSE,Pause audio,,NO_RESPONSE,,,,,,,,,,0,False,,,,202520785,False,0,audio/trial_122.wav
+123,no_wake,False,161,Synthetic,Switch color to green,COLOR,Switch color to Green,Green,NO_RESPONSE,,,,,,,,,,0,False,,,,s100,True,0,audio/trial_123.wav
+124,wake,,60,Filipino (group),Call,CALL,Call,,NO_RESPONSE,,,,,False,False,,,,0,True,,,,202520785,False,1,audio/trial_124.wav

@@ -14,6 +14,7 @@ the active project paths to make the current two-model demo easier to find.
 | `scratch/` | One-off notebook-generation experiment. |
 | `deployment_staging/` | Superseded extracted Pi bundles and older ZIPs; the last audited `TinyVCM_RPi5_Antigrav_RELEASE.zip` remains in `deployment/dist/`. |
 | `notebooks/checkpoints/` | A distinct Jupyter checkpoint of the archived 26-class notebook. |
+| `slides/` | Intermediate working presentation drafts and earlier iterations of benchmark slide decks. |
 
 The active intent ONNX remains `models/antigrav_optionb_int8.onnx`. The current
 local binary wake ONNX is `models/binary_wake_int8.onnx`. The prior 32-class

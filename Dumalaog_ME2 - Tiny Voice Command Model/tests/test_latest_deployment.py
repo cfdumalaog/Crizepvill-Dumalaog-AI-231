@@ -17,6 +17,7 @@ def load(name, path):
 
 installer = load('pi_installer', PROJECT / 'deployment/install_release_on_pi.py')
 sync = load('vcm_sync', PROJECT / 'scripts/deploy_latest_vcm.py')
+package = load('pi_package_builder', PROJECT / 'deployment/package_personalized_rpi.py')
 
 
 @pytest.mark.parametrize('member', ['dandan/../../outside', '/outside', 'dandan/..\\outside'])
@@ -36,6 +37,33 @@ def test_rejects_model_files_changed_under_old_process(monkeypatch):
     monkeypatch.setattr(installer, 'state', lambda: {'model_source_run': 'old'})
     with pytest.raises(ValueError, match='model_source_run'):
         installer.verify_state(metadata)
+
+
+def test_pi_release_uses_fifteen_second_post_wake_window():
+    assert package.DEPLOYMENT['post_wake_timeout_sec'] == 15.0
+
+
+def test_installer_verifies_fifteen_second_post_wake_window(monkeypatch):
+    current = {
+        'model_source_run': 'active',
+        'wake_model_sha256': 'wake-sha',
+        'intent_model_sha256': 'intent-sha',
+        'classes_count': 31,
+        'binary_wake_enabled': True,
+        'wake_threshold': 0.95,
+        'timeout_sec': 15.0,
+    }
+    metadata = {
+        'source_run': 'active',
+        'wake': {'model': {'sha256': 'wake-sha'}},
+        'intent': {'model': {'sha256': 'intent-sha'}},
+    }
+    monkeypatch.setattr(installer, 'state', lambda: current)
+    monkeypatch.setattr(installer, 'app_pids', lambda: [123])
+
+    result = installer.verify_state(metadata)
+
+    assert result['timeout_sec'] == 15.0
 
 
 def test_incomplete_new_run_cannot_replace_completed_pair(tmp_path, monkeypatch):

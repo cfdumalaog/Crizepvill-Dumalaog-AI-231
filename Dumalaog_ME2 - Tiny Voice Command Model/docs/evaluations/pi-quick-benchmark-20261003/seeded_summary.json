@@ -1,0 +1,470 @@
+{
+  "title": "ME2 - VCM on Raspberry Pi 5 \u2014 seeded local holdout evaluation",
+  "device": {
+    "hostname": "cfdfnjrpi5",
+    "platform": "Linux-6.18.50+rpt-rpi-2712-aarch64-with-glibc2.41",
+    "python": "3.13.5",
+    "microphone": {
+      "name": "[1] fifine Microphone: USB Audio (hw:2,0) / ALSA / 44100 Hz / 1 ch",
+      "requested_device": null,
+      "stream_active": true,
+      "audio_age_sec": 0.03
+    },
+    "assistant_model_source": "me2-vcm-intent-refresh-updated-20261002",
+    "intent_model": {
+      "path": "/home/dalmacio/Desktop/dandan/models/intent_31_int8.onnx",
+      "bytes": 39315,
+      "sha256": "34240fc6e82c453cd93c96ba82d5167fadba7c7d653ac26173fea669e2e69b68"
+    },
+    "wake_model": {
+      "path": "/home/dalmacio/Desktop/dandan/models/wake_binary_int8.onnx",
+      "bytes": 37425,
+      "sha256": "6c2e941580d8ea778ed664c929e893c226efb91e3e787e65837908c81153deac"
+    }
+  },
+  "thresholds": {
+    "wake": 0.95,
+    "intent_confidence": 0.68,
+    "intent_margin": 0.15
+  },
+  "size": "quick",
+  "model_hashes": {
+    "intent": "34240fc6e82c453cd93c96ba82d5167fadba7c7d653ac26173fea669e2e69b68",
+    "wake": "6c2e941580d8ea778ed664c929e893c226efb91e3e787e65837908c81153deac"
+  },
+  "plan_trials": 125,
+  "wake_positive_trials": 109,
+  "no_wake_trials": 16,
+  "wake_performance_ms": {
+    "n": 125,
+    "mean_5_windows": 6.348643745602021,
+    "p95_5_windows": 6.686495280064264
+  },
+  "command_performance_ms": {
+    "n": 109,
+    "mean": 6.257741366976465,
+    "p95": 7.225766600004135
+  },
+  "independent_recorded_wake_takes": [
+    {
+      "file": "wake_1.wav",
+      "label": "WAKE_WORD",
+      "wake_probability": 0.9999995231628418,
+      "latency_ms": 6.209067200052232
+    },
+    {
+      "file": "wake_2.wav",
+      "label": "WAKE_WORD",
+      "wake_probability": 0.9999995231628418,
+      "latency_ms": 6.440079599815363
+    },
+    {
+      "file": "wake_3.wav",
+      "label": "WAKE_WORD",
+      "wake_probability": 0.9999995231628418,
+      "latency_ms": 6.635586800075544
+    }
+  ],
+  "pi_resource_samples": 11,
+  "pi_evaluator_process": [
+    {
+      "cpu_pct": null,
+      "rss_mb": 136.78125,
+      "cpu_time_s": 1.46,
+      "threads": 5
+    },
+    {
+      "cpu_pct": 99.6,
+      "rss_mb": 141.5625,
+      "cpu_time_s": 1.96,
+      "threads": 6
+    },
+    {
+      "cpu_pct": 99.3,
+      "rss_mb": 141.59375,
+      "cpu_time_s": 2.46,
+      "threads": 6
+    },
+    {
+      "cpu_pct": 99.4,
+      "rss_mb": 142.609375,
+      "cpu_time_s": 2.96,
+      "threads": 6
+    },
+    {
+      "cpu_pct": 103.2,
+      "rss_mb": 141.890625,
+      "cpu_time_s": 3.48,
+      "threads": 6
+    },
+    {
+      "cpu_pct": 99.1,
+      "rss_mb": 141.375,
+      "cpu_time_s": 3.98,
+      "threads": 6
+    },
+    {
+      "cpu_pct": 99.4,
+      "rss_mb": 141.453125,
+      "cpu_time_s": 4.48,
+      "threads": 6
+    },
+    {
+      "cpu_pct": 101.3,
+      "rss_mb": 141.78125,
+      "cpu_time_s": 4.99,
+      "threads": 6
+    },
+    {
+      "cpu_pct": 101.1,
+      "rss_mb": 141.75,
+      "cpu_time_s": 5.5,
+      "threads": 6
+    },
+    {
+      "cpu_pct": 119.0,
+      "rss_mb": 141.65625,
+      "cpu_time_s": 6.1,
+      "threads": 6
+    },
+    {
+      "cpu_pct": 71.0,
+      "rss_mb": 142.078125,
+      "cpu_time_s": 6.36,
+      "threads": 5
+    }
+  ],
+  "pi_assistant_process": [
+    {
+      "cpu_pct": null,
+      "rss_mb": 147.28125,
+      "cpu_time_s": 59.62,
+      "threads": 11
+    },
+    {
+      "cpu_pct": 4.0,
+      "rss_mb": 147.28125,
+      "cpu_time_s": 59.64,
+      "threads": 11
+    },
+    {
+      "cpu_pct": 6.0,
+      "rss_mb": 147.28125,
+      "cpu_time_s": 59.67,
+      "threads": 11
+    },
+    {
+      "cpu_pct": 4.0,
+      "rss_mb": 147.28125,
+      "cpu_time_s": 59.69,
+      "threads": 11
+    },
+    {
+      "cpu_pct": 4.0,
+      "rss_mb": 147.28125,
+      "cpu_time_s": 59.71,
+      "threads": 11
+    },
+    {
+      "cpu_pct": 4.0,
+      "rss_mb": 147.28125,
+      "cpu_time_s": 59.73,
+      "threads": 11
+    },
+    {
+      "cpu_pct": 4.0,
+      "rss_mb": 147.28125,
+      "cpu_time_s": 59.75,
+      "threads": 11
+    },
+    {
+      "cpu_pct": 4.0,
+      "rss_mb": 147.28125,
+      "cpu_time_s": 59.77,
+      "threads": 11
+    },
+    {
+      "cpu_pct": 4.0,
+      "rss_mb": 147.28125,
+      "cpu_time_s": 59.79,
+      "threads": 11
+    },
+    {
+      "cpu_pct": 6.0,
+      "rss_mb": 147.28125,
+      "cpu_time_s": 59.82,
+      "threads": 11
+    },
+    {
+      "cpu_pct": 2.7,
+      "rss_mb": 147.28125,
+      "cpu_time_s": 59.83,
+      "threads": 11
+    }
+  ],
+  "classification": {
+    "intent_accuracy": 0.7155963302752294,
+    "intent_accuracy_ci95": [
+      0.6246952697236742,
+      0.791817789290023
+    ],
+    "command_accuracy": 0.7064220183486238,
+    "command_accuracy_ci95": [
+      0.6150748804582535,
+      0.7837142185974137
+    ],
+    "false_accepts": 7,
+    "out_of_scope_count": 16,
+    "false_wakes": 0,
+    "no_wake_count": 16,
+    "per_intent": {
+      "ALARM": {
+        "support": 9,
+        "precision": 1.0,
+        "recall": 0.7777777777777778,
+        "f1": 0.8750000000000001,
+        "f2": 0.813953488372093
+      },
+      "BRIGHTNESS": {
+        "support": 9,
+        "precision": 0.7777777777777778,
+        "recall": 0.7777777777777778,
+        "f1": 0.7777777777777778,
+        "f2": 0.7777777777777778
+      },
+      "CALL": {
+        "support": 3,
+        "precision": 1.0,
+        "recall": 0.3333333333333333,
+        "f1": 0.5,
+        "f2": 0.3846153846153846
+      },
+      "COLOR": {
+        "support": 9,
+        "precision": 1.0,
+        "recall": 0.7777777777777778,
+        "f1": 0.8750000000000001,
+        "f2": 0.813953488372093
+      },
+      "CREATE_REMINDER": {
+        "support": 9,
+        "precision": 0.9,
+        "recall": 1.0,
+        "f1": 0.9473684210526316,
+        "f2": 0.9782608695652175
+      },
+      "LIGHT_OFF": {
+        "support": 3,
+        "precision": 0.6666666666666666,
+        "recall": 0.6666666666666666,
+        "f1": 0.6666666666666666,
+        "f2": 0.6666666666666666
+      },
+      "LIGHT_ON": {
+        "support": 3,
+        "precision": 0.75,
+        "recall": 1.0,
+        "f1": 0.8571428571428571,
+        "f2": 0.9375
+      },
+      "LIST_REMINDERS": {
+        "support": 3,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "f2": 1.0
+      },
+      "MESSAGE": {
+        "support": 3,
+        "precision": 0.5,
+        "recall": 0.6666666666666666,
+        "f1": 0.5714285714285715,
+        "f2": 0.625
+      },
+      "NEXT": {
+        "support": 3,
+        "precision": 0.5,
+        "recall": 0.6666666666666666,
+        "f1": 0.5714285714285715,
+        "f2": 0.625
+      },
+      "PAUSE": {
+        "support": 3,
+        "precision": 1.0,
+        "recall": 0.6666666666666666,
+        "f1": 0.8,
+        "f2": 0.7142857142857142
+      },
+      "PLAY_MUSIC": {
+        "support": 3,
+        "precision": 0.25,
+        "recall": 0.3333333333333333,
+        "f1": 0.28571428571428575,
+        "f2": 0.3125
+      },
+      "REJECT": {
+        "support": 16,
+        "precision": 0.34615384615384615,
+        "recall": 0.5625,
+        "f1": 0.4285714285714286,
+        "f2": 0.5
+      },
+      "STOP": {
+        "support": 3,
+        "precision": 0.6666666666666666,
+        "recall": 0.6666666666666666,
+        "f1": 0.6666666666666666,
+        "f2": 0.6666666666666666
+      },
+      "TEMPERATURE": {
+        "support": 9,
+        "precision": 0.875,
+        "recall": 0.7777777777777778,
+        "f1": 0.823529411764706,
+        "f2": 0.7954545454545454
+      },
+      "TIME": {
+        "support": 3,
+        "precision": 1.0,
+        "recall": 0.6666666666666666,
+        "f1": 0.8,
+        "f2": 0.7142857142857142
+      },
+      "TIMER": {
+        "support": 9,
+        "precision": 1.0,
+        "recall": 0.6666666666666666,
+        "f1": 0.8,
+        "f2": 0.7142857142857142
+      },
+      "VOLUME_DOWN": {
+        "support": 3,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "f2": 1.0
+      },
+      "VOLUME_UP": {
+        "support": 3,
+        "precision": 1.0,
+        "recall": 0.6666666666666666,
+        "f1": 0.8,
+        "f2": 0.7142857142857142
+      },
+      "WEATHER": {
+        "support": 3,
+        "precision": 1.0,
+        "recall": 0.3333333333333333,
+        "f1": 0.5,
+        "f2": 0.3846153846153846
+      }
+    },
+    "confusions": [
+      [
+        [
+          "REJECT",
+          "PLAY_MUSIC"
+        ],
+        3
+      ],
+      [
+        [
+          "TIMER",
+          "REJECT"
+        ],
+        2
+      ],
+      [
+        [
+          "PLAY_MUSIC",
+          "REJECT"
+        ],
+        2
+      ],
+      [
+        [
+          "TEMPERATURE",
+          "REJECT"
+        ],
+        2
+      ],
+      [
+        [
+          "REJECT",
+          "MESSAGE"
+        ],
+        2
+      ],
+      [
+        [
+          "WEATHER",
+          "REJECT"
+        ],
+        2
+      ],
+      [
+        [
+          "ALARM",
+          "REJECT"
+        ],
+        2
+      ],
+      [
+        [
+          "CALL",
+          "REJECT"
+        ],
+        2
+      ],
+      [
+        [
+          "NEXT",
+          "REJECT"
+        ],
+        1
+      ],
+      [
+        [
+          "COLOR",
+          "REJECT"
+        ],
+        1
+      ],
+      [
+        [
+          "LIGHT_OFF",
+          "LIGHT_ON"
+        ],
+        1
+      ],
+      [
+        [
+          "REJECT",
+          "BRIGHTNESS"
+        ],
+        1
+      ],
+      [
+        [
+          "REJECT",
+          "TEMPERATURE"
+        ],
+        1
+      ],
+      [
+        [
+          "TIMER",
+          "BRIGHTNESS"
+        ],
+        1
+      ],
+      [
+        [
+          "PAUSE",
+          "LIGHT_OFF"
+        ],
+        1
+      ]
+    ]
+  }
+}

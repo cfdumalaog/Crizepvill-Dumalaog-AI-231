@@ -69,7 +69,7 @@ DEPLOYMENT = {
     "wake_threshold_note": "User-requested operating threshold; validation-selected threshold remains in candidate_metadata.json.",
     "vad_threshold": 0.006,
     "inference_interval_sec": 0.12,
-    "post_wake_timeout_sec": 10.0,
+    "post_wake_timeout_sec": 15.0,
     "microphone_default": "automatic; no device index is hard-coded",
     "autostart": False,
     "gpio": True,
