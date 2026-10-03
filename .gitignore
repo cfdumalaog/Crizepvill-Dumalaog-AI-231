@@ -18,7 +18,7 @@ data/
 *.zip
 release/
 **/deployment/dist/
-**/launchers/ME2-VCM-Recorder/
+**/ME2-VCM-Recorder/
 **/.codex-finalizer/
 **/tmp/
 

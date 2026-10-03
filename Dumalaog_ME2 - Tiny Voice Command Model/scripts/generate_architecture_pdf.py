@@ -11,7 +11,7 @@ from matplotlib.backends.backend_pdf import PdfPages
 
 OUT_DIR = Path(r"C:\Users\danda\Desktop\MEng AI Notebooks\AI 222 231\AI 231\Dumalaog_ME2 - Tiny Voice Command Model\docs")
 OUT_DIR.mkdir(parents=True, exist_ok=True)
-PDF_PATH = OUT_DIR / "TinyDSCNN48_Architecture.pdf"
+PDF_PATH = OUT_DIR.parent / "TinyDSCNN48_Architecture.pdf"
 PNG_PATH = OUT_DIR / "tinydscnn48_architecture.png"
 
 def draw_page_1(fig):
@@ -72,7 +72,7 @@ def draw_page_1(fig):
     # -------------------------------------------------------------
     # SECTION 2: NEURAL NETWORK STAGES (LEFT SIDE)
     # -------------------------------------------------------------
-    ax.text(2, 101.5, "2. TinyDSCNN-48 Layer Flow", fontsize=10.5, fontweight="bold", color="#0f172a")
+    ax.text(2, 101.5, "2. Layer Flow", fontsize=10.2, fontweight="bold", color="#0f172a")
 
     stages = [
         ("Input Spectrogram", "1 channel × 40 mel bands × 151 time frames", "(1, 40, 151)", "#f8fafc", "#64748b", "Input Data"),
@@ -86,9 +86,9 @@ def draw_page_1(fig):
         ("Linear Classifier Head", "nn.Linear(in_features=48, out_features=classes, bias=True)", "(classes,)", "#f0fdf4", "#16a34a", "1,274 / 1,568 params")
     ]
 
-    sy = 95.0
-    sh = 6.2
-    gap = 1.6
+    sy = 93.5
+    sh = 5.8
+    gap = 1.1
     for idx, (s_name, s_op, s_shape, s_bg, s_bc, s_param) in enumerate(stages):
         cur_y = sy - idx * (sh + gap)
         box = patches.FancyBboxPatch((2, cur_y), 58, sh, boxstyle="round,pad=0.3,rounding_size=0.8",
@@ -110,42 +110,42 @@ def draw_page_1(fig):
     # -------------------------------------------------------------
     # SECTION 3: DEPTHWISE SEPARABLE CALLOUT (RIGHT SIDE)
     # -------------------------------------------------------------
-    ax.text(63, 101.5, "3. Depthwise Separable Block Detail", fontsize=10.5, fontweight="bold", color="#0f172a")
+    ax.text(63, 101.5, "3. DS-Block Detail", fontsize=10.2, fontweight="bold", color="#0f172a")
 
-    callout_box = patches.FancyBboxPatch((63, 25), 35, 76, boxstyle="round,pad=0.6,rounding_size=1.0",
+    callout_box = patches.FancyBboxPatch((63, 22), 35, 73, boxstyle="round,pad=0.6,rounding_size=1.0",
                                          edgecolor="#94a3b8", facecolor="#ffffff", lw=1.1)
     ax.add_patch(callout_box)
 
-    ax.text(80.5, 97.5, "Inside Each DS-Block", ha="center", va="center", color="#0f172a", fontsize=8.8, fontweight="bold")
-    ax.text(80.5, 94.8, "Factorizes standard conv into two operations:", ha="center", va="center", color="#64748b", fontsize=6.4)
+    ax.text(80.5, 92.0, "Inside Each DS-Block", ha="center", va="center", color="#0f172a", fontsize=8.8, fontweight="bold")
+    ax.text(80.5, 89.3, "Factorizes standard conv into two operations:", ha="center", va="center", color="#64748b", fontsize=6.4)
 
     # Sub-block 1: Depthwise
-    dw_box = patches.FancyBboxPatch((65, 75), 31, 17, boxstyle="round,pad=0.3,rounding_size=0.8",
+    dw_box = patches.FancyBboxPatch((65, 70.5), 31, 17, boxstyle="round,pad=0.3,rounding_size=0.8",
                                     edgecolor="#0284c7", facecolor="#f0f9ff", lw=1.1)
     ax.add_patch(dw_box)
-    ax.text(80.5, 89.0, "Stage 1: Depthwise Conv (Spatial)", ha="center", va="center", color="#0369a1", fontsize=7.2, fontweight="bold")
+    ax.text(80.5, 84.5, "Stage 1: Depthwise Conv (Spatial)", ha="center", va="center", color="#0369a1", fontsize=7.2, fontweight="bold")
     dw_desc = "• Kernel: 3×3, groups = 48\n• Each channel filtered independently\n• Stride: 1×1 (1×2 at Block 2)\n• Output: BatchNorm2d + ReLU"
-    ax.text(67.0, 81.5, dw_desc, ha="left", va="center", color="#334155", fontsize=6.2, linespacing=1.3)
+    ax.text(67.0, 77.0, dw_desc, ha="left", va="center", color="#334155", fontsize=6.2, linespacing=1.3)
 
-    ax.annotate("", xy=(80.5, 71.5), xytext=(80.5, 75), arrowprops=dict(arrowstyle="-|>", lw=1.2, color="#0284c7", mutation_scale=8))
+    ax.annotate("", xy=(80.5, 67.0), xytext=(80.5, 70.5), arrowprops=dict(arrowstyle="-|>", lw=1.2, color="#0284c7", mutation_scale=8))
 
     # Sub-block 2: Pointwise
-    pw_box = patches.FancyBboxPatch((65, 52), 31, 17, boxstyle="round,pad=0.3,rounding_size=0.8",
+    pw_box = patches.FancyBboxPatch((65, 47.5), 31, 17, boxstyle="round,pad=0.3,rounding_size=0.8",
                                     edgecolor="#7c3aed", facecolor="#f5f3ff", lw=1.1)
     ax.add_patch(pw_box)
-    ax.text(80.5, 66.0, "Stage 2: Pointwise Conv (Channel)", ha="center", va="center", color="#6d28d9", fontsize=7.2, fontweight="bold")
+    ax.text(80.5, 61.5, "Stage 2: Pointwise Conv (Channel)", ha="center", va="center", color="#6d28d9", fontsize=7.2, fontweight="bold")
     pw_desc = "• Kernel: 1×1, groups = 1\n• Linear projection across 48 channels\n• Learns cross-channel correlations\n• Output: BatchNorm2d + ReLU"
-    ax.text(67.0, 58.5, pw_desc, ha="left", va="center", color="#334155", fontsize=6.2, linespacing=1.3)
+    ax.text(67.0, 54.0, pw_desc, ha="left", va="center", color="#334155", fontsize=6.2, linespacing=1.3)
 
-    ax.annotate("", xy=(80.5, 48.5), xytext=(80.5, 52), arrowprops=dict(arrowstyle="-|>", lw=1.2, color="#7c3aed", mutation_scale=8))
+    ax.annotate("", xy=(80.5, 44.0), xytext=(80.5, 47.5), arrowprops=dict(arrowstyle="-|>", lw=1.2, color="#7c3aed", mutation_scale=8))
 
     # Efficiency math card
-    eff_box = patches.FancyBboxPatch((65, 28), 31, 18, boxstyle="round,pad=0.3,rounding_size=0.8",
+    eff_box = patches.FancyBboxPatch((65, 23.5), 31, 18, boxstyle="round,pad=0.3,rounding_size=0.8",
                                      edgecolor="#059669", facecolor="#ecfdf5", lw=1.1)
     ax.add_patch(eff_box)
-    ax.text(80.5, 42.5, "Computational Efficiency Gain", ha="center", va="center", color="#047857", fontsize=7.2, fontweight="bold")
+    ax.text(80.5, 38.0, "Computational Efficiency Gain", ha="center", va="center", color="#047857", fontsize=7.2, fontweight="bold")
     eff_desc = "Standard Conv FLOPs: Dk × Dk × M × N\nDS-Conv FLOPs: Dk × Dk × M + M × N\n\nComputation Ratio:\n  (1 / N) + (1 / Dk²)\n≈ 8.5× Fewer FLOPs vs Standard Conv"
-    ax.text(67.0, 34.5, eff_desc, ha="left", va="center", color="#065f46", fontsize=5.8, linespacing=1.25)
+    ax.text(67.0, 30.0, eff_desc, ha="left", va="center", color="#065f46", fontsize=5.8, linespacing=1.25)
 
     # Footer note
     ax.text(50, 19, "Designed for AI 231 ME2  |  From-scratch initialization (Zero pretrained weights)  |  Exportable to static INT8 ONNX",
@@ -243,9 +243,9 @@ def draw_page_2(fig):
     # -------------------------------------------------------------
     # SECTION 3: ACADEMIC REFERENCES & PROVENANCE
     # -------------------------------------------------------------
-    ax.text(2, 9.5, "3. Academic References & Design Attribution", fontsize=10.0, fontweight="bold", color="#0f172a")
+    ax.text(2, 10.5, "3. Academic References & Design Attribution", fontsize=10.0, fontweight="bold", color="#0f172a")
 
-    ref_box = patches.FancyBboxPatch((2, 1.5), 96, 6.8, boxstyle="round,pad=0.3,rounding_size=0.8",
+    ref_box = patches.FancyBboxPatch((2, 0.5), 96, 7.5, boxstyle="round,pad=0.3,rounding_size=0.8",
                                      edgecolor="#94a3b8", facecolor="#ffffff", lw=1.0)
     ax.add_patch(ref_box)
     ax.text(3.5, 5.8, "[1] Zhang, Y., Suda, N., Lai, L., & Chandra, V. (2017). \"Hello Edge: Keyword Spotting on Microcontrollers.\" arXiv:1711.07128. ARM Applied ML Research.",

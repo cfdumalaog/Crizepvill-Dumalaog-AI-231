@@ -24,7 +24,7 @@ PROJECT = Path(__file__).resolve().parents[1]
 DATASET = PROJECT / "data" / "ai231-me2-voice-commands-hf-a90b8d10"
 VARIATIONS = DATASET / "variations.csv"
 PHRASE_DIR = PROJECT / "docs" / "ground_truth_phrases"
-OUTPUT = PROJECT / "output" / "pdf" / "ME2_VCM_Intents_and_Phrase_Variations.pdf"
+OUTPUT = PROJECT / "outputs" / "pdf" / "ME2_VCM_Intents_and_Phrase_Variations.pdf"
 DATASET_REVISION = "a90b8d106349b02c5570a1a258503386043f63b2"
 
 
