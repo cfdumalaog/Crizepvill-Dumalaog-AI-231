@@ -179,7 +179,7 @@ The deployment workflow is:
 `deployment/latest_release.json` means only that a release was packaged and
 verified locally. `deployment/last_pi_deployment.json` must say `deployed`
 before the Pi is described as deployed. The verified deployment receipt is
-release `me3-20261024-173332-36bb26b8` at
+release `me3-20261024-221844-8db80e36` at
 `/home/dalmacio/Desktop/kiko/me3_voice_duplex`; the transfer hash matched the
 release manifest and the idempotent installer completed. On the Pi, `--check`
 passes, and a live text-mode Qwen run built a stopwatch web app through

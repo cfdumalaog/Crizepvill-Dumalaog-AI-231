@@ -1,10 +1,10 @@
 {
   "status": "deployed",
-  "at": "2026-10-24T22:18:58Z",
-  "release_id": "me3-20261024-221844-8db80e36",
+  "at": "2026-10-24T22:27:37Z",
+  "release_id": "me3-20261024-222725-8db80e36",
   "host": "cfdfnjrpi5.local",
   "path": "/home/dalmacio/Desktop/kiko/me3_voice_duplex",
-  "zip_sha256": "fc6c4b596a1de2c7e0f68e3b8f84f160b02cd86ddd5eeb13d46eefac8c18a845",
+  "zip_sha256": "0f0e57fc659a1ca7270a4b6b6f9b7453fe102c0a31abc2264514ca8afc006b87",
   "verified": [
     "sha256 of transferred zip matches the prepared release hash",
     "install.sh completed and normalized Linux shell/service line endings",
@@ -12,6 +12,7 @@
     "me3.env mode 600; VLLM_API_KEY presence verified without printing its value",
     "ME3_TTS_ENGINE=auto with no ElevenLabs credentials selects Piper fallback",
     "Pi Qwen text tool turn called system_info successfully",
+    "deployed documentation receipt matches release me3-20261024-222725-8db80e36",
     "PortAudio reports 0 devices; user services remain disabled pending hardware audio"
   ],
   "reason": null
