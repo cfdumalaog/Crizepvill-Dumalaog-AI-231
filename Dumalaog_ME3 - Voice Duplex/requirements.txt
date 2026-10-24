@@ -1,0 +1,38 @@
+# ME3 - Voice Duplex: Raspberry Pi 4/5 full-duplex voice agent
+# Pinned to live-verified SOTA versions (checked 2026-10-19).
+# Install: python -m pip install -r requirements.txt
+
+# --- Core harness (full-duplex orchestration) ---
+pipecat-ai==1.13.0            # full-duplex voice agent framework (barge-in, VAD, transports)
+pipecat-ai[openai]            # LLM service adapter (remote vLLM/OpenAI-compatible)
+mcp==2.3.0                    # official Model Context Protocol SDK
+fastmcp>=2.10                 # ergonomic MCP server builder
+
+# --- ASR (SOTA local, Pi-runnable) ---
+faster-whisper==1.2.1         # CTranslate2 Whisper, int8, low latency
+
+# --- TTS (SOTA local, real-time on Pi) ---
+piper-tts==1.8.0              # neural TTS, <10ms/frame on Pi 5
+
+# --- VAD (voice activity detection) ---
+# Pipecat bundles the Silero ONNX model and CPU wrapper. Keeping this path
+# torch-free avoids pulling a multi-gigabyte CUDA wheel onto Raspberry Pi.
+onnxruntime>=1.18
+
+# --- Audio I/O ---
+sounddevice>=0.4.6            # PortAudio wrapper (full-duplex capture/playback)
+numpy>=1.26                   # audio buffers
+scipy>=1.11                   # signal utilities
+
+# --- LLM brain (local option; remote uses vLLM endpoint) ---
+ollama>=0.3                   # local LLM client (Pi 5 small models)
+openai>=1.35                  # OpenAI-compatible client for remote vLLM
+requests>=2.31                # Qwen tool-call transport and public web fetch
+
+# --- Benchmark / classwork ---
+psutil>=5.9                   # CPU/RAM telemetry for latency benchmark
+pandas>=2.0                   # results tabulation
+
+# --- Deployment ---
+# systemd is used through the shipped user units; no Python systemd binding is
+# required, which keeps the ARM64 install independent of systemd-dev headers.

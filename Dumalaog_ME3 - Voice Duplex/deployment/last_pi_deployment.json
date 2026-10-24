@@ -1,0 +1,18 @@
+{
+  "status": "deployed",
+  "at": "2026-10-24T17:37:27Z",
+  "release_id": "me3-20261024-173332-36bb26b8",
+  "host": "cfdfnjrpi5.local",
+  "path": "/home/dalmacio/Desktop/kiko/me3_voice_duplex",
+  "zip_sha256": "3eea82ef5cbd3688eecf79f1183cedc3dc845b86e9319446ff2f4d5028803575",
+  "verified": [
+    "sha256 of transferred zip matches release manifest (3eea82ef...803575)",
+    "install.sh complete: system deps OK, venv py3.13.5, all pinned requirements satisfied",
+    "models: faster-whisper base.en cached; piper en_GB-alba-medium + en_US-lessac-medium cached",
+    "me3.env (mode 600): ME3_ASR_MODEL=base.en, VLLM_API_KEY set (tool brain enabled)",
+    "systemd user units installed: me3-asr, me3-tts, me3-vad, me3-agent (not auto-enabled)",
+    "python -m me3.agent --check => CHECK PASS (LLM brain Qwen/Qwen3.8-27B @ vLLM)",
+    "Pi text E2E (verified on release 163357, identical me3/ code): Qwen tool-calling built agent_workspace/stopwatch and served HTTP 200 at http://192.168.254.106:8000; cross-verified from the dev box; test server stopped afterwards"
+  ],
+  "note": "Deployed via verified scp+ssh steps. Voice I/O on Pi needs an audio device (PortAudio currently reports 0 devices); text mode verified."
+}

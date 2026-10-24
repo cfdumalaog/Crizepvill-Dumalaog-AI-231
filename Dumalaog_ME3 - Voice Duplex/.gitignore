@@ -1,0 +1,18 @@
+﻿# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# local run state (generated, machine-specific)
+runs/
+models/
+dist/
+
+# vendored benchmark reference clone (the paper PDF in refs/ is kept)
+refs/full-duplex-bench/
+
+# stray Windows redirect artifact
+/nul
+# agent working dirs (briefs/status) - not user-facing
+subagent_briefs/
+subagent_status/

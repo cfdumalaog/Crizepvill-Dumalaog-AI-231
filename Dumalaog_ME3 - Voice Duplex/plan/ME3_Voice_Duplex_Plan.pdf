@@ -1,0 +1,612 @@
+%PDF-1.4
+%����
+1 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>
+endobj
+2 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>
+endobj
+3 0 obj
+<< /Type /Catalog /Pages 4 0 R >>
+endobj
+4 0 obj
+<< /Type /Pages /Kids [5 0 R 7 0 R 9 0 R 11 0 R 13 0 R 15 0 R 17 0 R 19 0 R 21 0 R 23 0 R] /Count 10 >>
+endobj
+5 0 obj
+<< /Type /Page /Parent 4 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 6 0 R >>
+endobj
+6 0 obj
+<< /Length 3099 >>
+stream
+0.100 0.160 0.300 rg 0.00 782.00 612.00 10.00 re f
+0.100 0.160 0.300 rg 0.00 782.00 612.00 10.00 re f
+0.850 0.450 0.100 rg 54.00 600.00 504.00 2.00 re f
+BT /F2 46.00 Tf 0.150 0.350 0.650 rg 54.00 640.00 Td (ME3) Tj ET
+BT /F2 19.00 Tf 0.100 0.160 0.300 rg 54.00 596.00 Td (Voice Duplex — Full-Duplex Voice AI Agent on Raspberry Pi) Tj ET
+BT /F1 11.50 Tf 0.350 0.380 0.420 rg 54.00 566.00 Td (An agent-oriented engineering plan: every step, microstep, owner, and gate) Tj ET
+BT /F1 10.50 Tf 0.150 0.350 0.650 rg 54.00 540.00 Td (AI 231  ·  Dumalaog  ·  MEng AI Notebooks) Tj ET
+0.900 0.920 0.950 rg 54.00 470.00 504.00 1.20 re f
+BT /F2 8.20 Tf 0.850 0.450 0.100 rg 54.00 448.00 Td (PREPARED BY) Tj ET
+BT /F1 9.60 Tf 0.120 0.130 0.150 rg 184.00 448.00 Td (OnIt \(agent\)  ·  coordinated with Codex \(thinker/auditor\) + Antigravity \(implementer\)) Tj ET
+BT /F2 8.20 Tf 0.850 0.450 0.100 rg 54.00 428.00 Td (DATE) Tj ET
+BT /F1 9.60 Tf 0.120 0.130 0.150 rg 184.00 428.00 Td (2026-10-19  \(Asia/Manila\)) Tj ET
+BT /F2 8.20 Tf 0.850 0.450 0.100 rg 54.00 408.00 Td (TARGET HARDWARE) Tj ET
+BT /F1 9.60 Tf 0.120 0.130 0.150 rg 184.00 408.00 Td (Raspberry Pi 4 \(4/8 GB\) or Pi 5 \(4/8/16 GB\) — 64-bit Raspberry Pi OS Lite) Tj ET
+BT /F2 8.20 Tf 0.850 0.450 0.100 rg 54.00 388.00 Td (CLASSWORK DELIVERABLE) Tj ET
+BT /F1 9.60 Tf 0.120 0.130 0.150 rg 184.00 388.00 Td (Standardized voice-interaction latency benchmark \(Section 9\)) Tj ET
+BT /F2 8.20 Tf 0.850 0.450 0.100 rg 54.00 368.00 Td (STATUS) Tj ET
+BT /F1 9.60 Tf 0.120 0.130 0.150 rg 184.00 368.00 Td (Planning — greenfield \(no prior ME3 scaffolding in workspace\)) Tj ET
+0.900 0.920 0.950 rg 54.00 300.00 504.00 1.20 re f
+BT /F2 10.00 Tf 0.100 0.160 0.300 rg 54.00 280.00 Td (EXECUTIVE SUMMARY) Tj ET
+BT /F1 9.60 Tf 0.120 0.130 0.150 rg 54.00 718.00 Td (This plan specifies a full-duplex, interruptible, voice-enabled AI agent that runs on a Raspberry) Tj ET
+BT /F1 9.60 Tf 0.120 0.130 0.150 rg 54.00 704.00 Td (Pi. It installs an MCP-capable agent harness \(Pipecat 1.13.0\), builds two local MCP servers wrapping) Tj ET
+BT /F1 9.60 Tf 0.120 0.130 0.150 rg 54.00 690.00 Td (SOTA ASR \(faster-whisper 1.2.1\) and TTS \(Piper 1.8.0\), installs a production VAD \(Silero VAD 6.2.3\),) Tj ET
+BT /F1 9.60 Tf 0.120 0.130 0.150 rg 54.00 676.00 Td (and runs the agent against real-world tasks. Commercial APIs may supply the LLM brain, but the) Tj ET
+BT /F1 9.60 Tf 0.120 0.130 0.150 rg 54.00 662.00 Td (ASR/TTS/VAD MCP servers are built and run on the Pi. A standardized latency benchmark quantifies) Tj ET
+BT /F1 9.60 Tf 0.120 0.130 0.150 rg 54.00 648.00 Td (voice-interaction quality. Work is split across three agents with explicit ownership and) Tj ET
+BT /F1 9.60 Tf 0.120 0.130 0.150 rg 54.00 634.00 Td (verification gates.) Tj ET
+0.900 0.920 0.950 RG 1.00 w 54.00 40.00 m 558.00 40.00 l S
+BT /F1 8.00 Tf 0.350 0.380 0.420 rg 54.00 28.00 Td (ME3 — Voice Duplex Agent Plan) Tj ET
+BT /F1 8.00 Tf 0.350 0.380 0.420 rg 468.00 28.00 Td (Dumalaog  |  AI 231  |  2026-10-19) Tj ET
+BT /F2 8.00 Tf 0.150 0.350 0.650 rg 534.00 28.00 Td (1 / 10) Tj ET
+
+endstream
+endobj
+7 0 obj
+<< /Type /Page /Parent 4 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 8 0 R >>
+endobj
+8 0 obj
+<< /Length 4276 >>
+stream
+0.150 0.350 0.650 rg 0.00 786.00 612.00 6.00 re f
+BT /F2 19.00 Tf 0.100 0.160 0.300 rg 54.00 712.00 Td (1  Mission, Scope & Constraints) Tj ET
+0.850 0.450 0.100 rg 54.00 702.00 504.00 2.40 re f
+BT /F1 9.60 Tf 0.120 0.130 0.150 rg 54.00 674.60 Td (Goal: a conversational, natural, interruptible voice agent on Pi 4/5 that listens and speaks) Tj ET
+BT /F1 9.60 Tf 0.120 0.130 0.150 rg 54.00 661.20 Td (simultaneously \(full-duplex\), can be barged into mid-sentence, and completes real-world tasks via) Tj ET
+BT /F1 9.60 Tf 0.120 0.130 0.150 rg 54.00 647.80 Td (MCP tool calls. The system must be reproducible, measurable, and safe to hand off between agents.) Tj ET
+BT /F2 12.50 Tf 0.150 0.350 0.650 rg 54.00 631.80 Td (1.1  In scope) Tj ET
+BT /F2 9.40 Tf 0.850 0.450 0.100 rg 54.00 604.80 Td (•) Tj ET
+BT /F1 9.40 Tf 0.120 0.130 0.150 rg 68.00 591.80 Td (Agent harness with MCP support \(Pipecat + MCP Python SDK v2\).) Tj ET
+BT /F2 9.40 Tf 0.850 0.450 0.100 rg 54.00 578.80 Td (•) Tj ET
+BT /F1 9.40 Tf 0.120 0.130 0.150 rg 68.00 565.80 Td (Two locally-built MCP servers: ASR \(faster-whisper\) and TTS \(Piper\), running on the Pi.) Tj ET
+BT /F2 9.40 Tf 0.850 0.450 0.100 rg 54.00 552.80 Td (•) Tj ET
+BT /F1 9.40 Tf 0.120 0.130 0.150 rg 68.00 539.80 Td (Silero VAD for voice activity detection and endpointing, exposed to the pipeline.) Tj ET
+BT /F2 9.40 Tf 0.850 0.450 0.100 rg 54.00 526.80 Td (•) Tj ET
+BT /F1 9.40 Tf 0.120 0.130 0.150 rg 68.00 513.80 Td (Full-duplex audio: simultaneous capture + playback, barge-in, turn-taking.) Tj ET
+BT /F2 9.40 Tf 0.850 0.450 0.100 rg 54.00 500.80 Td (•) Tj ET
+BT /F1 9.40 Tf 0.120 0.130 0.150 rg 68.00 487.80 Td (Real-world task execution through MCP tools \(weather, timers, ME2 command model, etc.\).) Tj ET
+BT /F2 9.40 Tf 0.850 0.450 0.100 rg 54.00 474.80 Td (•) Tj ET
+BT /F1 9.40 Tf 0.120 0.130 0.150 rg 68.00 461.80 Td (Standardized latency benchmark \(classwork\) with a fixed measurement protocol.) Tj ET
+BT /F2 12.50 Tf 0.150 0.350 0.650 rg 54.00 445.80 Td (1.2  Out of scope / deferred) Tj ET
+BT /F2 9.40 Tf 0.850 0.450 0.100 rg 54.00 418.80 Td (•) Tj ET
+BT /F1 9.40 Tf 0.120 0.130 0.150 rg 68.00 405.80 Td (Retraining ASR/TTS/VAD models \(use SOTA pre-trained weights; fine-tune only if required later\).) Tj ET
+BT /F2 9.40 Tf 0.850 0.450 0.100 rg 54.00 392.80 Td (•) Tj ET
+BT /F1 9.40 Tf 0.120 0.130 0.150 rg 68.00 379.80 Td (Multi-speaker diarization, translation, and vision \(multimodal\) in v1.) Tj ET
+BT /F2 9.40 Tf 0.850 0.450 0.100 rg 54.00 366.80 Td (•) Tj ET
+BT /F1 9.40 Tf 0.120 0.130 0.150 rg 68.00 353.80 Td (Cloud-hosted agent \(target is on-Pi; cloud is used only for the optional LLM brain\).) Tj ET
+BT /F2 12.50 Tf 0.150 0.350 0.650 rg 54.00 337.80 Td (1.3  Hard constraints \(from workspace AGENTS.md\)) Tj ET
+BT /F2 9.40 Tf 0.850 0.450 0.100 rg 54.00 310.80 Td (•) Tj ET
+BT /F1 9.40 Tf 0.120 0.130 0.150 rg 68.00 297.80 Td (Single shared environment \(.venv\) on the dev host; on the Pi, one dedicated venv for ME3.) Tj ET
+BT /F2 9.40 Tf 0.850 0.450 0.100 rg 54.00 284.80 Td (•) Tj ET
+BT /F1 9.40 Tf 0.120 0.130 0.150 rg 68.00 271.80 Td (No secrets in files/logs/chat/commits; API keys in OS keychain / env, referenced by name only.) Tj ET
+BT /F2 9.40 Tf 0.850 0.450 0.100 rg 54.00 258.80 Td (•) Tj ET
+BT /F1 9.40 Tf 0.120 0.130 0.150 rg 68.00 245.80 Td (Preserve existing Pi deployments \(VCM at ~/Desktop/dandan, Kiko\) — ME3 lives in its own folder.) Tj ET
+BT /F2 9.40 Tf 0.850 0.450 0.100 rg 54.00 232.80 Td (•) Tj ET
+BT /F1 9.40 Tf 0.120 0.130 0.150 rg 68.00 219.80 Td (Every claim of 'ran / verified' must be backed by an actually-executed command and recorded) Tj ET
+BT /F1 9.40 Tf 0.120 0.130 0.150 rg 68.00 206.80 Td (evidence.) Tj ET
+BT /F2 9.40 Tf 0.850 0.450 0.100 rg 54.00 193.80 Td (•) Tj ET
+BT /F1 9.40 Tf 0.120 0.130 0.150 rg 68.00 180.80 Td (Mandatory handoff update after material changes \(Update-HandoffIndex.ps1 + HANDOFF_INDEX.md\).) Tj ET
+0.900 0.920 0.950 RG 1.00 w 54.00 40.00 m 558.00 40.00 l S
+BT /F1 8.00 Tf 0.350 0.380 0.420 rg 54.00 28.00 Td (ME3 — Voice Duplex Agent Plan) Tj ET
+BT /F1 8.00 Tf 0.350 0.380 0.420 rg 468.00 28.00 Td (Dumalaog  |  AI 231  |  2026-10-19) Tj ET
+BT /F2 8.00 Tf 0.150 0.350 0.650 rg 534.00 28.00 Td (2 / 10) Tj ET
+
+endstream
+endobj
+9 0 obj
+<< /Type /Page /Parent 4 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 10 0 R >>
+endobj
+10 0 obj
+<< /Length 6548 >>
+stream
+0.150 0.350 0.650 rg 0.00 786.00 612.00 6.00 re f
+BT /F2 19.00 Tf 0.100 0.160 0.300 rg 54.00 712.00 Td (2  System Architecture) Tj ET
+0.850 0.450 0.100 rg 54.00 702.00 504.00 2.40 re f
+BT /F1 9.60 Tf 0.120 0.130 0.150 rg 54.00 674.60 Td (The agent is a Pipecat pipeline over a full-duplex audio transport. Three on-Pi MCP servers \(ASR,) Tj ET
+BT /F1 9.60 Tf 0.120 0.130 0.150 rg 54.00 661.20 Td (TTS, VAD\) are wrapped so the LLM brain can call them as tools; the same models also feed the) Tj ET
+BT /F1 9.60 Tf 0.120 0.130 0.150 rg 54.00 647.80 Td (realtime voice loop. The LLM brain is swappable: local \(Ollama/llama.cpp\) for offline, or a) Tj ET
+BT /F1 9.60 Tf 0.120 0.130 0.150 rg 54.00 634.40 Td (commercial/remote API \(e.g. the existing vLLM Qwen endpoint\) for capability.) Tj ET
+0.900 0.920 0.950 rg 54.00 646.00 117.00 46.00 re f
+0.150 0.350 0.650 rg 54.00 646.00 117.00 3.00 re f
+BT /F2 9.50 Tf 0.100 0.160 0.300 rg 62.00 676.00 Td (MIC / I2S) Tj ET
+BT /F1 7.60 Tf 0.350 0.380 0.420 rg 62.00 654.00 Td (audio in) Tj ET
+0.900 0.920 0.950 rg 183.00 646.00 117.00 46.00 re f
+0.150 0.350 0.650 rg 183.00 646.00 117.00 3.00 re f
+BT /F2 9.50 Tf 0.100 0.160 0.300 rg 191.00 676.00 Td (VAD) Tj ET
+BT /F1 7.60 Tf 0.350 0.380 0.420 rg 191.00 654.00 Td (Silero 6.2.3) Tj ET
+0.900 0.920 0.950 rg 312.00 646.00 117.00 46.00 re f
+0.150 0.350 0.650 rg 312.00 646.00 117.00 3.00 re f
+BT /F2 9.50 Tf 0.100 0.160 0.300 rg 320.00 676.00 Td (ASR) Tj ET
+BT /F1 7.60 Tf 0.350 0.380 0.420 rg 320.00 654.00 Td (faster-whisper) Tj ET
+0.900 0.920 0.950 rg 441.00 646.00 117.00 46.00 re f
+0.150 0.350 0.650 rg 441.00 646.00 117.00 3.00 re f
+BT /F2 9.50 Tf 0.100 0.160 0.300 rg 449.00 676.00 Td (LLM) Tj ET
+BT /F1 7.60 Tf 0.350 0.380 0.420 rg 449.00 654.00 Td (brain + MCP) Tj ET
+BT /F2 14.00 Tf 0.150 0.350 0.650 rg 171.00 632.00 Td (→) Tj ET
+BT /F2 14.00 Tf 0.150 0.350 0.650 rg 300.00 632.00 Td (→) Tj ET
+BT /F2 14.00 Tf 0.150 0.350 0.650 rg 429.00 632.00 Td (→) Tj ET
+0.950 0.900 0.820 rg 54.00 552.00 117.00 46.00 re f
+0.150 0.350 0.650 rg 54.00 552.00 117.00 3.00 re f
+BT /F2 9.50 Tf 0.100 0.160 0.300 rg 62.00 582.00 Td (TOOL CALL) Tj ET
+BT /F1 7.60 Tf 0.350 0.380 0.420 rg 62.00 560.00 Td (MCP tools) Tj ET
+0.950 0.900 0.820 rg 183.00 552.00 117.00 46.00 re f
+0.150 0.350 0.650 rg 183.00 552.00 117.00 3.00 re f
+BT /F2 9.50 Tf 0.100 0.160 0.300 rg 191.00 582.00 Td (TTS) Tj ET
+BT /F1 7.60 Tf 0.350 0.380 0.420 rg 191.00 560.00 Td (Piper 1.8.0) Tj ET
+0.950 0.900 0.820 rg 312.00 552.00 117.00 46.00 re f
+0.150 0.350 0.650 rg 312.00 552.00 117.00 3.00 re f
+BT /F2 9.50 Tf 0.100 0.160 0.300 rg 320.00 582.00 Td (SPEAKER) Tj ET
+BT /F1 7.60 Tf 0.350 0.380 0.420 rg 320.00 560.00 Td (audio out) Tj ET
+0.950 0.900 0.820 rg 441.00 552.00 117.00 46.00 re f
+0.150 0.350 0.650 rg 441.00 552.00 117.00 3.00 re f
+BT /F2 9.50 Tf 0.100 0.160 0.300 rg 449.00 582.00 Td (BARGE-IN) Tj ET
+BT /F1 7.60 Tf 0.350 0.380 0.420 rg 449.00 560.00 Td (interrupt loop) Tj ET
+BT /F1 9.40 Tf 0.120 0.130 0.150 rg 54.00 621.20 Td (Data flow: MIC → VAD \(frames speech vs silence\) → ASR \(streaming partials\) → LLM brain \(decides reply +) Tj ET
+BT /F1 9.40 Tf 0.120 0.130 0.150 rg 54.00 608.00 Td (MCP tool calls\) → TTS \(synthesizes speech\) → SPEAKER. While the agent speaks, the VAD keeps listening;) Tj ET
+BT /F1 9.40 Tf 0.120 0.130 0.150 rg 54.00 594.80 Td (a detected user utterance cancels pending TTS \(barge-in\) and feeds the new input to the LLM — this is) Tj ET
+BT /F1 9.40 Tf 0.120 0.130 0.150 rg 54.00 581.60 Td (the full-duplex loop.) Tj ET
+BT /F2 12.50 Tf 0.150 0.350 0.650 rg 54.00 565.60 Td (2.1  Component inventory \(pinned, verified on PyPI 2026-10-19\)) Tj ET
+0.900 0.920 0.950 rg 54.00 382.00 504.00 118.00 re f
+BT /F2 7.60 Tf 0.350 0.380 0.420 rg 62.00 498.00 Td (COMPONENT) Tj ET
+BT /F2 7.60 Tf 0.350 0.380 0.420 rg 204.00 498.00 Td (PACKAGE) Tj ET
+BT /F2 7.60 Tf 0.350 0.380 0.420 rg 354.00 498.00 Td (VERSION) Tj ET
+BT /F2 7.60 Tf 0.350 0.380 0.420 rg 426.00 498.00 Td (ROLE) Tj ET
+BT /F2 8.40 Tf 0.100 0.160 0.300 rg 62.00 482.00 Td (Harness) Tj ET
+BT /F1 8.40 Tf 0.120 0.130 0.150 rg 204.00 482.00 Td (pipecat-ai) Tj ET
+BT /F2 8.40 Tf 0.150 0.350 0.650 rg 354.00 482.00 Td (1.13.0) Tj ET
+BT /F1 7.80 Tf 0.350 0.380 0.420 rg 426.00 482.00 Td (realtime voice pipeline, transports, MCP tool calling) Tj ET
+BT /F2 8.40 Tf 0.100 0.160 0.300 rg 62.00 466.00 Td (MCP SDK) Tj ET
+BT /F1 8.40 Tf 0.120 0.130 0.150 rg 204.00 466.00 Td (mcp \(Python\)) Tj ET
+BT /F2 8.40 Tf 0.150 0.350 0.650 rg 354.00 466.00 Td (2.3.0) Tj ET
+BT /F1 7.80 Tf 0.350 0.380 0.420 rg 426.00 466.00 Td (official Model Context Protocol, FastMCP server builder) Tj ET
+BT /F2 8.40 Tf 0.100 0.160 0.300 rg 62.00 450.00 Td (VAD) Tj ET
+BT /F1 8.40 Tf 0.120 0.130 0.150 rg 204.00 450.00 Td (silero-vad) Tj ET
+BT /F2 8.40 Tf 0.150 0.350 0.650 rg 354.00 450.00 Td (6.2.3) Tj ET
+BT /F1 7.80 Tf 0.350 0.380 0.420 rg 426.00 450.00 Td (voice activity detection, endpointing, ONNX/TorchScript) Tj ET
+BT /F2 8.40 Tf 0.100 0.160 0.300 rg 62.00 434.00 Td (ASR) Tj ET
+BT /F1 8.40 Tf 0.120 0.130 0.150 rg 204.00 434.00 Td (faster-whisper) Tj ET
+BT /F2 8.40 Tf 0.150 0.350 0.650 rg 354.00 434.00 Td (1.2.1) Tj ET
+BT /F1 7.80 Tf 0.350 0.380 0.420 rg 426.00 434.00 Td (CTranslate2 Whisper; int8, streaming, on-Pi capable) Tj ET
+BT /F2 8.40 Tf 0.100 0.160 0.300 rg 62.00 418.00 Td (TTS) Tj ET
+BT /F1 8.40 Tf 0.120 0.130 0.150 rg 204.00 418.00 Td (piper-tts) Tj ET
+BT /F2 8.40 Tf 0.150 0.350 0.650 rg 354.00 418.00 Td (1.8.0) Tj ET
+BT /F1 7.80 Tf 0.350 0.380 0.420 rg 426.00 418.00 Td (low-latency neural TTS, many voices, real-time on Pi) Tj ET
+BT /F2 8.40 Tf 0.100 0.160 0.300 rg 62.00 402.00 Td (Audio I/O) Tj ET
+BT /F1 8.40 Tf 0.120 0.130 0.150 rg 204.00 402.00 Td (sounddevice / PortAudio) Tj ET
+BT /F2 8.40 Tf 0.150 0.350 0.650 rg 354.00 402.00 Td (latest) Tj ET
+BT /F1 7.80 Tf 0.350 0.380 0.420 rg 426.00 402.00 Td (full-duplex capture + playback) Tj ET
+BT /F2 8.40 Tf 0.100 0.160 0.300 rg 62.00 386.00 Td (LLM \(opt.\)) Tj ET
+BT /F1 8.40 Tf 0.120 0.130 0.150 rg 204.00 386.00 Td (ollama / remote vLLM) Tj ET
+BT /F2 8.40 Tf 0.150 0.350 0.650 rg 354.00 386.00 Td (—) Tj ET
+BT /F1 7.80 Tf 0.350 0.380 0.420 rg 426.00 386.00 Td (swappable brain; local or commercial API) Tj ET
+0.900 0.920 0.950 RG 1.00 w 54.00 40.00 m 558.00 40.00 l S
+BT /F1 8.00 Tf 0.350 0.380 0.420 rg 54.00 28.00 Td (ME3 — Voice Duplex Agent Plan) Tj ET
+BT /F1 8.00 Tf 0.350 0.380 0.420 rg 468.00 28.00 Td (Dumalaog  |  AI 231  |  2026-10-19) Tj ET
+BT /F2 8.00 Tf 0.150 0.350 0.650 rg 534.00 28.00 Td (3 / 10) Tj ET
+
+endstream
+endobj
+11 0 obj
+<< /Type /Page /Parent 4 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 12 0 R >>
+endobj
+12 0 obj
+<< /Length 4061 >>
+stream
+0.150 0.350 0.650 rg 0.00 786.00 612.00 6.00 re f
+BT /F2 19.00 Tf 0.100 0.160 0.300 rg 54.00 712.00 Td (3  Multi-Agent Division of Labor) Tj ET
+0.850 0.450 0.100 rg 54.00 702.00 504.00 2.40 re f
+BT /F1 9.60 Tf 0.120 0.130 0.150 rg 54.00 674.60 Td (Per the workspace model, three agents collaborate with strict roles. Each task below names an owner) Tj ET
+BT /F1 9.60 Tf 0.120 0.130 0.150 rg 54.00 661.20 Td (and a verifier so no agent claims success it did not earn. OnIt \(this planner\) produces the plan and) Tj ET
+BT /F1 9.60 Tf 0.120 0.130 0.150 rg 54.00 647.80 Td (coordinates; Codex reasons and audits; Antigravity implements and reports evidence.) Tj ET
+0.900 0.920 0.950 rg 54.00 618.00 504.00 70.00 re f
+0.100 0.160 0.300 rg 54.00 618.00 4.00 70.00 re f
+BT /F2 10.50 Tf 0.100 0.160 0.300 rg 68.00 674.00 Td (ONIT  \(planner/coordinator\)) Tj ET
+BT /F1 9.20 Tf 0.120 0.130 0.150 rg 68.00 635.20 Td (Owns this plan, task sequencing, and the AGENT_TASK_STATE.json contract. Decides scope from evidence,) Tj ET
+BT /F1 9.20 Tf 0.120 0.130 0.150 rg 68.00 622.60 Td (writes the handoff, and escalates user-only decisions. Does not silently claim Pi results.) Tj ET
+0.100 0.160 0.300 rg 54.00 618.00 504.00 70.00 re S
+0.900 0.920 0.950 rg 54.00 536.00 504.00 70.00 re f
+0.150 0.350 0.650 rg 54.00 536.00 4.00 70.00 re f
+BT /F2 10.50 Tf 0.150 0.350 0.650 rg 68.00 592.00 Td (CODEX  \(thinker / auditor\)) Tj ET
+BT /F1 9.20 Tf 0.120 0.130 0.150 rg 68.00 610.00 Td (Decides scope from evidence, reconciles requirements, reviews every diff, runs independent checks, and) Tj ET
+BT /F1 9.20 Tf 0.120 0.130 0.150 rg 68.00 597.40 Td (updates the handoff. The gatekeeper: no step is 'verified' until Codex re-runs the check.) Tj ET
+0.150 0.350 0.650 rg 54.00 536.00 504.00 70.00 re S
+0.900 0.920 0.950 rg 54.00 454.00 504.00 70.00 re f
+0.850 0.450 0.100 rg 54.00 454.00 4.00 70.00 re f
+BT /F2 10.50 Tf 0.850 0.450 0.100 rg 68.00 510.00 Td (ANTIGRAVITY  \(implementer\)) Tj ET
+BT /F1 9.20 Tf 0.120 0.130 0.150 rg 68.00 584.80 Td (Inspects before changing, implements the agreed task, and reports exact files/commands/results. Flags) Tj ET
+BT /F1 9.20 Tf 0.120 0.130 0.150 rg 68.00 572.20 Td (uncertainty instead of inferring success. Builds the MCP servers, VAD integration, and benchmark.) Tj ET
+0.850 0.450 0.100 rg 54.00 454.00 504.00 70.00 re S
+BT /F2 12.50 Tf 0.150 0.350 0.650 rg 54.00 556.20 Td (3.1  Collaboration protocol \(every task\)) Tj ET
+BT /F2 9.40 Tf 0.850 0.450 0.100 rg 54.00 529.20 Td (•) Tj ET
+BT /F1 9.40 Tf 0.120 0.130 0.150 rg 68.00 516.20 Td (Codex writes the task spec + acceptance criteria into AGENT_TASK_STATE.json \(owner, next_step\).) Tj ET
+BT /F2 9.40 Tf 0.850 0.450 0.100 rg 54.00 503.20 Td (•) Tj ET
+BT /F1 9.40 Tf 0.120 0.130 0.150 rg 68.00 490.20 Td (Antigravity implements, records exact commands + output, marks status 'implemented' \(not) Tj ET
+BT /F1 9.40 Tf 0.120 0.130 0.150 rg 68.00 477.20 Td ('verified'\).) Tj ET
+BT /F2 9.40 Tf 0.850 0.450 0.100 rg 54.00 464.20 Td (•) Tj ET
+BT /F1 9.40 Tf 0.120 0.130 0.150 rg 68.00 451.20 Td (Codex independently re-runs the acceptance check; only then sets status 'verified' with evidence) Tj ET
+BT /F1 9.40 Tf 0.120 0.130 0.150 rg 68.00 438.20 Td (ref.) Tj ET
+BT /F2 9.40 Tf 0.850 0.450 0.100 rg 54.00 425.20 Td (•) Tj ET
+BT /F1 9.40 Tf 0.120 0.130 0.150 rg 68.00 412.20 Td (OnIt updates HANDOFF_INDEX.md \(change log, current state, open items\) before the task closes.) Tj ET
+BT /F2 9.40 Tf 0.850 0.450 0.100 rg 54.00 399.20 Td (•) Tj ET
+BT /F1 9.40 Tf 0.120 0.130 0.150 rg 68.00 386.20 Td (Limit-stall watchdog \(30-min schedule\) resumes a stalled owner from next_step using the shared) Tj ET
+BT /F1 9.40 Tf 0.120 0.130 0.150 rg 68.00 373.20 Td (.venv.) Tj ET
+0.900 0.920 0.950 RG 1.00 w 54.00 40.00 m 558.00 40.00 l S
+BT /F1 8.00 Tf 0.350 0.380 0.420 rg 54.00 28.00 Td (ME3 — Voice Duplex Agent Plan) Tj ET
+BT /F1 8.00 Tf 0.350 0.380 0.420 rg 468.00 28.00 Td (Dumalaog  |  AI 231  |  2026-10-19) Tj ET
+BT /F2 8.00 Tf 0.150 0.350 0.650 rg 534.00 28.00 Td (4 / 10) Tj ET
+
+endstream
+endobj
+13 0 obj
+<< /Type /Page /Parent 4 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 14 0 R >>
+endobj
+14 0 obj
+<< /Length 3902 >>
+stream
+0.150 0.350 0.650 rg 0.00 786.00 612.00 6.00 re f
+BT /F2 19.00 Tf 0.100 0.160 0.300 rg 54.00 712.00 Td (4  Task 1 — Install MCP-Capable Harness on Pi) Tj ET
+0.850 0.450 0.100 rg 54.00 702.00 504.00 2.40 re f
+BT /F1 9.60 Tf 0.120 0.130 0.150 rg 54.00 674.60 Td (Owner: Antigravity · Auditor: Codex · Gate: imports pass + a hello-pipeline runs end-to-end.) Tj ET
+BT /F2 12.50 Tf 0.150 0.350 0.650 rg 54.00 658.60 Td (4.1  Pre-flight \(microsteps\)) Tj ET
+BT /F2 9.40 Tf 0.850 0.450 0.100 rg 54.00 631.60 Td (•) Tj ET
+BT /F1 9.40 Tf 0.120 0.130 0.150 rg 68.00 618.60 Td (Confirm Pi model/RAM: `cat /proc/cpuinfo`, `free -m`, `uname -m` \(must be arm64\).) Tj ET
+BT /F2 9.40 Tf 0.850 0.450 0.100 rg 54.00 605.60 Td (•) Tj ET
+BT /F1 9.40 Tf 0.120 0.130 0.150 rg 68.00 592.60 Td (Confirm OS: 64-bit Raspberry Pi OS Lite; `sudo apt update && sudo apt -y upgrade`.) Tj ET
+BT /F2 9.40 Tf 0.850 0.450 0.100 rg 54.00 579.60 Td (•) Tj ET
+BT /F1 9.40 Tf 0.120 0.130 0.150 rg 68.00 566.60 Td (Install system deps: `sudo apt -y install python3-venv python3-dev portaudio19-dev libasound2-dev`.) Tj ET
+BT /F2 9.40 Tf 0.850 0.450 0.100 rg 54.00 553.60 Td (•) Tj ET
+BT /F1 9.40 Tf 0.120 0.130 0.150 rg 68.00 540.60 Td (Create isolated folder + venv: `mkdir -p ~/me3 && cd ~/me3 && python3 -m venv .venv`.) Tj ET
+BT /F2 9.40 Tf 0.850 0.450 0.100 rg 54.00 527.60 Td (•) Tj ET
+BT /F1 9.40 Tf 0.120 0.130 0.150 rg 68.00 514.60 Td (Activate: `source .venv/bin/activate`; pin `python -m pip install -U pip wheel setuptools`.) Tj ET
+BT /F2 12.50 Tf 0.150 0.350 0.650 rg 54.00 498.60 Td (4.2  Harness + MCP install \(microsteps\)) Tj ET
+BT /F2 9.40 Tf 0.850 0.450 0.100 rg 54.00 471.60 Td (•) Tj ET
+BT /F1 9.40 Tf 0.120 0.130 0.150 rg 68.00 458.60 Td (`pip install pipecat-ai==1.13.0 mcp==2.3.0` — harness + official MCP SDK.) Tj ET
+BT /F2 9.40 Tf 0.850 0.450 0.100 rg 54.00 445.60 Td (•) Tj ET
+BT /F1 9.40 Tf 0.120 0.130 0.150 rg 68.00 432.60 Td (`pip install sounddevice numpy` — full-duplex audio I/O \(PortAudio backend\).) Tj ET
+BT /F2 9.40 Tf 0.850 0.450 0.100 rg 54.00 419.60 Td (•) Tj ET
+BT /F1 9.40 Tf 0.120 0.130 0.150 rg 68.00 406.60 Td (Verify: `python -c "import pipecat, mcp, sounddevice; print\('ok'\)"`.) Tj ET
+BT /F2 9.40 Tf 0.850 0.450 0.100 rg 54.00 393.60 Td (•) Tj ET
+BT /F1 9.40 Tf 0.120 0.130 0.150 rg 68.00 380.60 Td (Smoke test: run Pipecat's minimal pipeline with a mock transport; assert frames flow in and out.) Tj ET
+BT /F2 9.40 Tf 0.850 0.450 0.100 rg 54.00 367.60 Td (•) Tj ET
+BT /F1 9.40 Tf 0.120 0.130 0.150 rg 68.00 354.60 Td (Record: `pip freeze > requirements.lock`; commit `requirements.lock` + install script.) Tj ET
+BT /F2 12.50 Tf 0.150 0.350 0.650 rg 54.00 338.60 Td (4.3  Acceptance criteria \(Codex verifies\)) Tj ET
+BT /F2 9.40 Tf 0.850 0.450 0.100 rg 54.00 311.60 Td (•) Tj ET
+BT /F1 9.40 Tf 0.120 0.130 0.150 rg 68.00 298.60 Td (All imports succeed inside ~/me3/.venv on the Pi \(evidence: command output saved\).) Tj ET
+BT /F2 9.40 Tf 0.850 0.450 0.100 rg 54.00 285.60 Td (•) Tj ET
+BT /F1 9.40 Tf 0.120 0.130 0.150 rg 68.00 272.60 Td (A 10-second synthetic-audio pipeline runs without exception and logs frame counts.) Tj ET
+BT /F2 9.40 Tf 0.850 0.450 0.100 rg 54.00 259.60 Td (•) Tj ET
+BT /F1 9.40 Tf 0.120 0.130 0.150 rg 68.00 246.60 Td (MCP SDK can spawn a trivial in-process server and list its tools \(proves MCP path works\).) Tj ET
+BT /F2 9.40 Tf 0.850 0.450 0.100 rg 54.00 233.60 Td (•) Tj ET
+BT /F1 9.40 Tf 0.120 0.130 0.150 rg 68.00 220.60 Td (No secrets in any committed file; keys referenced by env var name only.) Tj ET
+0.900 0.920 0.950 RG 1.00 w 54.00 40.00 m 558.00 40.00 l S
+BT /F1 8.00 Tf 0.350 0.380 0.420 rg 54.00 28.00 Td (ME3 — Voice Duplex Agent Plan) Tj ET
+BT /F1 8.00 Tf 0.350 0.380 0.420 rg 468.00 28.00 Td (Dumalaog  |  AI 231  |  2026-10-19) Tj ET
+BT /F2 8.00 Tf 0.150 0.350 0.650 rg 534.00 28.00 Td (5 / 10) Tj ET
+
+endstream
+endobj
+15 0 obj
+<< /Type /Page /Parent 4 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 16 0 R >>
+endobj
+16 0 obj
+<< /Length 4352 >>
+stream
+0.150 0.350 0.650 rg 0.00 786.00 612.00 6.00 re f
+BT /F2 19.00 Tf 0.100 0.160 0.300 rg 54.00 712.00 Td (5  Task 2 — Build ASR & TTS MCP Servers \(on Pi\)) Tj ET
+0.850 0.450 0.100 rg 54.00 702.00 504.00 2.40 re f
+BT /F1 9.60 Tf 0.120 0.130 0.150 rg 54.00 674.60 Td (Owner: Antigravity · Auditor: Codex · These are OUR servers \(built + run on the Pi\), wrapping SOTA) Tj ET
+BT /F1 9.60 Tf 0.120 0.130 0.150 rg 54.00 661.20 Td (models. Commercial APIs are allowed for the LLM brain only — not for ASR/TTS.) Tj ET
+BT /F2 12.50 Tf 0.150 0.350 0.650 rg 54.00 645.20 Td (5.1  ASR MCP server \(faster-whisper 1.2.1\)) Tj ET
+BT /F2 9.40 Tf 0.850 0.450 0.100 rg 54.00 618.20 Td (•) Tj ET
+BT /F1 9.40 Tf 0.120 0.130 0.150 rg 68.00 605.20 Td (`pip install faster-whisper==1.2.1` — CTranslate2 Whisper, int8, on-Pi capable.) Tj ET
+BT /F2 9.40 Tf 0.850 0.450 0.100 rg 54.00 592.20 Td (•) Tj ET
+BT /F1 9.40 Tf 0.120 0.130 0.150 rg 68.00 579.20 Td (Pick model size by RAM: Pi 4 \(4GB\) → `small`/`base.en`; Pi 5 \(8GB+\) → `medium`/`small` int8.) Tj ET
+BT /F2 9.40 Tf 0.850 0.450 0.100 rg 54.00 566.20 Td (•) Tj ET
+BT /F1 9.40 Tf 0.120 0.130 0.150 rg 68.00 553.20 Td (Wrap with FastMCP: `from mcp.server.fastmcp import FastMCP; mcp = FastMCP\("asr"\)`.) Tj ET
+BT /F2 9.40 Tf 0.850 0.450 0.100 rg 54.00 540.20 Td (•) Tj ET
+BT /F1 9.40 Tf 0.120 0.130 0.150 rg 68.00 527.20 Td (Expose tools: `transcribe\(wav_path_or_bytes\) -> text`, `transcribe_stream\(chunk\) -> partial_text`.) Tj ET
+BT /F2 9.40 Tf 0.850 0.450 0.100 rg 54.00 514.20 Td (•) Tj ET
+BT /F1 9.40 Tf 0.120 0.130 0.150 rg 68.00 501.20 Td (Serve over stdio \(local\) and/or SSE \(network\) so Pipecat can call it as an MCP tool.) Tj ET
+BT /F2 9.40 Tf 0.850 0.450 0.100 rg 54.00 488.20 Td (•) Tj ET
+BT /F1 9.40 Tf 0.120 0.130 0.150 rg 68.00 475.20 Td (Test: feed a known WAV, assert exact expected transcript; measure RTF \(real-time factor\).) Tj ET
+BT /F2 12.50 Tf 0.150 0.350 0.650 rg 54.00 459.20 Td (5.2  TTS MCP server \(Piper 1.8.0\)) Tj ET
+BT /F2 9.40 Tf 0.850 0.450 0.100 rg 54.00 432.20 Td (•) Tj ET
+BT /F1 9.40 Tf 0.120 0.130 0.150 rg 68.00 419.20 Td (`pip install piper-tts==1.8.0` — low-latency neural TTS, real-time on Pi.) Tj ET
+BT /F2 9.40 Tf 0.850 0.450 0.100 rg 54.00 406.20 Td (•) Tj ET
+BT /F1 9.40 Tf 0.120 0.130 0.150 rg 68.00 393.20 Td (Download a voice model \(e.g. en_US lessac/amy low\) into `~/me3/tts/voices/` \(no key needed\).) Tj ET
+BT /F2 9.40 Tf 0.850 0.450 0.100 rg 54.00 380.20 Td (•) Tj ET
+BT /F1 9.40 Tf 0.120 0.130 0.150 rg 68.00 367.20 Td (Wrap with FastMCP: `FastMCP\("tts"\)`; expose `synthesize\(text\) -> wav_bytes`.) Tj ET
+BT /F2 9.40 Tf 0.850 0.450 0.100 rg 54.00 354.20 Td (•) Tj ET
+BT /F1 9.40 Tf 0.120 0.130 0.150 rg 68.00 341.20 Td (Stream chunks so Pipecat can start speaking before synthesis completes \(latency win\).) Tj ET
+BT /F2 9.40 Tf 0.850 0.450 0.100 rg 54.00 328.20 Td (•) Tj ET
+BT /F1 9.40 Tf 0.120 0.130 0.150 rg 68.00 315.20 Td (Test: synthesize a sentence, assert non-empty WAV at 22050 Hz; measure chars/sec and RTF.) Tj ET
+BT /F2 12.50 Tf 0.150 0.350 0.650 rg 54.00 299.20 Td (5.3  Acceptance criteria \(Codex verifies\)) Tj ET
+BT /F2 9.40 Tf 0.850 0.450 0.100 rg 54.00 272.20 Td (•) Tj ET
+BT /F1 9.40 Tf 0.120 0.130 0.150 rg 68.00 259.20 Td (Both servers register and are discoverable by the Pipecat pipeline via MCP \(tool list non-empty\).) Tj ET
+BT /F2 9.40 Tf 0.850 0.450 0.100 rg 54.00 246.20 Td (•) Tj ET
+BT /F1 9.40 Tf 0.120 0.130 0.150 rg 68.00 233.20 Td (ASR transcribes a 5 s sample correctly; RTF < 1.0 on target Pi \(evidence: timing log\).) Tj ET
+BT /F2 9.40 Tf 0.850 0.450 0.100 rg 54.00 220.20 Td (•) Tj ET
+BT /F1 9.40 Tf 0.120 0.130 0.150 rg 68.00 207.20 Td (TTS emits valid audio; RTF < 1.0 \(faster-than-realtime\) on target Pi \(evidence: timing log\).) Tj ET
+BT /F2 9.40 Tf 0.850 0.450 0.100 rg 54.00 194.20 Td (•) Tj ET
+BT /F1 9.40 Tf 0.120 0.130 0.150 rg 68.00 181.20 Td (Servers run as supervised processes \(systemd\) and restart on crash; logs captured.) Tj ET
+0.900 0.920 0.950 RG 1.00 w 54.00 40.00 m 558.00 40.00 l S
+BT /F1 8.00 Tf 0.350 0.380 0.420 rg 54.00 28.00 Td (ME3 — Voice Duplex Agent Plan) Tj ET
+BT /F1 8.00 Tf 0.350 0.380 0.420 rg 468.00 28.00 Td (Dumalaog  |  AI 231  |  2026-10-19) Tj ET
+BT /F2 8.00 Tf 0.150 0.350 0.650 rg 534.00 28.00 Td (6 / 10) Tj ET
+
+endstream
+endobj
+17 0 obj
+<< /Type /Page /Parent 4 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 18 0 R >>
+endobj
+18 0 obj
+<< /Length 4318 >>
+stream
+0.150 0.350 0.650 rg 0.00 786.00 612.00 6.00 re f
+BT /F2 19.00 Tf 0.100 0.160 0.300 rg 54.00 712.00 Td (6  Task 3 — VAD + Full-Duplex Engine) Tj ET
+0.850 0.450 0.100 rg 54.00 702.00 504.00 2.40 re f
+BT /F1 9.60 Tf 0.120 0.130 0.150 rg 54.00 674.60 Td (Owner: Antigravity · Auditor: Codex · Full-duplex = listen and speak at once, with barge-in. This is) Tj ET
+BT /F1 9.60 Tf 0.120 0.130 0.150 rg 54.00 661.20 Td (the hardest part; it is decomposed into verifiable microsteps.) Tj ET
+BT /F2 12.50 Tf 0.150 0.350 0.650 rg 54.00 645.20 Td (6.1  VAD \(Silero 6.2.3\)) Tj ET
+BT /F2 9.40 Tf 0.850 0.450 0.100 rg 54.00 618.20 Td (•) Tj ET
+BT /F1 9.40 Tf 0.120 0.130 0.150 rg 68.00 605.20 Td (`pip install silero-vad==6.2.3 torch` \(CPU\) — production VAD, endpointing built in.) Tj ET
+BT /F2 9.40 Tf 0.850 0.450 0.100 rg 54.00 592.20 Td (•) Tj ET
+BT /F1 9.40 Tf 0.120 0.130 0.150 rg 68.00 579.20 Td (Load model; configure: sampling 16 kHz, `threshold=0.5`, `min_silence_ms=500`, `speech_pad_ms=300`.) Tj ET
+BT /F2 9.40 Tf 0.850 0.450 0.100 rg 54.00 566.20 Td (•) Tj ET
+BT /F1 9.40 Tf 0.120 0.130 0.150 rg 68.00 553.20 Td (Feed 512-sample frames; emit `speech_start`/`speech_end` events with timestamps.) Tj ET
+BT /F2 9.40 Tf 0.850 0.450 0.100 rg 54.00 540.20 Td (•) Tj ET
+BT /F1 9.40 Tf 0.120 0.130 0.150 rg 68.00 527.20 Td (Expose to pipeline as a frame processor \(and optionally as an MCP tool for benchmarking\).) Tj ET
+BT /F2 9.40 Tf 0.850 0.450 0.100 rg 54.00 514.20 Td (•) Tj ET
+BT /F1 9.40 Tf 0.120 0.130 0.150 rg 68.00 501.20 Td (Tune on real room noise: sweep threshold, log false-trigger + miss rates on a 2-min sample.) Tj ET
+BT /F2 12.50 Tf 0.150 0.350 0.650 rg 54.00 485.20 Td (6.2  Full-duplex loop \(microsteps\)) Tj ET
+BT /F2 9.40 Tf 0.850 0.450 0.100 rg 54.00 458.20 Td (•) Tj ET
+BT /F1 9.40 Tf 0.120 0.130 0.150 rg 68.00 445.20 Td (Open a duplex stream: `sounddevice.RawInputStream\(16k\)` + `RawOutputStream\(22050\)` concurrently.) Tj ET
+BT /F2 9.40 Tf 0.850 0.450 0.100 rg 54.00 432.20 Td (•) Tj ET
+BT /F1 9.40 Tf 0.120 0.130 0.150 rg 68.00 419.20 Td (Maintain a ring buffer of mic frames; VAD runs on it in a worker thread.) Tj ET
+BT /F2 9.40 Tf 0.850 0.450 0.100 rg 54.00 406.20 Td (•) Tj ET
+BT /F1 9.40 Tf 0.120 0.130 0.150 rg 68.00 393.20 Td (On `speech_start` while TTS is playing → CANCEL pending TTS queue \(barge-in\) and flush speaker.) Tj ET
+BT /F2 9.40 Tf 0.850 0.450 0.100 rg 54.00 380.20 Td (•) Tj ET
+BT /F1 9.40 Tf 0.120 0.130 0.150 rg 68.00 367.20 Td (On `speech_end` → slice the utterance, send to ASR, feed transcript to LLM brain.) Tj ET
+BT /F2 9.40 Tf 0.850 0.450 0.100 rg 54.00 354.20 Td (•) Tj ET
+BT /F1 9.40 Tf 0.120 0.130 0.150 rg 68.00 341.20 Td (LLM reply → TTS → speaker, streamed in chunks; keep mic live throughout \(no half-duplex gap\).) Tj ET
+BT /F2 9.40 Tf 0.850 0.450 0.100 rg 54.00 328.20 Td (•) Tj ET
+BT /F1 9.40 Tf 0.120 0.130 0.150 rg 68.00 315.20 Td (Echo/self-suppression: subtract or gate the agent's own output so it is not re-transcribed.) Tj ET
+BT /F2 12.50 Tf 0.150 0.350 0.650 rg 54.00 299.20 Td (6.3  Acceptance criteria \(Codex verifies\)) Tj ET
+BT /F2 9.40 Tf 0.850 0.450 0.100 rg 54.00 272.20 Td (•) Tj ET
+BT /F1 9.40 Tf 0.120 0.130 0.150 rg 68.00 259.20 Td (Agent speaks while mic stays open; a spoken interrupt stops the agent within ~300 ms \(timed\).) Tj ET
+BT /F2 9.40 Tf 0.850 0.450 0.100 rg 54.00 246.20 Td (•) Tj ET
+BT /F1 9.40 Tf 0.120 0.130 0.150 rg 68.00 233.20 Td (Conversational exchange of ≥ 5 turns with no dead-air lockup and no self-transcription.) Tj ET
+BT /F2 9.40 Tf 0.850 0.450 0.100 rg 54.00 220.20 Td (•) Tj ET
+BT /F1 9.40 Tf 0.120 0.130 0.150 rg 68.00 207.20 Td (VAD precision/recall logged on a fixed 2-min noisy sample; thresholds recorded in config.) Tj ET
+BT /F2 9.40 Tf 0.850 0.450 0.100 rg 54.00 194.20 Td (•) Tj ET
+BT /F1 9.40 Tf 0.120 0.130 0.150 rg 68.00 181.20 Td (A 3-minute soak run produces no crash, leak, or buffer overflow \(evidence: memory log\).) Tj ET
+0.900 0.920 0.950 RG 1.00 w 54.00 40.00 m 558.00 40.00 l S
+BT /F1 8.00 Tf 0.350 0.380 0.420 rg 54.00 28.00 Td (ME3 — Voice Duplex Agent Plan) Tj ET
+BT /F1 8.00 Tf 0.350 0.380 0.420 rg 468.00 28.00 Td (Dumalaog  |  AI 231  |  2026-10-19) Tj ET
+BT /F2 8.00 Tf 0.150 0.350 0.650 rg 534.00 28.00 Td (7 / 10) Tj ET
+
+endstream
+endobj
+19 0 obj
+<< /Type /Page /Parent 4 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 20 0 R >>
+endobj
+20 0 obj
+<< /Length 4152 >>
+stream
+0.150 0.350 0.650 rg 0.00 786.00 612.00 6.00 re f
+BT /F2 19.00 Tf 0.100 0.160 0.300 rg 54.00 712.00 Td (7  Task 4 — Real-World Tasks + Deployment) Tj ET
+0.850 0.450 0.100 rg 54.00 702.00 504.00 2.40 re f
+BT /F1 9.60 Tf 0.120 0.130 0.150 rg 54.00 674.60 Td (Owner: Antigravity · Auditor: Codex · The agent must do useful things, not just talk. Tasks are) Tj ET
+BT /F1 9.60 Tf 0.120 0.130 0.150 rg 54.00 661.20 Td (exposed as MCP tools the LLM brain can invoke during conversation.) Tj ET
+BT /F2 12.50 Tf 0.150 0.350 0.650 rg 54.00 645.20 Td (7.1  Real-world task tools \(MCP\)) Tj ET
+BT /F2 9.40 Tf 0.850 0.450 0.100 rg 54.00 618.20 Td (•) Tj ET
+BT /F1 9.40 Tf 0.120 0.130 0.150 rg 68.00 605.20 Td (Weather: wrap a public/commercial weather API as an MCP tool `get_weather\(city\)` \(key in env\).) Tj ET
+BT /F2 9.40 Tf 0.850 0.450 0.100 rg 54.00 592.20 Td (•) Tj ET
+BT /F1 9.40 Tf 0.120 0.130 0.150 rg 68.00 579.20 Td (Time/date: `now\(\)`, `set_timer\(seconds, label\)` with a spoken confirmation + alarm tone.) Tj ET
+BT /F2 9.40 Tf 0.850 0.450 0.100 rg 54.00 566.20 Td (•) Tj ET
+BT /F1 9.40 Tf 0.120 0.130 0.150 rg 68.00 553.20 Td (System control: `status\(\)` \(RAM/temp/free space\), `play_tone\(freq, ms\)` for feedback.) Tj ET
+BT /F2 9.40 Tf 0.850 0.450 0.100 rg 54.00 540.20 Td (•) Tj ET
+BT /F1 9.40 Tf 0.120 0.130 0.150 rg 68.00 527.20 Td (ME2 bridge \(optional\): call the existing ME2 voice-command model as a tool for offline intents.) Tj ET
+BT /F2 9.40 Tf 0.850 0.450 0.100 rg 54.00 514.20 Td (•) Tj ET
+BT /F1 9.40 Tf 0.120 0.130 0.150 rg 68.00 501.20 Td (Each tool: typed schema, docstring, error handling, and a unit test with a mocked dependency.) Tj ET
+BT /F2 12.50 Tf 0.150 0.350 0.650 rg 54.00 485.20 Td (7.2  Deployment & supervision) Tj ET
+BT /F2 9.40 Tf 0.850 0.450 0.100 rg 54.00 458.20 Td (•) Tj ET
+BT /F1 9.40 Tf 0.120 0.130 0.150 rg 68.00 445.20 Td (systemd units: `me3-asr.service`, `me3-tts.service`, `me3-agent.service` \(Restart=always\).) Tj ET
+BT /F2 9.40 Tf 0.850 0.450 0.100 rg 54.00 432.20 Td (•) Tj ET
+BT /F1 9.40 Tf 0.120 0.130 0.150 rg 68.00 419.20 Td (Boot persistence: enable all three; verify `systemctl status` after reboot.) Tj ET
+BT /F2 9.40 Tf 0.850 0.450 0.100 rg 54.00 406.20 Td (•) Tj ET
+BT /F1 9.40 Tf 0.120 0.130 0.150 rg 68.00 393.20 Td (Config: single `config.yaml` \(models, thresholds, transport, brain endpoint\) — no hardcoded secrets.) Tj ET
+BT /F2 9.40 Tf 0.850 0.450 0.100 rg 54.00 380.20 Td (•) Tj ET
+BT /F1 9.40 Tf 0.120 0.130 0.150 rg 68.00 367.20 Td (Logging: structured JSON logs to `~/me3/logs/`, rotated; include per-event timestamps for the) Tj ET
+BT /F1 9.40 Tf 0.120 0.130 0.150 rg 68.00 354.20 Td (benchmark.) Tj ET
+BT /F2 9.40 Tf 0.850 0.450 0.100 rg 54.00 341.20 Td (•) Tj ET
+BT /F1 9.40 Tf 0.120 0.130 0.150 rg 68.00 328.20 Td (Safety: respect existing Pi folders \(dandan VCM, Kiko\); ME3 is self-contained in `~/me3`.) Tj ET
+BT /F2 12.50 Tf 0.150 0.350 0.650 rg 54.00 312.20 Td (7.3  Acceptance criteria \(Codex verifies\)) Tj ET
+BT /F2 9.40 Tf 0.850 0.450 0.100 rg 54.00 285.20 Td (•) Tj ET
+BT /F1 9.40 Tf 0.120 0.130 0.150 rg 68.00 272.20 Td (Agent completes ≥ 3 distinct real-world tasks by voice \(e.g. 'what's the weather in Manila?', 'set a) Tj ET
+BT /F1 9.40 Tf 0.120 0.130 0.150 rg 68.00 259.20 Td (5-minute timer', 'how much free space?'\) with correct tool output \(evidence: logs\).) Tj ET
+BT /F2 9.40 Tf 0.850 0.450 0.100 rg 54.00 246.20 Td (•) Tj ET
+BT /F1 9.40 Tf 0.120 0.130 0.150 rg 68.00 233.20 Td (All services survive a reboot and self-heal on crash \(evidence: journalctl excerpt\).) Tj ET
+BT /F2 9.40 Tf 0.850 0.450 0.100 rg 54.00 220.20 Td (•) Tj ET
+BT /F1 9.40 Tf 0.120 0.130 0.150 rg 68.00 207.20 Td (Tool-call trace shows the LLM selected the right MCP tool for each request \(evidence: trace log\).) Tj ET
+0.900 0.920 0.950 RG 1.00 w 54.00 40.00 m 558.00 40.00 l S
+BT /F1 8.00 Tf 0.350 0.380 0.420 rg 54.00 28.00 Td (ME3 — Voice Duplex Agent Plan) Tj ET
+BT /F1 8.00 Tf 0.350 0.380 0.420 rg 468.00 28.00 Td (Dumalaog  |  AI 231  |  2026-10-19) Tj ET
+BT /F2 8.00 Tf 0.150 0.350 0.650 rg 534.00 28.00 Td (8 / 10) Tj ET
+
+endstream
+endobj
+21 0 obj
+<< /Type /Page /Parent 4 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 22 0 R >>
+endobj
+22 0 obj
+<< /Length 4433 >>
+stream
+0.150 0.350 0.650 rg 0.00 786.00 612.00 6.00 re f
+BT /F2 19.00 Tf 0.100 0.160 0.300 rg 54.00 712.00 Td (8  Latency Benchmark \(Classwork Deliverable\)) Tj ET
+0.850 0.450 0.100 rg 54.00 702.00 504.00 2.40 re f
+BT /F1 9.60 Tf 0.120 0.130 0.150 rg 54.00 674.60 Td (A standardized, reproducible method to measure voice-interaction latency. Same fixtures, same) Tj ET
+BT /F1 9.60 Tf 0.120 0.130 0.150 rg 54.00 661.20 Td (clocks, same stats every run — so results are comparable across Pi 4 vs Pi 5 and across configs.) Tj ET
+BT /F2 12.50 Tf 0.150 0.350 0.650 rg 54.00 645.20 Td (8.1  Metric definitions \(fixed vocabulary\)) Tj ET
+BT /F2 9.40 Tf 0.850 0.450 0.100 rg 54.00 618.20 Td (•) Tj ET
+BT /F1 9.40 Tf 0.120 0.130 0.150 rg 68.00 605.20 Td (VAD latency: speech onset → `speech_start` event.) Tj ET
+BT /F2 9.40 Tf 0.850 0.450 0.100 rg 54.00 592.20 Td (•) Tj ET
+BT /F1 9.40 Tf 0.120 0.130 0.150 rg 68.00 579.20 Td (Endpoint latency: speech offset → `speech_end` event \(governed by min_silence_ms\).) Tj ET
+BT /F2 9.40 Tf 0.850 0.450 0.100 rg 54.00 566.20 Td (•) Tj ET
+BT /F1 9.40 Tf 0.120 0.130 0.150 rg 68.00 553.20 Td (ASR latency: utterance end → final transcript \(and first-partial latency separately\).) Tj ET
+BT /F2 9.40 Tf 0.850 0.450 0.100 rg 54.00 540.20 Td (•) Tj ET
+BT /F1 9.40 Tf 0.120 0.130 0.150 rg 68.00 527.20 Td (LLM TTFT: transcript ready → first token of the reply.) Tj ET
+BT /F2 9.40 Tf 0.850 0.450 0.100 rg 54.00 514.20 Td (•) Tj ET
+BT /F1 9.40 Tf 0.120 0.130 0.150 rg 68.00 501.20 Td (TTS TTFP: first reply token → first audio chunk out of the speaker \(time-to-first-playback\).) Tj ET
+BT /F2 9.40 Tf 0.850 0.450 0.100 rg 54.00 488.20 Td (•) Tj ET
+BT /F1 9.40 Tf 0.120 0.130 0.150 rg 68.00 475.20 Td (E2E voice-to-voice: user speech offset → agent's first audible reply \(the headline number\).) Tj ET
+BT /F2 12.50 Tf 0.150 0.350 0.650 rg 54.00 459.20 Td (8.2  Standardized method \(the protocol\)) Tj ET
+BT /F2 9.40 Tf 0.850 0.450 0.100 rg 54.00 432.20 Td (•) Tj ET
+BT /F1 9.40 Tf 0.120 0.130 0.150 rg 68.00 419.20 Td (Fixtures: a frozen set of N=30 utterances \(varied length/noise\) stored as WAV; identical every run.) Tj ET
+BT /F2 9.40 Tf 0.850 0.450 0.100 rg 54.00 406.20 Td (•) Tj ET
+BT /F1 9.40 Tf 0.120 0.130 0.150 rg 68.00 393.20 Td (Clocks: monotonic clock \(`time.monotonic_ns`\) stamped at each pipeline boundary; no wall-clock.) Tj ET
+BT /F2 9.40 Tf 0.850 0.450 0.100 rg 54.00 380.20 Td (•) Tj ET
+BT /F1 9.40 Tf 0.120 0.130 0.150 rg 68.00 367.20 Td (Runs: 5 warm-up + 20 measured trials per fixture; report median, p95, and max \(never mean alone\).) Tj ET
+BT /F2 9.40 Tf 0.850 0.450 0.100 rg 54.00 354.20 Td (•) Tj ET
+BT /F1 9.40 Tf 0.120 0.130 0.150 rg 68.00 341.20 Td (Isolation: single-task load, CPU governor `performance`, record `vcgencmd measure_temp` + `free -m`.) Tj ET
+BT /F2 9.40 Tf 0.850 0.450 0.100 rg 54.00 328.20 Td (•) Tj ET
+BT /F1 9.40 Tf 0.120 0.130 0.150 rg 68.00 315.20 Td (Output: a JSON report `{fixture, metric, n, median_ms, p95_ms, max_ms, hw, cfg}` + a summary table.) Tj ET
+BT /F2 12.50 Tf 0.150 0.350 0.650 rg 54.00 299.20 Td (8.3  Reporting & pass thresholds) Tj ET
+BT /F2 9.40 Tf 0.850 0.450 0.100 rg 54.00 272.20 Td (•) Tj ET
+BT /F1 9.40 Tf 0.120 0.130 0.150 rg 68.00 259.20 Td (Deliver `benchmark.py` \(runs the protocol\) + `report.md` \(table + interpretation\) + raw JSON.) Tj ET
+BT /F2 9.40 Tf 0.850 0.450 0.100 rg 54.00 246.20 Td (•) Tj ET
+BT /F1 9.40 Tf 0.120 0.130 0.150 rg 68.00 233.20 Td (Target \(indicative, Pi 5 / int8\): E2E voice-to-voice p95 < 1.5 s; TTS TTFP < 400 ms; ASR RTF < 1.0.) Tj ET
+BT /F2 9.40 Tf 0.850 0.450 0.100 rg 54.00 220.20 Td (•) Tj ET
+BT /F1 9.40 Tf 0.120 0.130 0.150 rg 68.00 207.20 Td (Compare Pi 4 vs Pi 5 side-by-side in the same table; state which component dominates latency.) Tj ET
+BT /F2 9.40 Tf 0.850 0.450 0.100 rg 54.00 194.20 Td (•) Tj ET
+BT /F1 9.40 Tf 0.120 0.130 0.150 rg 68.00 181.20 Td (Reproducibility gate: two consecutive runs differ < 10% on E2E p95, else investigate variance) Tj ET
+BT /F1 9.40 Tf 0.120 0.130 0.150 rg 68.00 168.20 Td (source.) Tj ET
+0.900 0.920 0.950 RG 1.00 w 54.00 40.00 m 558.00 40.00 l S
+BT /F1 8.00 Tf 0.350 0.380 0.420 rg 54.00 28.00 Td (ME3 — Voice Duplex Agent Plan) Tj ET
+BT /F1 8.00 Tf 0.350 0.380 0.420 rg 468.00 28.00 Td (Dumalaog  |  AI 231  |  2026-10-19) Tj ET
+BT /F2 8.00 Tf 0.150 0.350 0.650 rg 534.00 28.00 Td (9 / 10) Tj ET
+
+endstream
+endobj
+23 0 obj
+<< /Type /Page /Parent 4 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 24 0 R >>
+endobj
+24 0 obj
+<< /Length 6089 >>
+stream
+0.150 0.350 0.650 rg 0.00 786.00 612.00 6.00 re f
+BT /F2 19.00 Tf 0.100 0.160 0.300 rg 54.00 712.00 Td (9  Timeline, Risks & Handoff) Tj ET
+0.850 0.450 0.100 rg 54.00 702.00 504.00 2.40 re f
+BT /F2 12.50 Tf 0.150 0.350 0.650 rg 54.00 672.00 Td (9.1  Sequenced plan \(with owners\)) Tj ET
+0.900 0.920 0.950 rg 54.00 547.00 504.00 141.00 re f
+BT /F2 7.60 Tf 0.350 0.380 0.420 rg 62.00 686.00 Td (ID) Tj ET
+BT /F2 7.60 Tf 0.350 0.380 0.420 rg 88.00 686.00 Td (STEP) Tj ET
+BT /F2 7.60 Tf 0.350 0.380 0.420 rg 384.00 686.00 Td (OWNER) Tj ET
+BT /F2 7.60 Tf 0.350 0.380 0.420 rg 484.00 686.00 Td (GATE) Tj ET
+BT /F2 8.20 Tf 0.850 0.450 0.100 rg 62.00 671.00 Td (S1) Tj ET
+BT /F1 8.20 Tf 0.120 0.130 0.150 rg 88.00 671.00 Td (Pi pre-flight + venv + harness/MCP install) Tj ET
+BT /F2 8.20 Tf 0.150 0.350 0.650 rg 384.00 671.00 Td (Antigravity) Tj ET
+BT /F1 7.80 Tf 0.350 0.380 0.420 rg 484.00 671.00 Td (imports + smoke pipeline) Tj ET
+BT /F2 8.20 Tf 0.850 0.450 0.100 rg 62.00 656.00 Td (S2) Tj ET
+BT /F1 8.20 Tf 0.120 0.130 0.150 rg 88.00 656.00 Td (ASR MCP server \(faster-whisper\)) Tj ET
+BT /F2 8.20 Tf 0.150 0.350 0.650 rg 384.00 656.00 Td (Antigravity) Tj ET
+BT /F1 7.80 Tf 0.350 0.380 0.420 rg 484.00 656.00 Td (correct transcript, RTF<1) Tj ET
+BT /F2 8.20 Tf 0.850 0.450 0.100 rg 62.00 641.00 Td (S3) Tj ET
+BT /F1 8.20 Tf 0.120 0.130 0.150 rg 88.00 641.00 Td (TTS MCP server \(Piper\)) Tj ET
+BT /F2 8.20 Tf 0.150 0.350 0.650 rg 384.00 641.00 Td (Antigravity) Tj ET
+BT /F1 7.80 Tf 0.350 0.380 0.420 rg 484.00 641.00 Td (valid audio, RTF<1) Tj ET
+BT /F2 8.20 Tf 0.850 0.450 0.100 rg 62.00 626.00 Td (S4) Tj ET
+BT /F1 8.20 Tf 0.120 0.130 0.150 rg 88.00 626.00 Td (VAD \(Silero\) + tuning on room noise) Tj ET
+BT /F2 8.20 Tf 0.150 0.350 0.650 rg 384.00 626.00 Td (Antigravity) Tj ET
+BT /F1 7.80 Tf 0.350 0.380 0.420 rg 484.00 626.00 Td (precision/recall logged) Tj ET
+BT /F2 8.20 Tf 0.850 0.450 0.100 rg 62.00 611.00 Td (S5) Tj ET
+BT /F1 8.20 Tf 0.120 0.130 0.150 rg 88.00 611.00 Td (Full-duplex loop + barge-in) Tj ET
+BT /F2 8.20 Tf 0.150 0.350 0.650 rg 384.00 611.00 Td (Antigravity) Tj ET
+BT /F1 7.80 Tf 0.350 0.380 0.420 rg 484.00 611.00 Td (5-turn convo, ~300ms barge-in) Tj ET
+BT /F2 8.20 Tf 0.850 0.450 0.100 rg 62.00 596.00 Td (S6) Tj ET
+BT /F1 8.20 Tf 0.120 0.130 0.150 rg 88.00 596.00 Td (Real-world MCP task tools) Tj ET
+BT /F2 8.20 Tf 0.150 0.350 0.650 rg 384.00 596.00 Td (Antigravity) Tj ET
+BT /F1 7.80 Tf 0.350 0.380 0.420 rg 484.00 596.00 Td (3 tasks by voice) Tj ET
+BT /F2 8.20 Tf 0.850 0.450 0.100 rg 62.00 581.00 Td (S7) Tj ET
+BT /F1 8.20 Tf 0.120 0.130 0.150 rg 88.00 581.00 Td (systemd deploy + reboot persistence) Tj ET
+BT /F2 8.20 Tf 0.150 0.350 0.650 rg 384.00 581.00 Td (Antigravity) Tj ET
+BT /F1 7.80 Tf 0.350 0.380 0.420 rg 484.00 581.00 Td (survives reboot) Tj ET
+BT /F2 8.20 Tf 0.850 0.450 0.100 rg 62.00 566.00 Td (S8) Tj ET
+BT /F1 8.20 Tf 0.120 0.130 0.150 rg 88.00 566.00 Td (Latency benchmark run + report) Tj ET
+BT /F2 8.20 Tf 0.150 0.350 0.650 rg 384.00 566.00 Td (Antigravity) Tj ET
+BT /F1 7.80 Tf 0.350 0.380 0.420 rg 484.00 566.00 Td (JSON + report.md) Tj ET
+BT /F2 8.20 Tf 0.850 0.450 0.100 rg 62.00 551.00 Td (S9) Tj ET
+BT /F1 8.20 Tf 0.120 0.130 0.150 rg 88.00 551.00 Td (Independent audit + handoff update) Tj ET
+BT /F2 8.20 Tf 0.150 0.350 0.650 rg 384.00 551.00 Td (Codex/OnIt) Tj ET
+BT /F1 7.80 Tf 0.350 0.380 0.420 rg 484.00 551.00 Td (all gates green) Tj ET
+BT /F2 12.50 Tf 0.150 0.350 0.650 rg 54.00 642.00 Td (9.2  Top risks & mitigations) Tj ET
+BT /F2 9.40 Tf 0.850 0.450 0.100 rg 54.00 615.00 Td (•) Tj ET
+BT /F1 9.40 Tf 0.120 0.130 0.150 rg 68.00 602.00 Td (Pi 4 \(4GB\) too slow for medium Whisper → mitigate: int8 + `small`/`base.en`; benchmark proves fit.) Tj ET
+BT /F2 9.40 Tf 0.850 0.450 0.100 rg 54.00 589.00 Td (•) Tj ET
+BT /F1 9.40 Tf 0.120 0.130 0.150 rg 68.00 576.00 Td (Echo/self-transcription corrupts loop → mitigate: AEC/gate + self-output suppression, verify in S5.) Tj ET
+BT /F2 9.40 Tf 0.850 0.450 0.100 rg 54.00 563.00 Td (•) Tj ET
+BT /F1 9.40 Tf 0.120 0.130 0.150 rg 68.00 550.00 Td (Barge-in race \(TTS not cancelling\) → mitigate: explicit cancel-on-speech-start, timed test < 300 ms.) Tj ET
+BT /F2 9.40 Tf 0.850 0.450 0.100 rg 54.00 537.00 Td (•) Tj ET
+BT /F1 9.40 Tf 0.120 0.130 0.150 rg 68.00 524.00 Td (Commercial API cost/latency for LLM → mitigate: swappable brain; local Ollama fallback for offline.) Tj ET
+BT /F2 9.40 Tf 0.850 0.450 0.100 rg 54.00 511.00 Td (•) Tj ET
+BT /F1 9.40 Tf 0.120 0.130 0.150 rg 68.00 498.00 Td (Secrets leakage → mitigate: env/keychain only; Codex greps diffs for key patterns before commit.) Tj ET
+BT /F2 12.50 Tf 0.150 0.350 0.650 rg 54.00 482.00 Td (9.3  Handoff & completion definition) Tj ET
+BT /F2 9.40 Tf 0.850 0.450 0.100 rg 54.00 455.00 Td (•) Tj ET
+BT /F1 9.40 Tf 0.120 0.130 0.150 rg 68.00 442.00 Td (Definition of Done: S1–S9 all 'verified' by Codex with evidence; benchmark report published.) Tj ET
+BT /F2 9.40 Tf 0.850 0.450 0.100 rg 54.00 429.00 Td (•) Tj ET
+BT /F1 9.40 Tf 0.120 0.130 0.150 rg 68.00 416.00 Td (OnIt updates HANDOFF_INDEX.md \(current state, open items, change log\) + runs) Tj ET
+BT /F1 9.40 Tf 0.120 0.130 0.150 rg 68.00 403.00 Td (Update-HandoffIndex.ps1.) Tj ET
+BT /F2 9.40 Tf 0.850 0.450 0.100 rg 54.00 390.00 Td (•) Tj ET
+BT /F1 9.40 Tf 0.120 0.130 0.150 rg 68.00 377.00 Td (AGENT_TASK_STATE.json set to status 'done'; next_step cleared; watchdog confirms 'no active task'.) Tj ET
+BT /F2 9.40 Tf 0.850 0.450 0.100 rg 54.00 364.00 Td (•) Tj ET
+BT /F1 9.40 Tf 0.120 0.130 0.150 rg 68.00 351.00 Td (Left for user: physical Pi hardware access for live mic/speaker runs \(agents cannot claim audio) Tj ET
+BT /F1 9.40 Tf 0.120 0.130 0.150 rg 68.00 338.00 Td (results without an executed, evidenced run\).) Tj ET
+0.900 0.920 0.950 RG 1.00 w 54.00 40.00 m 558.00 40.00 l S
+BT /F1 8.00 Tf 0.350 0.380 0.420 rg 54.00 28.00 Td (ME3 — Voice Duplex Agent Plan) Tj ET
+BT /F1 8.00 Tf 0.350 0.380 0.420 rg 468.00 28.00 Td (Dumalaog  |  AI 231  |  2026-10-19) Tj ET
+BT /F2 8.00 Tf 0.150 0.350 0.650 rg 534.00 28.00 Td (10 / 10) Tj ET
+
+endstream
+endobj
+xref
+0 25
+0000000000 65535 f 
+0000000015 00000 n 
+0000000112 00000 n 
+0000000214 00000 n 
+0000000263 00000 n 
+0000000382 00000 n 
+0000000518 00000 n 
+0000003669 00000 n 
+0000003805 00000 n 
+0000008133 00000 n 
+0000008270 00000 n 
+0000014871 00000 n 
+0000015009 00000 n 
+0000019123 00000 n 
+0000019261 00000 n 
+0000023216 00000 n 
+0000023354 00000 n 
+0000027759 00000 n 
+0000027897 00000 n 
+0000032268 00000 n 
+0000032406 00000 n 
+0000036611 00000 n 
+0000036749 00000 n 
+0000041235 00000 n 
+0000041373 00000 n 
+trailer
+<< /Size 25 /Root 3 0 R >>
+startxref
+47515
+%%EOF

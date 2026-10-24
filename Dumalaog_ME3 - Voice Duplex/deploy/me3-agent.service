@@ -1,0 +1,18 @@
+[Unit]
+Description=ME3 Voice Duplex - full-duplex voice agent
+After=network.target me3-asr.service me3-tts.service me3-vad.service
+Wants=me3-asr.service me3-tts.service me3-vad.service
+
+[Service]
+WorkingDirectory=__ME3_DIR__
+ExecStart=__VENV__/bin/python -m me3.agent
+Restart=on-failure
+RestartSec=3
+Environment=ME3_CONFIG=__ME3_DIR__/config/config.yaml
+EnvironmentFile=-%h/.config/me3/me3.env
+Environment=PYTHONUNBUFFERED=1
+# Audio device priority (USB/I2S) - tune for your Pi
+Nice=-5
+
+[Install]
+WantedBy=default.target

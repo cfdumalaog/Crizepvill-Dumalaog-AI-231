@@ -1,0 +1,128 @@
+# ME3 - Voice Duplex: runtime configuration
+# Single source of truth. All services read this.
+
+deployment:
+  target: rpi                    # rpi | dev (dev = run on this Windows box for testing)
+  rpi_user: dalmacio
+  rpi_host: cfdfnjrpi5.local     # confirmed reachable on 2026-10-24
+  rpi_path: /home/dalmacio/Desktop/kiko/me3_voice_duplex
+
+audio:
+  sample_rate: 16000
+  channels: 1
+  frame_ms: 30                   # 480 samples @16k -> ~14.4k frames/s
+  input_device: null             # null = default; set index/name for USB/I2S
+  output_device: null
+  full_duplex: true              # simultaneous capture + playback
+
+vad:
+  model: silero_vad.onnx         # fetched at install
+  threshold: 0.5
+  min_speech_ms: 120
+  min_silence_ms: 450            # endpointing: stop turn after this silence
+  window_ms: 30
+  pre_roll_ms: 300               # keep audio before trigger for natural start
+
+asr:
+  engine: faster_whisper
+  model: small.en                # tiny.en | base.en | small.en (Pi5=small, Pi4=base)
+  compute_type: int8
+  beam_size: 1                   # greedy for lowest latency
+  language: en
+  vad_filter: false              # VAD handled by our silero stage, not whisper's
+
+tts:
+  engine: piper
+  voice: en_GB-alba-medium       # or en_US-lessac-medium
+  overlap_voice: en_US-lessac-medium  # v1.5 background speaker (second voice)
+  length_scale: 1.0
+  sentence_split: true           # stream sentence-by-sentence for lower TTFB
+
+llm:
+  mode: remote                   # remote (vLLM) | local (ollama)
+  remote:
+    base_url: http://202.92.159.240:8001/v1
+    model: Qwen/Qwen3.8-27B
+    api_key_env: VLLM_API_KEY
+    temperature: 0.4
+    max_tokens: 4096             # multi-tool turns (web-app builds) need room
+    timeout_s: 180               # slow vLLM endpoint: allow long generations
+    max_tool_steps: 10           # Qwen tool-call rounds per voice turn (brain.py)
+  local:
+    ollama_host: http://localhost:11434
+    model: qwen2.5:3b            # Pi 5 only; Pi 4 -> remote mode
+
+mcp:
+  transport: stdio               # stdio (local) | streamable-http (network)
+  servers:
+    asr:
+      cmd: python -m me3.mcp_asr
+    tts:
+      cmd: python -m me3.mcp_tts
+    vad:
+      cmd: python -m me3.mcp_vad
+    tasks:
+      cmd: python -m me3.mcp_tasks   # real-world task tools (timers, control, etc.)
+
+agent:
+  system_prompt: >
+    You are a helpful, conversational voice assistant running on a Raspberry Pi.
+    Keep replies short (1-3 sentences) because they are spoken aloud.
+    Be natural and interruptible. Confirm actions briefly. You can use the
+    project tools to create files, run tests, search the web, and build a
+    webapp when the user asks.
+  barge_in: true                 # user speech interrupts agent TTS
+  turn_timeout_s: 12.0
+  ack_wait_s: 2.5                # >0: speak a backchannel for long tool tasks (live); 0 = synchronous (bench protocol)
+  backchannel: "Let me work on that."
+  web_port_default: 8000         # start_web_server default port
+
+# FULL-DUPLEX-BENCH v1.5 overlap contract.  This is separate from the
+# class latency benchmark below: it measures response category, stop latency,
+# response latency, and pre/post-overlap adaptation across four scenarios.
+fdb_v15:
+  scenarios:
+    - user_interruption
+    - user_backchannel
+    - talking_to_others
+    - background_speech
+  stimulus_counts:
+    user_interruption: 200
+    user_backchannel: 99
+    talking_to_others: 100
+    background_speech: 100
+  response_categories:
+    - RESPOND
+    - RESUME
+    - UNCERTAIN
+    - UNKNOWN
+  signal_transforms:
+    talking_to_others:
+      gain_db: -8
+      high_shelf_hz: 4000
+      high_shelf_db: -5
+      reflections:
+        - [0.045, -6]
+        - [0.120, -12]
+    background_speech:
+      gain_db: -15
+      lowpass_hz: 3000
+      echo: [0.100, -10]
+      dynamic_range_compression: true
+  timing_equations:
+    stop_latency_s: "tmodel_stop - tuser_start"
+    response_latency_s: "tmodel_start - tuser_end"
+  judge_model: gpt-4o-2024-08-06
+  judge_prompt_source: refs/full-duplex-bench/v1_v1.5/evaluation/instruction/behavior.txt
+  require_pre_post_audio: true
+
+benchmark:
+  n_trials: 20                   # per scenario
+  scenarios:
+    - wake_to_first_word         # VAD trigger -> first TTS audio byte
+    - utterance_to_llm_token     # ASR final -> first LLM token
+    - llm_token_to_tts_audio     # first LLM token -> first TTS audio byte
+    - end_to_end                 # user speech end -> agent first audio byte
+    - barge_in                   # user interrupt -> agent TTS stop
+  warmup: 3
+  record: cpu_pct,ram_mb,frame_ms

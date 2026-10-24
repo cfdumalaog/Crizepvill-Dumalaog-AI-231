@@ -1,0 +1,15 @@
+[Unit]
+Description=ME3 Voice Duplex - TTS MCP server (Piper)
+After=network.target
+
+[Service]
+WorkingDirectory=__ME3_DIR__
+ExecStart=__VENV__/bin/python -m me3.mcp_tts
+Restart=on-failure
+RestartSec=3
+Environment=ME3_CONFIG=__ME3_DIR__/config/config.yaml
+EnvironmentFile=-%h/.config/me3/me3.env
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=default.target

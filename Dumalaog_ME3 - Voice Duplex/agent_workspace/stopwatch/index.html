@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stopwatch</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: system-ui, -apple-system, sans-serif;
+    background: radial-gradient(circle at 50% 30%, #1e293b, #0f172a 70%);
+    color: #e2e8f0;
+  }
+  .card {
+    background: rgba(30, 41, 59, 0.8);
+    border: 1px solid #334155;
+    border-radius: 20px;
+    padding: 48px 56px;
+    text-align: center;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  }
+  h1 { font-size: 1rem; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: #94a3b8; margin-bottom: 24px; }
+  #display {
+    font-variant-numeric: tabular-nums;
+    font-size: clamp(3rem, 12vw, 5rem);
+    font-weight: 700;
+    margin-bottom: 32px;
+    letter-spacing: 0.02em;
+  }
+  .controls { display: flex; gap: 16px; justify-content: center; }
+  button {
+    font-size: 1rem;
+    font-weight: 600;
+    padding: 14px 32px;
+    border: none;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: transform 0.1s ease, opacity 0.15s ease;
+  }
+  button:active { transform: scale(0.96); }
+  button:disabled { opacity: 0.4; cursor: not-allowed; }
+  #startBtn { background: #22c55e; color: #052e16; }
+  #stopBtn { background: #ef4444; color: #450a0a; }
+  #resetBtn { background: #334155; color: #e2e8f0; }
+</style>
+</head>
+<body>
+  <main class="card">
+    <h1>Stopwatch</h1>
+    <div id="display">00:00.00</div>
+    <div class="controls">
+      <button id="startBtn">Start</button>
+      <button id="stopBtn" disabled>Stop</button>
+      <button id="resetBtn">Reset</button>
+    </div>
+  </main>
+<script>
+  const display = document.getElementById('display');
+  const startBtn = document.getElementById('startBtn');
+  const stopBtn = document.getElementById('stopBtn');
+  const resetBtn = document.getElementById('resetBtn');
+
+  let elapsed = 0;        // ms accumulated before current run
+  let running = false;
+  let startTs = 0;        // performance.now() when started
+  let rafId = null;
+
+  function format(ms) {
+    const m = Math.floor(ms / 60000);
+    const s = Math.floor((ms % 60000) / 1000);
+    const cs = Math.floor((ms % 1000) / 10);
+    return String(m).padStart(2, '0') + ':' +
+           String(s).padStart(2, '0') + '.' +
+           String(cs).padStart(2, '0');
+  }
+
+  function render() {
+    display.textContent = format(elapsed + (running ? performance.now() - startTs : 0));
+  }
+
+  function tick() {
+    render();
+    rafId = requestAnimationFrame(tick);
+  }
+
+  startBtn.addEventListener('click', () => {
+    if (running) return;
+    running = true;
+    startTs = performance.now();
+    startBtn.disabled = true;
+    stopBtn.disabled = false;
+    tick();
+  });
+
+  stopBtn.addEventListener('click', () => {
+    if (!running) return;
+    running = false;
+    elapsed += performance.now() - startTs;
+    cancelAnimationFrame(rafId);
+    startBtn.disabled = false;
+    stopBtn.disabled = true;
+    render();
+  });
+
+  resetBtn.addEventListener('click', () => {
+    running = false;
+    elapsed = 0;
+    cancelAnimationFrame(rafId);
+    startBtn.disabled = false;
+    stopBtn.disabled = true;
+    render();
+  });
+
+  render();
+</script>
+</body>
+</html>

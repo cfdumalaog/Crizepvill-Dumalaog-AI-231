@@ -1,0 +1,467 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Full-Duplex-Bench Explained</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: one reading column. Part 1 = 6 explainer diagrams covering the 10 results columns. Part 2 = dataset + results per column. */
+:root {
+  --bg: #F3F6F6; --surface: #FFFFFF; --ink: #13212A; --muted: #55656E; --line: #D5DEE0;
+  --accent: #0F6E66; --accent-soft: #DCEFEC; --good: #1E7A3C; --bad: #B4372B; --warn-soft: #FBEFD9; --warn: #8A5A00;
+  --user: #0F6E66; --model: #C2410C; --measure: #6D5BD0;
+  --m1: #6D5BD0; --m2: #C2410C; --m3: #0F766E; --m4: #2563EB; --target: #B4372B;
+  --f-display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --f-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0E1619; --surface: #152126; --ink: #E4ECEE; --muted: #9AABB2; --line: #2A3A40;
+  --accent: #4FC8BA; --accent-soft: #17332F; --good: #5CCB7E; --bad: #F08A7E; --warn-soft: #3A2E14; --warn: #F2C46B;
+  --user: #4FC8BA; --model: #FB923C; --measure: #A397F0;
+  --m1: #A397F0; --m2: #FB923C; --m3: #2DD4BF; --m4: #60A5FA; --target: #F08A7E; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #0E1619; --surface: #152126; --ink: #E4ECEE; --muted: #9AABB2; --line: #2A3A40;
+  --accent: #4FC8BA; --accent-soft: #17332F; --good: #5CCB7E; --bad: #F08A7E; --warn-soft: #3A2E14; --warn: #F2C46B;
+  --user: #4FC8BA; --model: #FB923C; --measure: #A397F0;
+  --m1: #A397F0; --m2: #FB923C; --m3: #2DD4BF; --m4: #60A5FA; --target: #F08A7E; color-scheme: dark }
+body { background: var(--bg); color: var(--ink); font: 16px/1.6 var(--f-body); }
+.wrap { max-width: 860px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 40px 64px; }
+h1, h2, h3 { font-family: var(--f-display); text-wrap: balance; line-height: 1.15; margin: 0; }
+h1 { font-size: clamp(2rem, 5vw, 2.9rem); font-weight: 700; letter-spacing: -0.02em; }
+h2 { font-size: 1.55rem; font-weight: 700; }
+h3 { font-size: 1.1rem; font-weight: 500; }
+p { margin: 0; max-width: 68ch; }
+.eyebrow { font: 600 0.75rem var(--f-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); }
+.part { font: 700 0.8rem var(--f-mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-top: 56px; padding-top: 8px; border-top: 3px solid var(--accent); }
+.part + p { margin-top: 10px; }
+.muted { color: var(--muted); }
+.mono { font-family: var(--f-mono); font-size: 0.88em; }
+a { color: var(--accent); }
+section { display: grid; gap: 14px; padding-block: 30px 8px; border-top: 1px solid var(--line); margin-top: 24px; }
+header { display: grid; gap: 14px; }
+.lede { font-size: 1.12rem; }
+.wave { height: 28px; width: 100%; display: block; color: var(--accent); }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 18px; min-width: 0; }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; }
+.analogy b, .caveat b { font-family: var(--f-display); font-weight: 500; }
+.caveat { border-left: 3px solid var(--warn); background: var(--warn-soft); padding: 10px 14px; border-radius: 0 8px 8px 0; font-size: 0.92rem; }
+.howto { display: grid; grid-template-columns: 8em 1fr; gap: 8px 14px; font-size: 0.95rem; }
+.howto dt { font: 600 0.75rem var(--f-mono); text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); padding-top: 3px; }
+.howto dd { margin: 0; min-width: 0; }
+@media (max-width: 520px) { .howto { grid-template-columns: 1fr; gap: 2px; } .howto dd { margin-bottom: 8px; } }
+.vars { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 0.8rem; margin-bottom: 8px; }
+.vars b { font: 600 0.72rem var(--f-mono); text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+.var { font: 600 0.78rem var(--f-mono); padding: 2px 8px; border-radius: 6px; background: var(--accent-soft); color: var(--accent); }
+.var.me { background: var(--measure); color: #fff; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 0.85rem; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.sw { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+.chart-title { font: 600 0.82rem var(--f-mono); color: var(--ink); margin-bottom: 2px; }
+.chart-sub { font-size: 0.82rem; color: var(--muted); margin-bottom: 8px; }
+svg text { font-family: var(--f-mono); }
+.scroll { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 0.9rem; font-variant-numeric: tabular-nums; }
+th, td { padding: 6px 10px; border-bottom: 1px solid var(--line); text-align: left; white-space: nowrap; }
+th { font: 600 0.75rem var(--f-mono); color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+td.c, th.c { text-align: center; }
+tr.grp td { font: 600 0.78rem var(--f-mono); color: var(--accent); padding-top: 14px; }
+.yes { color: var(--good); font-weight: 700; } .no { color: var(--muted); }
+.persona { display: grid; gap: 6px; }
+.persona h3 { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+ul { margin: 0; padding-left: 1.2em; display: grid; gap: 6px; max-width: 70ch; }
+.verdict { display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; align-items: baseline; }
+.pill { font: 600 0.72rem var(--f-mono); padding: 2px 8px; border-radius: 99px; white-space: nowrap; }
+.pill.use { background: var(--accent-soft); color: var(--accent); }
+.pill.skip { border: 1px solid var(--line); color: var(--muted); }
+.small { font-size: 0.88rem; }
+.toc { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 0.88rem; }
+.res { display: grid; gap: 8px; }
+.res .read { font-size: 0.9rem; }
+</style>
+
+<div class="wrap">
+<header>
+  <span class="eyebrow">Paper report · arXiv 2503.04721 (v3, Aug 2025)</span>
+  <h1>Full-Duplex-Bench, explained</h1>
+  <p class="lede">The paper asks: <b>does a voice AI know when to talk and when to stay quiet?</b> It answers with 10 numbers per model. Part 1 explains those 10 measures with pictures. Part 2 shows the test data and how four systems scored on each.</p>
+  <p class="muted small">Lin, Lian, Li, Wang, Anumanchipalli, Liu, Lee. All numbers are copied from the paper's Tables II and III and checked against the paper text. Notes marked "inferred" or "ours" are not the paper's.</p>
+  <nav class="toc"><a href="#setup">How a score is made</a><a href="#part1">Part 1 · The 10 measures</a><a href="#part2">Part 2 · Data and results</a><a href="#pi">Our Pi project</a></nav>
+  <svg class="wave" viewBox="0 0 800 28" preserveAspectRatio="none" aria-hidden="true"><path id="wavepath" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
+</header>
+
+<section id="setup">
+  <span class="eyebrow">Before the measures · how any score is made</span>
+  <h2>Play a recording in, record the reply, read the word times</h2>
+  <p>A test clip of a person speaking is streamed into the model in real time, as if the person were on the line. The model's reply is recorded on its own, time-synced track. A speech-to-text model (<i>ASR</i>; here NVIDIA Parakeet) writes down every word the model said, with the time each word started and ended. Every one of the 10 measures is computed from those word times.</p>
+  <div class="panel scroll">
+    <svg viewBox="0 0 780 110" width="100%" style="min-width:620px" role="img" aria-label="Pipeline: user audio into model, model audio, ASR word times, 10 measures">
+      <defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/></marker></defs>
+      <g font-size="12">
+        <rect x="8" y="30" width="120" height="50" rx="8" fill="var(--accent-soft)" stroke="var(--accent)"/>
+        <text x="68" y="52" text-anchor="middle" fill="var(--ink)">User audio</text>
+        <text x="68" y="68" text-anchor="middle" fill="var(--muted)" font-size="10">input.wav</text>
+        <line x1="128" y1="55" x2="168" y2="55" stroke="var(--muted)" marker-end="url(#ar)"/>
+        <rect x="170" y="22" width="150" height="66" rx="8" fill="var(--surface)" stroke="var(--ink)"/>
+        <text x="245" y="50" text-anchor="middle" fill="var(--ink)">Model under test</text>
+        <text x="245" y="67" text-anchor="middle" fill="var(--muted)" font-size="10">listens + speaks at once</text>
+        <line x1="320" y1="55" x2="360" y2="55" stroke="var(--muted)" marker-end="url(#ar)"/>
+        <rect x="362" y="30" width="120" height="50" rx="8" fill="var(--accent-soft)" stroke="var(--accent)"/>
+        <text x="422" y="52" text-anchor="middle" fill="var(--ink)">Model audio</text>
+        <text x="422" y="68" text-anchor="middle" fill="var(--muted)" font-size="10">output.wav</text>
+        <line x1="482" y1="55" x2="522" y2="55" stroke="var(--muted)" marker-end="url(#ar)"/>
+        <rect x="524" y="30" width="110" height="50" rx="8" fill="var(--surface)" stroke="var(--ink)"/>
+        <text x="579" y="52" text-anchor="middle" fill="var(--ink)">ASR word times</text>
+        <text x="579" y="68" text-anchor="middle" fill="var(--muted)" font-size="10">output.json</text>
+        <line x1="634" y1="55" x2="668" y2="55" stroke="var(--muted)" marker-end="url(#ar)"/>
+        <rect x="670" y="30" width="100" height="50" rx="8" fill="var(--measure)" opacity=".9"/>
+        <text x="720" y="52" text-anchor="middle" fill="#fff">10 measures</text>
+        <text x="720" y="68" text-anchor="middle" fill="#fff" font-size="10">Part 1</text>
+      </g>
+    </svg>
+  </div>
+  <div class="panel">
+    <div class="chart-title">Legend for the diagrams in Part 1</div>
+    <div class="legend"><span><i class="sw" style="background:var(--user)"></i>Person speaking (test clip)</span><span><i class="sw" style="background:var(--model)"></i>Model speaking</span><span><i class="sw" style="background:var(--measure)"></i>What a column measures</span><span><i class="sw" style="background:var(--good)"></i>Good outcome</span><span><i class="sw" style="background:var(--bad)"></i>Bad outcome</span></div>
+  </div>
+</section>
+
+<div class="part" id="part1">Part 1 · The 10 measures in 6 pictures</div>
+<p>The results table has 10 columns. Related columns share a picture; each column's symbol is written on the picture where it applies.</p>
+<div id="measures"></div>
+
+<div class="part" id="part2">Part 2 · The test data and the results</div>
+<p>First the dataset the paper proposes (Table II), then the results (Table III): one chart per column, numbered like Part 1.</p>
+
+<section id="dataset">
+  <span class="eyebrow">Table II · the proposed dataset</span>
+  <h2>727 test clips, from real conversations and from a script</h2>
+  <div class="panel">
+    <div class="chart-title">Number of clips per test</div>
+    <div class="vars"><b>Variable</b><span class="var"># of samples</span><span class="muted">per dataset × task</span></div>
+    <div class="legend chart-sub"><span><i class="sw" style="background:var(--accent)"></i>Real speech (Candor, ICC)</span><span><i class="sw" style="background:var(--m2)"></i>Synthetic (GPT-4o text, ChatTTS voice)</span></div>
+    <div id="dsChart"></div>
+  </div>
+  <dl class="howto">
+    <dt>Read it</dt><dd>Each bar is one test set. More clips = a steadier average. Pause handling has two sets (353 clips together); backchannel has the fewest (55).</dd>
+    <dt>Candor</dt><dd>850 hours of spontaneous, open-ended two-person conversations, each person on their own channel. Pause set: turns longer than 5 s with a 0.4–1.0 s pause inside, no "mm-hm" next to the pause. Turn-taking set: clean handoffs (gap under 0.4 s, no overlap, turns over 4 s), with 5 s of silence added at the end so the model has room to reply. All hand-checked.</dd>
+    <dt>ICC</dt><dd>28.33 minutes of informal American English dialogue. Backchannel responses collected from 118 native speakers, about 59 per clip. That crowd pattern is the answer key for Freq and JSD.</dd>
+    <dt>Synthetic</dt><dd>GPT-4o writes the dialogue; a text-to-speech system (ChatTTS, 10 voices) speaks it. Pauses are inserted on purpose with a break tag. For interruptions, the interrupting sentence starts about 7 s in, then 15 s of silence follow.</dd>
+  </dl>
+  <div class="caveat"><b>Honest limits.</b> English only. 55 backchannel clips is small, so one clip moves TOR by about 0.018. Synthetic voices are cleaner than a real mic. The paper does not test whether its scores match what people actually prefer.</div>
+</section>
+
+<section id="results">
+  <span class="eyebrow">Table III · results, one chart per column</span>
+  <h2>How the four models scored</h2>
+  <div class="legend" id="modelLegend"></div>
+  <div class="grid2">
+    <div class="panel persona"><h3><i class="sw" style="background:var(--m1)"></i>dGSLM &amp; <i class="sw" style="background:var(--m2)"></i>Moshi</h3><p class="small">Turn audio straight into audio with no text step in between (<i>end-to-end</i>). No explicit "is it my turn?" logic.</p></div>
+    <div class="panel persona"><h3><i class="sw" style="background:var(--m3)"></i>Freeze-Omni &amp; <i class="sw" style="background:var(--m4)"></i>Gemini Live</h3><p class="small">Explicit turn logic. Freeze-Omni: a voice-activity detector (<i>VAD</i>, which decides when someone is speaking) plus a classifier that predicts the dialogue state. Gemini Live: VAD on Google's server, via the API.</p></div>
+  </div>
+  <div id="resultCharts" class="res"></div>
+</section>
+
+<section id="all">
+  <span class="eyebrow">Table III · all 40 values in one view</span>
+  <h2>A trade-off between speed and manners</h2>
+  <div class="panel scroll"><div id="heat"></div></div>
+  <dl class="howto">
+    <dt>Read it</dt><dd>Rows are models, columns are the 10 measures. Arrows show which direction is good. Within each column, green marks the best of the four and red the worst. Colour compares models within a column; it doesn't say how good a score is on its own.</dd>
+    <dt>Result</dt><dd><b>Eager talkers</b> (dGSLM, Moshi): fast, but they talk over pauses and give weak answers. <b>Careful thinkers</b> (Freeze-Omni, Gemini Live): wait more and answer better, but take about 1 s or more to reply.</dd>
+  </dl>
+  <div class="caveat"><b>Precision notes.</b> All values are averages; the paper gives no median, spread or confidence interval, so small gaps (0.934 vs 0.935) mean nothing. The paper doesn't specify the time window in which a takeover is checked for each test, nor the GPT-4o judge prompt; those live in the released code. Scores also depend on the ASR: a misheard "mm-hm" can turn a 0 into a 1.</div>
+</section>
+
+<section id="landscape">
+  <span class="eyebrow">Table I · why only four models</span>
+  <h2>17 full-duplex models, few you can actually test</h2>
+  <p><i>Full-duplex</i> means the model can listen and talk at the same moment, like a phone call, unlike a walkie-talkie. Of the 17 listed, only dGSLM, Moshi and Freeze-Omni release a working speech-in, speech-out system; with Gemini's API, those are the four tested. <span class="muted">E2E = end-to-end (no text step); #ch = audio input channels; BC = produces backchannels.</span></p>
+  <div class="panel scroll"><div id="landscapeTbl"></div></div>
+</section>
+
+<section id="pi">
+  <span class="eyebrow">For our Pi 4 assistant</span>
+  <h2>What this means for our project</h2>
+  <p>Our pipeline (Silero VAD, cloud ASR, LLM, cloud TTS, via MCP) is the same kind of design as Freeze-Omni and Gemini Live: separate steps with explicit turn logic. Expect their profile: decent manners and answers, with latency as the main fight.</p>
+  <div class="grid2">
+    <div class="panel persona">
+      <h3>Direct lessons</h3>
+      <ul class="small">
+        <li><b>Our 1 s target is ambitious but fair.</b> Gemini's turn-taking latency is 1.30 s and Freeze-Omni's 0.95 s, on their own servers.</li>
+        <li><b>The VAD silence setting is the main dial.</b> Candor's test pauses are 0.4–1.0 s. Pipecat's default VAD stop time is 0.8 s, so longer pauses will trigger a takeover. Raising it helps pause handling but adds directly to latency.</li>
+        <li><b>Fast barge-in isn't enough.</b> Moshi shows a quick reaction is worthless if the reply ignores what the user said.</li>
+      </ul>
+    </div>
+    <div class="panel persona">
+      <h3>How our latency differs</h3>
+      <p class="small">Their latency uses ASR word times on a clean digital stream. Ours is measured on the sound itself in a stereo recording (end of prompt audio to first reply audio), through a real mic, network and speaker. Ours includes the whole device chain, so the two aren't directly comparable. We also report median and p90; they report means only.</p>
+    </div>
+  </div>
+  <div class="panel">
+    <h3 style="margin-bottom:10px">Proposed use of their dataset</h3>
+    <div class="verdict small">
+      <span class="pill use">keep</span><span>Our 20 prompts for <b>voice-to-voice latency</b> (median, p90).</span>
+      <span class="pill use">add</span><span><b>Pause handling, synthetic (137 clips)</b>: play into the Pi, report column 1. Shows whether the bot cuts users off mid-thought, and helps tune VAD stop time.</span>
+      <span class="pill use">add</span><span><b>User interruption (200 clips, or a 20–30 clip sample)</b>: report columns 8 and 10, plus our barge-in stop time from the same recording.</span>
+      <span class="pill use">add</span><span><b>Smooth turn-taking, Candor (119 clips)</b>: report columns 6 and 7, so our dot sits on the same chart as Gemini and Freeze-Omni.</span>
+      <span class="pill skip">skip</span><span><b>Backchannel (columns 3–5)</b>: our bot doesn't say "mm-hm" by design, so Freq and JSD would be trivially bad. Optionally report column 3 only, as a "doesn't talk over you" check.</span>
+    </div>
+    <p class="small muted" style="margin-top:12px">Practical notes: run the scoring (Parakeet ASR, metric scripts) on a laptop or cloud machine, not the Pi. Check the licence terms for the Candor and ICC clips before putting them in the repo or demo video.</p>
+  </div>
+</section>
+
+<p class="small muted" style="margin-top:32px">Source: Lin et al., "Full-Duplex-Bench: A Benchmark to Evaluate Full-Duplex Spoken Dialogue Models on Turn-taking Capabilities", <a href="https://arxiv.org/abs/2503.04721">arXiv:2503.04721</a>. Project notes and recommendations are ours, not the paper's.</p>
+</div>
+
+<script>
+const NS = "http://www.w3.org/2000/svg";
+const M = [{n:"dGSLM", c:"var(--m1)"}, {n:"Moshi", c:"var(--m2)"}, {n:"Freeze-Omni", c:"var(--m3)"}, {n:"Gemini Live", c:"var(--m4)"}];
+const D = {
+  phS:[.934,.985,.642,.255], phC:[.935,.980,.481,.310],
+  bcT:[.691,1.000,.636,.091], bcF:[.015,.001,.001,.012], bcJ:[.934,.957,.997,.896],
+  sT:[.975,.941,.336,.655], sL:[.352,.265,.953,1.301],
+  uT:[.917,1.000,.867,.891], uG:[.201,.765,3.615,3.376], uL:[2.531,.257,1.409,1.183]
+};
+const COLS = [
+  {col:1,key:"phS",name:"TOR · Pause · Synthetic",better:"lower"},
+  {col:2,key:"phC",name:"TOR · Pause · Candor",better:"lower"},
+  {col:3,key:"bcT",name:"TOR · Backchannel · ICC",better:"lower"},
+  {col:4,key:"bcF",name:"Freq · Backchannel",better:"higher",max:.02},
+  {col:5,key:"bcJ",name:"JSD · Backchannel",better:"lower"},
+  {col:6,key:"sT",name:"TOR · Turn-taking · Candor",better:"higher"},
+  {col:7,key:"sL",name:"Latency · Turn-taking",better:"lower",unit:"s",max:3},
+  {col:8,key:"uT",name:"TOR · Interruption · Synthetic",better:"higher"},
+  {col:9,key:"uG",name:"GPT-4o score · Interruption",better:"higher",max:5},
+  {col:10,key:"uL",name:"Latency · Interruption",better:"lower",unit:"s",max:3}
+];
+const f3=v=>v===0?"0":v.toFixed(3).replace(/^0/,"");
+function el(tag, attrs, parent, text){ const e=document.createElementNS(NS,tag); for(const k in attrs) e.setAttribute(k,attrs[k]); if(text!=null) e.textContent=text; if(parent) parent.appendChild(e); return e; }
+(function(){ let d="M0 14"; for(let x=0;x<=800;x+=4){ const a=Math.sin(x/9)*Math.sin(x/97)*11*(0.4+0.6*Math.abs(Math.sin(x/53))); d+=` L${x} ${(14+a).toFixed(1)}`;} document.getElementById("wavepath").setAttribute("d",d); })();
+
+/* ---------- Part 1: explainer diagrams ---------- */
+const U="var(--user)", MO="var(--model)", ME="var(--measure)", G="var(--good)", B="var(--bad)";
+// timeline helper. lanes: {name, color, segs:[[t0,t1,label]], notes:[[t,label,color,anchor]]}; spans: {lane,t0,t1,label,color}; tags: {t,lane,text} column symbols
+function timeline(host, spec){
+  const W=720, L=112, R=12, laneH=48, top=spec.top||30, lanes=spec.lanes, H=top+lanes.length*laneH+(spec.extraH||0)+22;
+  const s=el("svg",{viewBox:`0 0 ${W} ${H}`,width:"100%",style:"min-width:600px",role:"img","aria-label":spec.aria},host);
+  const x=t=>L+(W-L-R)*t;
+  el("line",{x1:L,x2:W-R,y1:H-14,y2:H-14,stroke:"var(--line)"},s);
+  el("text",{x:L-8,y:H-2,"text-anchor":"end","font-size":9,fill:"var(--muted)"},s,"time →");
+  (spec.ticks||[]).forEach(([t,lab])=>{ el("line",{x1:x(t),x2:x(t),y1:H-18,y2:H-10,stroke:"var(--muted)"},s); el("text",{x:x(t),y:H-2,"text-anchor":"middle","font-size":9,fill:"var(--muted)"},s,lab); });
+  (spec.sep||[]).forEach(i=>el("line",{x1:0,x2:W,y1:top+i*laneH-4,y2:top+i*laneH-4,stroke:"var(--line)","stroke-dasharray":"3 3"},s));
+  lanes.forEach((ln,i)=>{ const y=top+i*laneH;
+    el("text",{x:L-8,y:y+16,"text-anchor":"end","font-size":10,fill:ln.nameColor||"var(--muted)","font-weight":ln.nameColor?700:400},s,ln.name);
+    el("line",{x1:L,x2:W-R,y1:y+12,y2:y+12,stroke:"var(--line)"},s);
+    ln.segs.forEach(([a,b,lab,col])=>{ el("rect",{x:x(a),y:y+2,width:Math.max(2,x(b)-x(a)),height:20,rx:4,fill:col||ln.color},s);
+      if(lab) el("text",{x:x(a)+5,y:y+16,"font-size":9.5,fill:"#fff"},s,lab); });
+    (ln.notes||[]).forEach(([t,lab,col,anchor])=>el("text",{x:x(t),y:y+16,"text-anchor":anchor||"middle","font-size":9.5,"font-weight":600,fill:col||"var(--muted)"},s,lab));
+  });
+  (spec.spans||[]).forEach(sp=>{ const y=top+sp.lane*laneH-7; const col=sp.color||ME;
+    el("line",{x1:x(sp.t0),x2:x(sp.t1),y1:y,y2:y,stroke:col,"stroke-width":2},s);
+    [sp.t0,sp.t1].forEach(t=>el("line",{x1:x(t),x2:x(t),y1:y-5,y2:y+5,stroke:col,"stroke-width":2},s));
+    el("text",{x:(x(sp.t0)+x(sp.t1))/2,y:y-8,"text-anchor":sp.anchor||"middle","font-size":10,"font-weight":600,fill:col},s,sp.label);
+  });
+  (spec.tags||[]).forEach(tg=>{ const y=top+tg.lane*laneH+2; const w=tg.text.length*6.2+12; const xx=x(tg.t);
+    el("rect",{x:xx,y:y,width:w,height:20,rx:4,fill:ME},s); el("text",{x:xx+w/2,y:y+14,"text-anchor":"middle","font-size":9.5,"font-weight":600,fill:"#fff"},s,tg.text); });
+  if(spec.extra) spec.extra(s,x,top+lanes.length*laneH);
+  return s;
+}
+
+const groups = [
+ {cols:[1,2], title:"Does the model wait while you pause to think?", task:"Pause handling",
+  intro:"The person pauses mid-sentence. The model should stay quiet. Column 1 uses scripted pauses; column 2 uses pauses cut from real conversations. Same rule, two sources.",
+  diagram:h=>timeline(h,{aria:"Pause handling, columns 1 and 2", ticks:[[0,"0 s"],[0.96,"end"]], sep:[2],
+    lanes:[{name:"Person (col 1)",nameColor:U,color:U,segs:[[0.02,0.42,"I'd like to book a table…"],[0.56,0.96,"…for two, on Friday"]],notes:[[0.49,"[break]",U]]},
+           {name:"Person (col 2)",nameColor:U,color:U,segs:[[0.0,0.42,"…so we drove up to the lake and"],[0.52,0.96,"it was completely frozen"]],notes:[[0.47,"real pause",U]]},
+           {name:"Model ✓",color:MO,segs:[],notes:[[0.49,"stays silent → TO = 0",G]]},
+           {name:"Model ✗",color:MO,segs:[[0.45,0.7,"Sure! Which rest…"]],notes:[[0.74,"talks → TO = 1",B,"start"]]}],
+    spans:[{lane:0,t0:0.42,t1:0.56,label:"col 1: pause inserted by script (synthetic, 137 clips)"},{lane:1,t0:0.42,t1:0.52,label:"col 2: real pause of 0.4–1.0 s (Candor, 216 clips)"}],
+    extraH:20, extra:(s,x,y)=>{ el("text",{x:x(0),y:y+12,"font-size":10,fill:ME,"font-weight":600},s,"TOR (col 1, col 2) = share of clips with TO = 1.  Ideal: 0 = never cut in."); }}),
+  how:[["TO, per clip","1 if the model said anything beyond an \"mm-hm\" during the clip; 0 if silent or only \"mm-hm\". (The exact time window checked is not stated in the paper.)"],
+       ["TOR","The average of TO over all clips of a set. 0 = never cut in; 1 = cut in every time."],
+       ["Col 1, synthetic","137 clips. GPT-4o wrote the sentences, ChatTTS spoke them with 10 voices, and a break tag inserted the pause at a chosen spot."],
+       ["Col 2, Candor","216 clips from the Candor corpus (850 h, two channels). Turns longer than 5 s with an internal pause of 0.4–1.0 s; pauses next to a backchannel were dropped. Hand-checked."],
+       ["Why both","Column 1 controls the pause exactly; column 2 checks the behaviour holds on messy real speech."]],
+  analogy:"You say \"I was thinking we could… um…\" and your friend shouts \"Pizza!\". TOR is how often your friend does that, out of 100 \"um\"s. Column 1 is the closed-course driving test; column 2 is the same test in city traffic."},
+
+ {cols:[3,4], title:"Does the model listen, and show it's listening?", task:"Backchannel",
+  intro:"The person tells a story for a while. A good listener says \"mm-hm\" now and then but doesn't take the story away. Column 3 checks the taking-away; column 4 counts the \"mm-hm\"s.",
+  diagram:h=>timeline(h,{aria:"Backchannel TOR and frequency, columns 3 and 4", ticks:[[0,"0 s"],[1,"30 s"]],
+    lanes:[{name:"Person",color:U,segs:[[0.02,0.98,"So yesterday I went to the market, and you won't believe who I ran into… (story continues)"]]},
+           {name:"Model ✓",color:MO,segs:[[0.2,0.235,""],[0.45,0.485,""],[0.78,0.815,""]],notes:[[0.245,"\"mm\"",MO,"start"],[0.495,"\"yeah\"",MO,"start"],[0.825,"\"mm-hm\" → col 3: TO = 0",MO,"start"]]},
+           {name:"Model ✗",color:MO,segs:[[0.5,0.8,"Oh, who did you see?"]],notes:[[0.83,"col 3: TO = 1",B,"start"]]}],
+    spans:[{lane:1,t0:0.2,t1:0.815,label:"col 4: Freq = 3 backchannels ÷ 30 s = 0.10 per second"}],
+    extraH:20, extra:(s,x,y)=>{ el("text",{x:x(0),y:y+12,"font-size":10,fill:ME,"font-weight":600},s,"backchannel = under 1 s AND fewer than 2 words.  Col 4 uses only clips where col 3 gives TO = 0."); }}),
+  how:[["Backchannel","A model utterance shorter than 1 s with fewer than 2 words. Anything longer or wordier counts as a takeover."],
+       ["Col 3, TOR","Share of the 55 ICC clips with a takeover. 0 means the model only listened or nodded. Lower is better. This column is the gate for columns 4 and 5: they use only the clips where TO = 0."],
+       ["Col 4, Freq","Number of backchannel events divided by clip length, in events per second, averaged over the clips without a takeover. Higher is better. For scale: the best model manages 0.015 per second, about one \"mm-hm\" per minute."]],
+  analogy:"A friend telling a long story on the phone. \"Mm-hm\" and \"yeah\" keep them going (col 4 counts them). \"Oh, who did you see?\" takes the story away (col 3 counts that)."},
+
+ {cols:[5], title:"Do the \"mm-hm\"s land where a human's would?", task:"Backchannel",
+  intro:"Column 4 counts how often. Column 5 asks whether the timing matches real listeners.",
+  diagram:h=>{ const W=720,H=180,L=66,R=12; const s=el("svg",{viewBox:`0 0 ${W} ${H}`,width:"100%",style:"min-width:600px",role:"img","aria-label":"JSD, column 5: two histograms compared"},h);
+    const bins=24, bw=(W-L-R)/bins; const human=[0,0,1,2,3,1,0,0,0,2,5,4,1,0,0,0,1,3,6,3,1,0,0,0]; const model=[1,0,0,0,0,2,0,0,0,0,0,0,3,0,0,1,0,0,0,0,0,2,0,0];
+    const mh=Math.max(...human), mm=Math.max(...model);
+    el("text",{x:L,y:12,"font-size":10,fill:U,"font-weight":600},s,"Q = where 118 human listeners said \"mm-hm\" (count per slot)");
+    el("text",{x:L,y:104,"font-size":10,fill:MO,"font-weight":600},s,"P = where the model said \"mm-hm\"");
+    human.forEach((v,i)=>el("rect",{x:L+i*bw+1,y:72-v/mh*50,width:bw-2,height:v/mh*50,fill:U,opacity:.85},s));
+    model.forEach((v,i)=>el("rect",{x:L+i*bw+1,y:156-v/mm*44,width:bw-2,height:v/mm*44,fill:MO,opacity:.85},s));
+    el("line",{x1:L,x2:W-R,y1:72,y2:72,stroke:"var(--line)"},s); el("line",{x1:L,x2:W-R,y1:156,y2:156,stroke:"var(--line)"},s);
+    for(let i=0;i<=bins;i+=6) el("text",{x:L+i*bw,y:168,"text-anchor":"middle","font-size":9,fill:"var(--muted)"},s,(i*0.2).toFixed(1)+" s");
+    el("text",{x:W-R,y:178,"text-anchor":"end","font-size":9,fill:"var(--muted)"},s,"clip cut into 200 ms slots →");
+    const w=330; el("rect",{x:L+(W-L-R)/2-w/2,y:76,width:w,height:16,rx:4,fill:ME},s);
+    el("text",{x:L+(W-L-R)/2,y:88,"text-anchor":"middle","font-size":10,"font-weight":600,fill:"#fff"},s,"col 5: JSD(P, Q) = 0 same shape … 1 nothing in common");
+  },
+  how:[["Setup","The clip is cut into 200 ms slots. Count how many human listeners said \"mm-hm\" in each slot (Q) and where the model did (P). Turn both into probability shapes."],
+       ["Col 5, JSD","Jensen-Shannon divergence: JSD = ½ Σ P·log(P/M) + ½ Σ Q·log(Q/M), with M = ½(P+Q). Ranges 0 (identical) to 1 (nothing shared). Lower is better. Only on clips where col 3 gives TO = 0. A model that never backchannels is scored as if its \"mm-hm\"s were spread evenly, which lands near 1."]],
+  analogy:"Compare your clapping to a concert crowd's. On the beat with everyone: near 0. At random moments: near 1."},
+
+ {cols:[6,7], title:"When you finish, does the model reply, and how fast?", task:"Smooth turn-taking",
+  intro:"The person finishes a turn. Column 6 asks whether the model takes its turn at all; column 7 asks how long that took.",
+  diagram:h=>timeline(h,{aria:"Turn-taking TOR and latency, columns 6 and 7", ticks:[[0,"0 s"],[0.5,"person done"],[0.96,"+5 s"]],
+    lanes:[{name:"Person",color:U,segs:[[0.02,0.5,"What do you think we should do this weekend?"]]},
+           {name:"Model ✓",color:MO,segs:[[0.64,0.84,"We could go…"]],notes:[[0.985,"col 6: TO = 1",G,"end"]]},
+           {name:"Model ✗",color:MO,segs:[],notes:[[0.75,"…silence… → col 6: TO = 0",B]]}],
+    spans:[{lane:0,t0:0.5,t1:1,label:"5 s of silence appended so the model has room to reply"},{lane:1,t0:0.5,t1:0.64,label:"col 7: latency"}],
+    extraH:34, extra:(s,x,y)=>{ el("text",{x:x(0),y:y+12,"font-size":10,fill:ME,"font-weight":600},s,"col 6: TOR = share of clips with TO = 1 (ideal 1: never left hanging)."); el("text",{x:x(0),y:y+26,"font-size":10,fill:ME,"font-weight":600},s,"col 7: latency = first model word − last person word, averaged over clips with TO = 1 only."); }}),
+  how:[["Selection","119 Candor handoffs where the next speaker came in within 0.4 s, no overlap, turns over 4 s, no backchannels. Each clip ends with 5 s of silence."],
+       ["Col 6, TOR","Share of clips where the model said something (beyond \"mm-hm\") after the person finished. Here high is good."],
+       ["Col 7, latency","Seconds from the person's last word to the model's first, from the ASR word times, averaged over clips with TO = 1. Lower is better. Humans typically leave gaps around 0.2 s (general finding, not from this paper)."],
+       ["Caveat","Each model's column 7 averages a different number of clips (n ≈ col 6 × 119: about 116 for dGSLM, 40 for Freeze-Omni), so the averages are not like-for-like."]],
+  analogy:"A relay race. Column 6: how often the next runner takes the baton at all. Column 7: how long the baton hangs in the air."},
+
+ {cols:[8,10], title:"When you cut in, does the model respond, and how fast?", task:"User interruption",
+  intro:"The model is answering. The person interrupts with a new request. Column 8 asks whether the model responds to it; column 10 asks how long that took.",
+  diagram:h=>timeline(h,{aria:"Interruption TOR and latency, columns 8 and 10", ticks:[[0,"0 s"],[0.33,"~7 s"],[0.96,"+15 s"]],
+    lanes:[{name:"Person",color:U,segs:[[0.02,0.22,"Tell me about Mars"],[0.33,0.52,"Wait, set a timer"]]},
+           {name:"Model ✓",color:MO,segs:[[0.24,0.4,"Mars is the…"],[0.63,0.8,"Timer set."]],notes:[[0.985,"col 8: TO = 1",G,"end"]]},
+           {name:"Model ✗",color:MO,segs:[[0.24,0.4,"Mars is the…"]],notes:[[0.75,"…silence… → col 8: TO = 0",B]]}],
+    spans:[{lane:0,t0:0.33,t1:0.52,label:"interruption"},{lane:1,t0:0.52,t1:0.63,label:"col 10: latency",anchor:"start"}],
+    extraH:34, extra:(s,x,y)=>{ el("text",{x:x(0),y:y+12,"font-size":10,fill:ME,"font-weight":600},s,"col 8: TOR = share of clips with TO = 1 (ideal 1: always notices)."); el("text",{x:x(0),y:y+26,"font-size":10,fill:ME,"font-weight":600},s,"col 10: latency = time to respond after the interruption, clips with TO = 1 (clock start not stated)."); }}),
+  how:[["Setup","200 clips. GPT-4o writes a first request and an interrupting one; ChatTTS speaks them. The interruption plays about 7 s after the first utterance, then 15 s of silence."],
+       ["Col 8, TOR","Share of clips where the model said something after the interruption. High is good: it noticed and responded. This gates columns 9 and 10."],
+       ["Col 10, latency","Average seconds from the interruption to the model's first word of the new reply, over clips with TO = 1. Lower is better. The paper doesn't say whether the clock starts at the start or end of the interrupting sentence."],
+       ["Not measured","How fast the model stops its old reply. For a voice assistant that matters as much; our project measures it separately as barge-in stop time."]],
+  analogy:"You ask a waiter about the specials, then say \"actually, just water\". Column 8: did the waiter react to the second request at all? Column 10: how long until they said \"of course\"."},
+
+ {cols:[9], title:"Was the reply to the interruption any good?", task:"User interruption",
+  intro:"Columns 8 and 10 say the model reacted and how fast. Column 9 says whether it understood.",
+  diagram:h=>{ const W=720,H=120,L=66; const s=el("svg",{viewBox:`0 0 ${W} ${H}`,width:"100%",style:"min-width:600px",role:"img","aria-label":"GPT-4o judge, column 9"},h);
+    const box=(x,y,w,t1,t2,fill,stroke,tc)=>{ el("rect",{x,y,width:w,height:46,rx:8,fill,stroke},s); el("text",{x:x+w/2,y:y+19,"text-anchor":"middle","font-size":10.5,"font-weight":600,fill:tc||"var(--ink)"},s,t1); el("text",{x:x+w/2,y:y+35,"text-anchor":"middle","font-size":9.5,fill:tc||"var(--muted)"},s,t2); };
+    box(L,30,180,"Transcript of the exchange","first request · interruption · reply","var(--surface)","var(--line)");
+    el("line",{x1:L+180,x2:L+218,y1:53,y2:53,stroke:"var(--muted)","marker-end":"url(#ar)"},s);
+    box(L+220,30,150,"GPT-4o as judge","(an LLM judge)","var(--accent-soft)","var(--accent)");
+    el("line",{x1:L+370,x2:L+408,y1:53,y2:53,stroke:"var(--muted)","marker-end":"url(#ar)"},s);
+    box(L+410,30,230,"col 9: GPT-4o score, 0 – 5","coherence · relevance · adaptability",ME,ME,"#fff");
+    el("text",{x:L,y:100,"font-size":10,fill:"var(--muted)"},s,"\"Mars is the fourth planet…\" after \"set a timer\" → low.   \"Timer set for 5 minutes.\" → high.");
+  },
+  how:[["Col 9, score","GPT-4o reads the transcript and rates the reply 0–5 for coherence (makes sense), relevance (on topic) and adaptability (switched to the new request). Higher is better. Averaged over clips where col 8 gives TO = 1."],
+       ["Why it matters","A model can score 1.0 on column 8 and under 1 on this one: it reacted, but said something useless."]],
+  analogy:"A GPS after you miss a turn. It always recalculates (col 8), and fast (col 10). Column 9 asks whether the new route makes sense."}
+];
+
+(function(){
+  const host=document.getElementById("measures");
+  groups.forEach((g,gi)=>{
+    const cs=g.cols.map(c=>COLS[c-1]);
+    const sec=document.createElement("section"); sec.id="g"+(gi+1);
+    sec.innerHTML=`<span class="eyebrow">Picture ${gi+1} of 6 · ${g.task} · column${cs.length>1?"s":""} ${g.cols.join(" and ")} of 10</span>
+      <h2>${g.title}</h2><p>${g.intro}</p>
+      <div class="panel"><div class="vars"><b>Columns shown</b>${cs.map(c=>`<span class="var me">col ${c.col}: ${c.name} ${c.better==="lower"?"↓":"↑"}</span>`).join("")}</div><div class="scroll" id="d${gi}"></div></div>
+      <dl class="howto">${g.how.map(([k,v])=>`<dt>${k}</dt><dd>${v}</dd>`).join("")}</dl>
+      `;
+    host.appendChild(sec);
+    g.diagram(sec.querySelector("#d"+gi));
+  });
+})();
+
+/* ---------- Part 2 ---------- */
+(function(){
+  const rows=[["Pause handling · Candor",216,1],["Pause handling · Synthetic",137,0],["User interruption · Synthetic",200,0],["Smooth turn-taking · Candor",119,1],["Backchannel · ICC",55,1]];
+  const host=document.getElementById("dsChart"); const W=540,rowH=28,L=210,R=40,H=rows.length*rowH+20;
+  const s=el("svg",{viewBox:`0 0 ${W} ${H}`,width:"100%",role:"img","aria-label":"Clips per test"},host);
+  const x=v=>L+(W-L-R)*v/250;
+  [0,50,100,150,200,250].forEach(t=>{ el("line",{x1:x(t),x2:x(t),y1:0,y2:H-16,stroke:"var(--line)"},s); el("text",{x:x(t),y:H-3,"text-anchor":"middle","font-size":9,fill:"var(--muted)"},s,t); });
+  rows.forEach((r,i)=>{ const y=i*rowH+4;
+    el("text",{x:L-8,y:y+14,"text-anchor":"end","font-size":11,fill:"var(--ink)"},s,r[0]);
+    el("rect",{x:L,y,width:x(r[1])-L,height:20,rx:3,fill:r[2]?"var(--accent)":"var(--m2)"},s);
+    el("text",{x:x(r[1])+6,y:y+14,"font-size":11,fill:"var(--ink)","font-weight":700},s,r[1]);
+  });
+})();
+
+document.getElementById("modelLegend").innerHTML = M.map(m=>`<span><i class="sw" style="background:${m.c}"></i>${m.n}</span>`).join("");
+
+const readings = {
+  phS:"dGSLM and Moshi cut in on almost every scripted pause (0.93, 0.99). Gemini Live waits three times out of four (0.26). Freeze-Omni is in between (0.64). The paper credits Freeze-Omni's explicit turn-control module; it gives no reason for Gemini.",
+  phC:"Same picture on real speech. Freeze-Omni improves to 0.48; Gemini stays best at 0.31; dGSLM and Moshi still cut in 93–98% of the time.",
+  bcT:"Gemini Live almost never takes the story away (0.09). Moshi always does (1.00), so it has no clips left for columns 4 and 5. dGSLM and Freeze-Omni take over about two thirds of the time.",
+  bcF:"Very low everywhere. dGSLM (0.015/s) and Gemini (0.012/s) manage roughly one \"mm-hm\" per minute. Moshi and Freeze-Omni almost never do.",
+  bcJ:"All four are 0.90–1.00: no model matches human timing. Gemini is least bad (0.896). A silent model gets near 1 by construction.",
+  sT:"dGSLM (0.98) and Moshi (0.94) nearly always reply. Freeze-Omni misses two thirds of turn ends (0.34); Gemini misses a third (0.66). The paper attributes Freeze-Omni's misses to failing to detect the turn end.",
+  sL:"Moshi (0.27 s) and dGSLM (0.35 s) reply at near-human speed. Freeze-Omni takes 0.95 s and Gemini 1.30 s. Read with columns 1–2: the fast two reply to everything, including pauses.",
+  uT:"All four react to being interrupted (0.87–1.00). Moshi always does.",
+  uG:"Only the two with an LLM in the loop say something useful: Freeze-Omni 3.62 and Gemini 3.38 out of 5. Moshi 0.77 and dGSLM 0.20 react but don't answer the new request.",
+  uL:"Moshi responds in 0.26 s, but see column 9. Gemini (1.18 s) and Freeze-Omni (1.41 s) take over a second. dGSLM takes 2.53 s."
+};
+const caveats = {
+  bcF:"Moshi's column 3 is 1.000, so by the paper's rule it has no clips for this column or the next. The reported 0.001 and 0.957 can't come from that rule as written; the paper doesn't explain them. Treat them as unreliable.",
+  sL:"Each average uses a different number of clips (n ≈ col 6 × 119): about 116 for dGSLM, 112 Moshi, 40 Freeze-Omni, 78 Gemini.",
+  uG:"n ≈ col 8 × 200: 183, 200, 173, 178. The judge prompt is not published."
+};
+const pictureOf = c=>groups.findIndex(g=>g.cols.includes(c))+1;
+(function(){
+  const host=document.getElementById("resultCharts");
+  COLS.forEach(m=>{
+    const vals=D[m.key], max=m.max||1, lowGood=m.better==="lower";
+    const fmt=v=> m.unit==="s"? v.toFixed(2)+" s" : m.key==="uG"? v.toFixed(2) : m.key==="bcF"? v.toFixed(3) : f3(v);
+    const p=document.createElement("div"); p.className="panel";
+    p.innerHTML=`<div class="chart-title">Column ${m.col} · ${m.name} <span class="muted">${lowGood?"↓ lower is better":"↑ higher is better"}</span></div><div class="vars"><b>Variable</b><span class="var me">col ${m.col}: ${m.name}</span><a class="muted" href="#g${pictureOf(m.col)}">explained in Picture ${pictureOf(m.col)} ↑</a></div>`;
+    const W=640,rowH=26,L=96,R=70,H=M.length*rowH+18;
+    const s=el("svg",{viewBox:`0 0 ${W} ${H}`,width:"100%",role:"img","aria-label":m.name},p);
+    const x=v=>L+(W-L-R)*v/max;
+    const ticks = max===5?[0,1,2,3,4,5]: max===3?[0,.5,1,1.5,2,2.5,3]: max===0.02?[0,.005,.01,.015,.02]:[0,.25,.5,.75,1];
+    ticks.forEach(t=>{ el("line",{x1:x(t),x2:x(t),y1:0,y2:H-16,stroke:"var(--line)"},s); el("text",{x:x(t),y:H-3,"text-anchor":"middle","font-size":9,fill:"var(--muted)"},s,(max===0.02?t.toFixed(3):(+t.toFixed(2)))+(m.unit==="s"?" s":"")); });
+    if(m.unit==="s"){ el("line",{x1:x(1),x2:x(1),y1:0,y2:H-16,stroke:"var(--target)","stroke-dasharray":"5 4","stroke-width":1.5},s); el("text",{x:x(1)+4,y:10,"font-size":9,fill:"var(--target)"},s,"our 1 s target"); }
+    const best = lowGood? Math.min(...vals): Math.max(...vals);
+    vals.forEach((v,i)=>{ const y=i*rowH+4; const unreliable=(m.key==="bcF"||m.key==="bcJ")&&i===1;
+      el("text",{x:L-8,y:y+13,"text-anchor":"end","font-size":11,fill:"var(--ink)"},s,M[i].n);
+      el("rect",{x:L,y,width:Math.max(1.5,x(v)-L),height:18,rx:3,fill:M[i].c,opacity:unreliable?.35:(v===best?1:.8)},s);
+      el("text",{x:x(v)+5,y:y+13,"font-size":11,fill:"var(--ink)","font-weight":v===best?700:400},s,fmt(v)+(v===best?" ★":"")+(unreliable?" (?)":""));
+    });
+    const r=document.createElement("p"); r.className="read"; r.innerHTML=readings[m.key]; p.appendChild(r);
+    if(caveats[m.key]){ const c=document.createElement("div"); c.className="caveat"; c.style.marginTop="8px"; c.innerHTML="<b>Caveat.</b> "+caveats[m.key]; p.appendChild(c); }
+    host.appendChild(p);
+  });
+})();
+
+(function(){
+  const cols=[["Pause","TOR synth","phS",1],["Pause","TOR real","phC",1],["Backch.","TOR","bcT",1],["Backch.","Freq","bcF",0],["Backch.","JSD","bcJ",1],["Turn","TOR","sT",0],["Turn","Latency","sL",1],["Interrupt","TOR","uT",0],["Interrupt","GPT-4o","uG",0],["Interrupt","Latency","uL",1]];
+  let h=`<table><thead><tr><th>Model</th>${cols.map((c,i)=>`<th class="c">${i+1}<br>${c[0]}<br>${c[1]} ${c[3]?"↓":"↑"}</th>`).join("")}</tr></thead><tbody>`;
+  M.forEach((m,i)=>{
+    h+=`<tr><td><i class="sw" style="background:${m.c}"></i> ${m.n}</td>`;
+    cols.forEach(c=>{ const v=D[c[2]], lo=Math.min(...v), hi=Math.max(...v); let t=(v[i]-lo)/(hi-lo||1); if(c[3]) t=1-t;
+      const col=`color-mix(in srgb, var(--good) ${Math.round(t*45)}%, color-mix(in srgb, var(--bad) ${Math.round((1-t)*45)}%, var(--surface)))`;
+      const txt = c[2]==="uG" ? v[i].toFixed(2) : c[2]==="sL"||c[2]==="uL" ? v[i].toFixed(2)+"s" : v[i].toFixed(3);
+      h+=`<td class="c" style="background:${col}">${txt}</td>`; });
+    h+="</tr>"; });
+  document.getElementById("heat").innerHTML=h+"</tbody></table>";
+})();
+
+(function(){
+  const Y='<span class="yes">✓</span>', N='<span class="no">✗</span>', U='<span class="no">–</span>';
+  const g=(a)=>a.map(v=>v===1?Y:v===0?N:U);
+  const rows=[["Transparent models"],
+    ["dGSLM","2022/3",1,"2",1,1,1],["FSM","2024/5",0,"1",2,2,0],["MiniCPM-Duplex","2024/6",0,"1",2,2,0],["VITA","2024/8",0,"1",1,2,0],
+    ["SyncLLM","2024/9",1,"2",1,1,0],["Parrot","2024/9",1,"2",1,2,0],["MiniCPM-Duo","2024/9",0,"1",2,2,0],["Moshi","2024/10",1,"2",1,1,1],
+    ["SALMONN-omni","2024/11",1,"1",1,2,0],["Freeze-Omni","2024/11",0,"1",1,2,1],["MinMo","2025/1",1,"1",1,1,0],["OmniFlatten","2025/1",1,"2",1,2,0],["RTTL-DG","2025/1",1,"2",1,1,0],
+    ["Closed commercial"],["GPT-4o Voice","2024/5",2,"–",1,2,0],["Gemini Live","2024/8",2,"–",1,2,0],["DouBao","2025/1",2,"–",1,2,0],["Nova Sonic","2025/4",2,"–",1,2,0]];
+  const tested=new Set(["dGSLM","Moshi","Freeze-Omni","Gemini Live"]);
+  let h=`<table><thead><tr><th>Model</th><th>Date</th><th class="c">E2E</th><th class="c">#ch</th><th class="c">Interrupt</th><th class="c">BC</th><th class="c">Speech system released</th><th>Tested</th></tr></thead><tbody>`;
+  rows.forEach(r=>{ if(r.length===1){ h+=`<tr class="grp"><td colspan="8">${r[0]}</td></tr>`; return; }
+    const c=g([r[2],r[4],r[5],r[6]]);
+    h+=`<tr><td>${r[0]}</td><td class="mono">${r[1]}</td><td class="c">${c[0]}</td><td class="c mono">${r[3]}</td><td class="c">${c[1]}</td><td class="c">${c[2]}</td><td class="c">${c[3]}</td><td>${tested.has(r[0])?'<span class="pill use">tested</span>':""}</td></tr>`; });
+  document.getElementById("landscapeTbl").innerHTML=h+"</tbody></table>";
+})();
+</script>
+
+</body></html>

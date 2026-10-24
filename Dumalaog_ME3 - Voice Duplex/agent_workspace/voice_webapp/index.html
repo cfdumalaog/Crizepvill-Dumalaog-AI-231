@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ME3 Voice Assistant</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="dot" id="statusDot"></span>
+      <h1>ME3 Voice Assistant</h1>
+    </div>
+    <span class="tag">Raspberry Pi demo</span>
+  </header>
+
+  <main class="panel">
+    <section class="status-area" aria-live="polite">
+      <div class="status-row">
+        <span class="status-label">Status</span>
+        <span class="status-value" id="statusText">Ready</span>
+      </div>
+      <div class="status-row">
+        <span class="status-label">Last command</span>
+        <span class="status-value" id="lastCommand">—</span>
+      </div>
+    </section>
+
+    <section class="command-area">
+      <form id="commandForm" autocomplete="off">
+        <input
+          type="text"
+          id="commandInput"
+          placeholder="Type a command, e.g. 'what time is it?'"
+          aria-label="Voice command"
+        />
+        <button type="submit" id="sendBtn">Send</button>
+        <button type="button" id="micBtn" class="mic" title="Microphone (placeholder)" aria-label="Microphone placeholder">
+          <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+            <path d="M12 14a3 3 0 0 0 3-3V6a3 3 0 1 0-6 0v5a3 3 0 0 0 3 3z"/>
+            <path d="M19 11a7 7 0 0 1-14 0H3a9 9 0 0 0 8 8.94V22h2v-2.06A9 9 0 0 0 21 11h-2z"/>
+          </svg>
+        </button>
+      </form>
+      <p class="hint">Mic button is a placeholder — no audio capture in this demo.</p>
+    </section>
+
+    <section class="activity-area">
+      <h2>Tool activity</h2>
+      <ul id="activityLog" class="activity-log"></ul>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <span>Dependency-free static demo</span>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
