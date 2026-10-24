@@ -1,7 +1,9 @@
 ﻿"""ME3 TTS MCP Server.
 
-Exposes SOTA text-to-speech (Piper 1.8.0) as MCP tools so any MCP client can
-synthesize speech on the RPi and receive audio bytes.
+Exposes the active text-to-speech backend as MCP tools so any MCP client can
+synthesize speech on the RPi and receive audio bytes. Piper is the offline
+fallback; an optional ElevenLabs streaming backend supplies the Qwen voice when
+its runtime key and voice ID are configured.
 
 Tools:
   - synthesize(text) -> {audio_b64 (wav), sample_rate, duration_s, latency_ms, ttfb_ms}
@@ -11,13 +13,15 @@ Tools:
 
 Run:  python -m me3.mcp_tts
 
-Voice models live in <project>/models/tts/<voice>.onnx and are downloaded on
-first use via `python -m piper.download_voices` (piper 1.8.0 CLI). No API key.
+Piper voice models live in <project>/models/tts/<voice>.onnx and are downloaded
+on first use via `python -m piper.download_voices`. ElevenLabs reads
+`ELEVENLABS_API_KEY` and `ELEVENLABS_VOICE_ID` from the runtime environment only.
 """
 from __future__ import annotations
 
 import base64
 import io
+import os
 import subprocess
 import sys
 import time
@@ -57,15 +61,40 @@ def _ensure_voice(voice_name: str) -> Path:
 
 
 def _get_engine():
-    """Lazy-load Piper (heavy; load once)."""
+    """Lazy-load the configured TTS backend (Piper or ElevenLabs)."""
     global _engine, _cfg
     if _engine is None:
-        from piper import PiperVoice
-        _cfg = load_config()["tts"]
-        t0 = time.perf_counter()
-        voice_path = _ensure_voice(_cfg["voice"])
-        _engine = PiperVoice.load(voice_path)
-        _engine._load_ms = (time.perf_counter() - t0) * 1000
+        cfg = load_config()["tts"]
+        requested = os.environ.get("ME3_TTS_ENGINE", cfg.get("engine", "auto"))
+        requested = requested.strip().lower()
+        eleven = cfg.get("elevenlabs", {})
+        key_env = eleven.get("api_key_env", "ELEVENLABS_API_KEY")
+        voice_env = eleven.get("voice_id_env", "ELEVENLABS_VOICE_ID")
+        eleven_ready = bool(os.environ.get(key_env)) and bool(
+            os.environ.get(voice_env, eleven.get("voice_id", ""))
+        )
+        if requested == "auto":
+            requested = "elevenlabs" if eleven_ready else "piper"
+        if requested == "elevenlabs":
+            from .elevenlabs_tts import ElevenLabsTTS
+            t0 = time.perf_counter()
+            _engine = ElevenLabsTTS.from_config(cfg)
+            _engine._load_ms = (time.perf_counter() - t0) * 1000
+            _cfg = dict(cfg)
+            _cfg["engine"] = "elevenlabs"
+            _cfg["voice"] = _engine.voice_id
+        elif requested == "piper":
+            from piper import PiperVoice
+            t0 = time.perf_counter()
+            voice_path = _ensure_voice(cfg["voice"])
+            _engine = PiperVoice.load(voice_path)
+            _engine._load_ms = (time.perf_counter() - t0) * 1000
+            _cfg = dict(cfg)
+            _cfg["engine"] = "piper"
+        else:
+            raise RuntimeError(
+                f"unsupported ME3_TTS_ENGINE={requested!r}; use auto, piper, or elevenlabs"
+            )
     return _engine, _cfg
 
 
@@ -143,22 +172,26 @@ def synthesize_stream(text: str) -> list[dict]:
 
 @mcp.tool()
 def voices() -> dict:
-    """List available Piper voices (downloaded under models/tts/)."""
+    """List voices for the active backend."""
     try:
+        if _cfg and _cfg.get("engine") == "elevenlabs":
+            return {"ok": True, "engine": "elevenlabs",
+                    "voices": [_cfg["voice"]]}
         names = sorted(p.stem for p in _voice_dir.glob("*.onnx"))
-        return {"ok": True, "voices": names, "dir": str(_voice_dir)}
+        return {"ok": True, "engine": "piper", "voices": names,
+                "dir": str(_voice_dir)}
     except Exception as e:  # noqa: BLE001
         return {"ok": False, "error": str(e)}
 
 
 @mcp.tool()
 def health() -> dict:
-    """Report TTS server health and configured voice."""
+    """Report active TTS backend and configured voice."""
     try:
         engine, cfg = _get_engine()
         return {
             "ok": True,
-            "engine": "piper",
+            "engine": cfg.get("engine", "piper"),
             "voice": cfg["voice"],
             "sample_rate": _engine_sample_rate(engine),
             "load_ms": round(getattr(engine, "_load_ms", 0.0), 1),

@@ -44,7 +44,8 @@ Dumalaog_ME3 - Voice Duplex/
 ├── me3/
 │   ├── config.py           # config loader
 │   ├── mcp_asr.py          # ASR MCP server (faster-whisper)
-│   ├── mcp_tts.py          # TTS MCP server (Piper 1.8.0)
+│   ├── mcp_tts.py          # TTS MCP server (Piper fallback + ElevenLabs stream)
+│   ├── elevenlabs_tts.py   # optional ElevenLabs PCM streaming adapter
 │   ├── mcp_vad.py          # VAD MCP server (Pipecat-bundled Silero ONNX)
 │   ├── mcp_tasks.py        # real-world task tools (+ ME2 bridge)
 │   ├── agent.py            # full-duplex control + local voice loop + Pipecat
@@ -55,9 +56,10 @@ Dumalaog_ME3 - Voice Duplex/
 │   └── verify_dataset.py   # validate dataset standard
 ├── docs/PAPER_ALIGNMENT.md # paper scope, evidence boundary, and Pi path
 ├── docs/ME3_MANUAL_ELI5_AND_DEEP.md # ELI5 + deep technical manual
+├── docs/ELEVENLABS_INTEGRATION.md # Qwen voice backend and Realtime decision
 ├── docs/acm/ME3_Voice_Duplex_ACM.tex # ACM two-column LaTeX source
 ├── docs/acm/ME3_Voice_Duplex_ACM.pdf # ACM two-column paper
-├── docs/presentation/ME3_Voice_Duplex_Presentation_v4.pptx # presentation deck
+├── docs/presentation/ME3_Voice_Duplex_Presentation_v6.pptx # presentation deck
 ├── FULL-DUPLEX-BENCH V1.5 - EVALUATING OVERLAP.pdf # user source paper
 ├── Building AI Voice Agents - Summary.pdf           # user source paper
 ├── models/                 # downloaded models (piper voice); git-ignored
@@ -114,6 +116,7 @@ python scripts/fdb_v15_eval.py runs/fdb_v15/trials.json
 | FR14 | Local-dev-before-deploy pipeline (ME2 pattern) | ✅ built | `scripts/` + `deployment/` state files |
 | FR15 | Local quick launch like ME2 | ✅ built | `launchers/Start-ME3.bat` + `scripts/Start-Local-ME3.ps1` |
 | FR16 | Agentic tool calling (build real artifacts from voice) | ✅ verified | `me3/brain.py` (Qwen tool loop) + `me3/tools.py` (19 tools) + `me3/task_runner.py` |
+| FR17 | Optional ElevenLabs voice renderer for Qwen | ✅ implemented, credential-gated | `me3/elevenlabs_tts.py` + `config/config.yaml` (`tts.engine: auto`) |
 
 ## Tool brain (agentic capabilities)
 
@@ -140,6 +143,20 @@ remote Qwen calls. The agent never writes or prints the key. Without it the
 agent falls back to the stub brain and the voice pipeline still runs.
 
 ## Pi deployment (tool brain key)
+
+## ElevenLabs voice backend
+
+ME3 keeps Qwen as the reasoning/tool model and can render its responses with
+ElevenLabs streaming PCM. The config value tts.engine: auto selects ElevenLabs
+only when ELEVENLABS_API_KEY and ELEVENLABS_VOICE_ID are present; otherwise it
+uses the existing local Piper voice. This preserves the current full-duplex
+microphone, VAD, ASR, playback, and barge-in path. See
+docs/ELEVENLABS_INTEGRATION.md.
+
+ElevenLabs Realtime v1 Mini/Max is a complete hosted voice-agent mode that also
+manages the LLM and speech recognition. It is documented as an optional
+alternative, but is not silently substituted because ME3's Qwen tool loop is
+an explicit project requirement.
 
 The vLLM key lives on the Windows dev box as a DPAPI blob
 (`~/.codex/vllm-api-key.dpapi`), which the Pi cannot decrypt. One-time setup:

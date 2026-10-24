@@ -43,7 +43,8 @@ interaction beyond question answering: a user can ask by voice for a web
 application or other coding task, and the model can call bounded file, search,
 command, and background-job tools to perform the work. No task-specific model
 training is required. Instead, the system integrates pretrained Silero VAD,
-faster-whisper ASR, Piper TTS, and an OpenAI-compatible Qwen/vLLM endpoint.
+faster-whisper ASR, Piper TTS with an optional streaming ElevenLabs voice, and
+an OpenAI-compatible Qwen/vLLM endpoint.
 This paper describes the architecture, tool-call protocol, safety boundary,
 local verification, Raspberry Pi release workflow, and evidence boundary for
 the separate FULL-DUPLEX-BENCH v1.5 evaluation. The current implementation is
@@ -109,7 +110,7 @@ must be added as reviewed typed tools.
 
 The audio path is:
 \begin{center}
-\texttt{microphone -> Silero VAD -> faster-whisper -> Qwen -> Piper -> speaker}.
+\texttt{microphone -> Silero VAD -> faster-whisper -> Qwen -> Piper/ElevenLabs -> speaker}.
 \end{center}
 Capture remains active while TTS plays. The local state machine has four states:
 \texttt{idle}, \texttt{listening}, \texttt{thinking}, and \texttt{speaking}.
@@ -117,6 +118,13 @@ Speech during \texttt{speaking} stops playback and starts a new turn. A short
 pre-roll is retained so the beginning of an utterance is not clipped. The VAD
 endpoint requires a minimum speech interval followed by configured trailing
 silence.
+
+When \texttt{ELEVENLABS\_API\_KEY} and \texttt{ELEVENLABS\_VOICE\_ID} are
+provisioned, the TTS server streams raw 16~kHz PCM from the ElevenLabs
+low-latency endpoint. Otherwise the same path uses the local Piper voice.
+Qwen remains the reasoning and tool-calling model. ElevenLabs Realtime v1
+Mini/Max is a separate hosted voice-agent architecture that also manages the
+LLM and ASR settings, so it is not silently substituted into this experiment.
 
 The duplex state machine is independent of the Qwen model. This makes the
 interaction control testable without a network request and leaves room for a
@@ -332,6 +340,10 @@ release uses the Python MCP/FastMCP stack for owned task services.
 \bibitem{pipecat}
 Pipecat. Open-source framework for real-time voice and multimodal agents. The
 ME3 release pins Pipecat 1.13.0 for the harness-facing adapter.
+
+\bibitem{elevenlabs}
+ElevenLabs. ``Realtime models'' and ``Stream speech.'' Official developer
+documentation, 2026. \url{https://elevenlabs.io/docs/eleven-agents/customization/realtime-models}
 
 \end{thebibliography}
 

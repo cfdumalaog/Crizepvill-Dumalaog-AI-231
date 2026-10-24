@@ -101,9 +101,20 @@ fi
 # runtime env file so it cannot corrupt an HTTP Authorization header.
 VLLM_KEY="${VLLM_KEY//$'\r'/}"
 VLLM_KEY="${VLLM_KEY//$'\n'/}"
+ELEVENLABS_KEY="${ELEVENLABS_API_KEY:-}"
+if [ -z "$ELEVENLABS_KEY" ] && [ -f "$ENV_DIR/elevenlabs-api-key.txt" ]; then
+  ELEVENLABS_KEY="$(cat "$ENV_DIR/elevenlabs-api-key.txt")"
+fi
+ELEVENLABS_KEY="${ELEVENLABS_KEY//$'\r'/}"
+ELEVENLABS_KEY="${ELEVENLABS_KEY//$'\n'/}"
+ELEVENLABS_VOICE="${ELEVENLABS_VOICE_ID:-}"
+TTS_ENGINE="${ME3_TTS_ENGINE:-auto}"
 cat > "$ENV_DIR/me3.env" <<EOF
 ME3_ASR_MODEL=$ASR_MODEL
 ME3_OVERLAP_VOICE=$OVERLAP_VOICE
+ME3_TTS_ENGINE=$TTS_ENGINE
+ELEVENLABS_API_KEY=${ELEVENLABS_KEY:-}
+ELEVENLABS_VOICE_ID=${ELEVENLABS_VOICE:-}
 VLLM_API_KEY=${VLLM_KEY:-${VLLM_API_KEY:-}}
 EOF
 chmod 600 "$ENV_DIR/me3.env"
@@ -113,6 +124,11 @@ else
   echo "  VLLM_API_KEY: EMPTY -> agent will use the stub brain."
   echo "  Export the key from Windows (see README 'Pi deployment') and put it"
   echo "  in ~/.codex/vllm-api-key.txt or export VLLM_API_KEY before running."
+fi
+if [ -n "$ELEVENLABS_KEY" ]; then
+  echo "  ELEVENLABS_API_KEY: set (value hidden; streaming voice enabled when TTS=auto)"
+else
+  echo "  ELEVENLABS_API_KEY: not configured -> Piper fallback remains active"
 fi
 for svc in me3-asr me3-tts me3-vad me3-agent; do
   if [ -f "$SCRIPT_DIR/deploy/$svc.service" ]; then

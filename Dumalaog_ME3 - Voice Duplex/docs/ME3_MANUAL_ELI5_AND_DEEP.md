@@ -54,13 +54,29 @@ behavior. It uses:
 
 - the Pipecat-bundled Silero CPU ONNX model for speech activity;
 - a pretrained faster-whisper model for speech recognition;
-- a pretrained Piper voice for speech synthesis; and
+- a pretrained Piper voice for speech synthesis, or the optional ElevenLabs
+  streaming voice when its runtime credentials are configured; and
 - the remote Qwen model for reasoning and tool selection.
 
 The engineering work is orchestration, tool contracts, deployment, and
 verification. If later measurements show that ASR or wake behavior needs a
 custom model, that is a separate experiment and is not required for the
 current tool-using duplex agent.
+
+### ElevenLabs voice choice
+
+ME3 keeps Qwen as the reasoning and tool-calling model. The optional
+ElevenLabs backend streams 16 kHz PCM into the same playback path, so VAD,
+ASR, full-duplex capture, and barge-in remain ME3 behavior. With
+tts.engine=auto, the backend uses ElevenLabs only when
+ELEVENLABS_API_KEY and ELEVENLABS_VOICE_ID are available; otherwise it falls
+back to local Piper.
+
+ElevenLabs Realtime v1 Mini and Max are complete hosted voice-agent modes that
+also manage the LLM and speech-to-text configuration. Using them would be an
+alternative architecture, not simply a voice switch for Qwen. The exact
+configuration and acceptance gate are documented in
+docs/ELEVENLABS_INTEGRATION.md.
 
 ## What the agent can do
 
@@ -187,6 +203,12 @@ The Windows DPAPI credential is not copied into Git, the release archive, the
 handoff, or chat. If the Pi key is absent, the deployed agent can still start
 in stub mode, but remote Qwen tool calls will not work until the Pi operator
 provisions the key securely.
+
+The optional ElevenLabs voice uses the same policy. Provision
+ELEVENLABS_API_KEY through the operator-managed
+~/.config/me3/elevenlabs-api-key.txt file, set ELEVENLABS_VOICE_ID, and rerun
+install.sh. The current Pi has no ElevenLabs credential configured, so its
+auto-selected voice remains Piper until this gate is completed.
 
 ## Deep explanation of one turn
 

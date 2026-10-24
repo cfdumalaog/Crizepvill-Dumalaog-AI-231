@@ -32,11 +32,19 @@ asr:
   vad_filter: false              # VAD handled by our silero stage, not whisper's
 
 tts:
-  engine: piper
+  engine: auto                 # auto | piper | elevenlabs
   voice: en_GB-alba-medium       # or en_US-lessac-medium
   overlap_voice: en_US-lessac-medium  # v1.5 background speaker (second voice)
   length_scale: 1.0
   sentence_split: true           # stream sentence-by-sentence for lower TTFB
+  elevenlabs:
+    api_key_env: ELEVENLABS_API_KEY
+    voice_id_env: ELEVENLABS_VOICE_ID
+    voice_id: ""                 # keep credentials/voice choice in the environment
+    base_url: https://api.elevenlabs.io/v1
+    model_id: eleven_flash_v2_5  # low-latency streaming TTS for the Qwen voice
+    output_format: pcm_16000
+    timeout_s: 30
 
 llm:
   mode: remote                   # remote (vLLM) | local (ollama)
