@@ -5,6 +5,7 @@ Double-click these Windows launchers from File Explorer:
 | Launcher | What it opens | Notes |
 |---|---|---|
 | `Start-ME3.bat` | The full-duplex voice agent (console app) | No browser/ports. The console stays open while the agent listens; speak to the microphone and interrupt it mid-sentence to barge in. `Ctrl+C` (or closing the window) stops it. |
+| `Start-Pi-Injection-Demo.bat` | The deployed Pi Qwen/tool demo | Uses reviewed WAV fixtures and a virtual sink; recommended when the physical Fifine input is occupied or the speaker path is not ready. |
 
 It uses the single shared workspace `.venv` (same as the ME2 launchers).
 The LLM brain is the remote vLLM endpoint from `config/config.yaml` when
@@ -33,3 +34,6 @@ Verification without the microphone:
 ```powershell
 & '..\..\.venv\Scripts\python.exe' -m me3.agent --check --load-models
 ```
+
+For the full presentation sequence, including the web-app scenario and the
+physical-audio boundary, see [`docs/DEMO_RUNBOOK.md`](../docs/DEMO_RUNBOOK.md).

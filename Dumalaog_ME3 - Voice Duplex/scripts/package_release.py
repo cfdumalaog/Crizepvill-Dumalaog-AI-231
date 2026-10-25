@@ -44,6 +44,7 @@ INCLUDE = [
     "docs/PHILIPPINE_CALL_CENTER_PILOT.md",
     "docs/ELEVENLABS_INTEGRATION.md",
     "docs/ME3_MANUAL_ELI5_AND_DEEP.md",
+    "docs/DEMO_RUNBOOK.md",
     "scripts/fdb_v15_eval.py",
     "scripts/check_paper_alignment.py",
     "scripts/pi_audio_preflight.py",

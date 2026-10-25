@@ -43,6 +43,7 @@ Dumalaog_ME3 - Voice Duplex/
 ├── deploy/                 # systemd user units (asr/tts/vad/agent)
 ├── data/DATASET.md         # class-group shared benchmark dataset spec
 ├── launchers/              # Windows quick launch (ME2 pattern)
+│   ├── Start-Pi-Injection-Demo.bat # one-click deployed Qwen/tool demo
 ├── scripts/                # LOCAL-DEV pipeline (ME2 pattern) - run on Windows
 │   ├── Start-Local-ME3.ps1 # 0. launch the voice agent locally
 │   ├── dev_env_check.py    # 1. verify shared .venv has all ME3 deps
@@ -74,6 +75,7 @@ Dumalaog_ME3 - Voice Duplex/
 ├── docs/acm/ME3_Voice_Duplex_ACM.pdf # ACM two-column paper
 ├── docs/presentation/ME3_Voice_Duplex_Presentation_v8.pptx # presentation deck
 ├── docs/PHILIPPINE_CALL_CENTER_PILOT.md # Philippines-market pilot and handoff manual
+├── docs/DEMO_RUNBOOK.md # classroom demo sequence and evidence boundaries
 ├── FULL-DUPLEX-BENCH V1.5 - EVALUATING OVERLAP.pdf # user source paper
 ├── Building AI Voice Agents - Summary.pdf           # user source paper
 ├── models/                 # downloaded models (piper voice); git-ignored
@@ -117,6 +119,9 @@ python -m me3.bench_driver --brain stub --preflight # calibration only, no trial
 python scripts/fdb_v15_eval.py runs/fdb_v15/trials.json
 ```
 
+Windows one-click equivalent for the remote Qwen/tool injection demo:
+`launchers\Start-Pi-Injection-Demo.bat`.
+
 ### Injection-only evaluation when the speaker is unavailable
 
 `scripts/injection_eval.py` feeds a mono 16-bit WAV into the same real-time
@@ -139,6 +144,9 @@ events, barge-in status, and safe PortAudio topology. The report explicitly
 sets `physical_speaker_exercised=false` and does not count as physical-speaker
 or paper-native FULL-DUPLEX-BENCH v1.5 evidence. The input WAVs are ordinary
 test fixtures and must not contain credentials.
+
+For a presenter-friendly sequence with a status scenario, web-app scenario,
+and physical-audio gate, use [`docs/DEMO_RUNBOOK.md`](docs/DEMO_RUNBOOK.md).
 
 ## Functional Requirements Checklist
 | # | Requirement | Status | Where |
@@ -231,11 +239,13 @@ release ID, the verified transfer hash, and the verification list. The current
 receipt is `deployed`: `--check` passes on the Pi and a live text-mode Qwen
 run built a stopwatch web app through `write_file` + `start_web_server` and
 served it over HTTP, cross-verified from a second machine on the LAN. The
-current Pi preflight reports the connected Fifine USB microphone as PortAudio
-device 0 (2 input channels, 44.1-kHz native rate) and an ALSA capture card;
-the injection-only and split-device acceptance lanes are available. The
-production Pi service remains disabled until a physical Pi playback path is
-intentionally checked.
+current Pi deployment has the Fifine USB capture card visible to ALSA, but the
+latest preflight while the protected VCM process is running reports zero
+available PortAudio input channels. The injection-only and split-device
+acceptance lanes are available; the production Pi service remains disabled
+until the device is free and a physical Pi playback path is intentionally
+checked. See [`docs/DEMO_RUNBOOK.md`](docs/DEMO_RUNBOOK.md) for the exact gate
+and the evidence boundary.
 
 ### Pi audio preflight
 
