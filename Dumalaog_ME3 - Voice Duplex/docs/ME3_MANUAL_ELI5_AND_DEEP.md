@@ -186,16 +186,16 @@ The deployment workflow is:
 `deployment/latest_release.json` means only that a release was packaged and
 verified locally. `deployment/last_pi_deployment.json` must say `deployed`
 before the Pi is described as deployed. The verified deployment receipt is
-release `me3-20261025-002308-88b5ae52` at
+release `me3-20261025-101632-b0238933` at
 `/home/dalmacio/Desktop/kiko/me3_voice_duplex`; the transfer hash matched the
 release manifest and the idempotent installer completed. On the Pi, `--check`
 passes, and a live text-mode Qwen run built a stopwatch web app through
 `write_file` plus `start_web_server` and served it over HTTP; the page was
-cross-verified from a second machine on the LAN. The Pi currently exposes zero
-PortAudio devices. The read-only Pi audio preflight reports
-`blocked_no_capture_device` (exit 2): ALSA exposes HDMI playback but no
-capture card. Its user service remains disabled until a USB/I2S microphone or
-an ALSA loopback is available.
+cross-verified from a second machine on the LAN. The read-only Pi audio
+preflight reports `pass_devices_visible` (exit 0) with the Fifine microphone at
+`hw:2,0`. The user service remains disabled until a physical Pi speaker test
+and human spoken turn are captured; the split-device acceptance path can route
+Pi capture to the workstation speaker meanwhile.
 The installer creates a Pi-local
 virtual environment, installs the pinned runtime packages, prefetches an
 RAM-appropriate Whisper model and Piper voices, and installs four user
@@ -232,6 +232,50 @@ USB/I2S microphone or configure an ALSA capture/loopback device, then rerun
 the gate. On Windows, run `python -m me3.bench_driver --brain stub
 --preflight` before any latency trials; a failed tone calibration invalidates
 the run.
+
+### Injection-only evaluation without a speaker
+
+If the Pi microphone is present but the speaker is unavailable, use the
+injection evaluator instead of forcing an output-device selection:
+
+```bash
+python scripts/injection_eval.py \
+  --input-wav runs/injection_eval_inputs/tell_me_system_status.wav \
+  --interrupt-wav runs/injection_eval_inputs/stop.wav \
+  --brain remote
+```
+
+The evaluator uses `InjectedDuplexAudio`. It delivers 16-kHz PCM frames at
+wall-clock cadence, appends a controlled silence tail so VAD can close the
+turn, and sends the frames through the same VAD, faster-whisper, Qwen/tool,
+Piper-or-ElevenLabs, and barge-in code. Synthesized TTS is discarded by a
+virtual sink while its duration and stop events are recorded. An interrupt
+WAV scheduled during virtual TTS tests whether the agent can listen and act
+while it is speaking, without acoustic speaker feedback.
+
+This produces an engineering artifact under `runs/injection_eval/`. It proves
+the injected-input agent/tool path and virtual-output barge-in path only. It
+does not prove the physical microphone signal, physical speaker behavior, or
+the paper-native FULL-DUPLEX-BENCH v1.5 result; those lanes stay separate.
+
+### Split-device local acceptance: Pi microphone, workstation speakers
+
+When the Fifine microphone is attached to the Pi but the operator wants to
+hear the response through the workstation speakers, run the local agent with
+the SSH microphone transport:
+
+```powershell
+& '..\..\.venv\Scripts\python.exe' -m me3.agent --brain remote `
+  --ssh-mic 'dalmacio@cfdfnjrpi5.local' --remote-device 'hw:2,0'
+```
+
+The Pi runs `arecord` on the Fifine device and sends raw mono 16-kHz PCM over
+SSH. The workstation runs the same VAD, ASR, Qwen/tool, and TTS state machine,
+but resolves only its local output device for playback. Barge-in remains
+active because the remote capture thread continues while local TTS is
+playing. This is a local acceptance transport; production Pi mode remains
+host-local and expects a Pi playback device. The command does not print or
+copy the Qwen credential.
 
 ## Deep explanation of one turn
 
@@ -392,10 +436,10 @@ engineering five-scenario latency driver remain separate.
 1. The remote endpoint is currently HTTP, not HTTPS. Use it only on the trusted
    institutional network or VPN; migrate to administrator-provided HTTPS when
    available.
-2. The Pi still needs a live audio self-test after deployment. The read-only
-   preflight currently reports `blocked_no_capture_device` with HDMI playback
-   only; a connected mic, speaker behavior, ALSA device choice, CPU/RAM, and
-   systemd supervision must be recorded separately from local Windows checks.
+2. The Pi capture path is visible and injection-only evaluation passes. The Pi
+   still needs a physical speaker test and a human spoken turn; speaker
+   behavior, ALSA output choice, CPU/RAM, and systemd supervision must be
+   recorded separately from local Windows and split-device checks.
 3. The Qwen API key is deliberately not included in the release. On the
    deployed Pi it is provisioned in a mode-600 runtime environment file;
    only its presence is verified, and the value is never printed.

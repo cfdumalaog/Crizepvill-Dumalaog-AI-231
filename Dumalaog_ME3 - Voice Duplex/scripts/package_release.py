@@ -41,9 +41,13 @@ INCLUDE = [
     "requirements.txt",    # pinned deps (if present)
     "plan",                # 10-page plan + generator (for the class record)
     "docs/PAPER_ALIGNMENT.md",
+    "docs/PHILIPPINE_CALL_CENTER_PILOT.md",
+    "docs/ELEVENLABS_INTEGRATION.md",
+    "docs/ME3_MANUAL_ELI5_AND_DEEP.md",
     "scripts/fdb_v15_eval.py",
     "scripts/check_paper_alignment.py",
     "scripts/pi_audio_preflight.py",
+    "scripts/injection_eval.py",
     "Building AI Voice Agents - Summary.pdf",
     "FULL-DUPLEX-BENCH V1.5 - EVALUATING OVERLAP.pdf",
     "refs/FDB_paper_2503.04721.pdf",

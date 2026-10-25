@@ -68,6 +68,13 @@ pass `--input-device` or set `ME3_BENCH_INPUT` to an ALSA loopback or other
 explicit capture device; a physical microphone is suitable for the live agent
 but is not an exact internal-loopback benchmark.
 
+The separate `scripts/injection_eval.py` lane is permitted when speaker
+playback is unavailable. It injects recorded PCM directly into the live
+VAD/ASR/Qwen/TTS control path and uses a virtual output sink. Its artifacts
+must remain labeled `mode: injection_only`; they are engineering evidence for
+agent/tool behavior and virtual barge-in only, not physical-speaker evidence
+and not a paper-native v1.5 result.
+
 The Pi deployment receipt (`deployment/last_pi_deployment.json`, the
 source of truth for the current release ID and hash) now reports `deployed`
 at
@@ -75,10 +82,10 @@ at
 mode 600 and the Qwen key is provisioned (presence verified only). Pi
 `--check` passes and a live text-mode Qwen run built a stopwatch web app
 through `write_file` plus `start_web_server`, served it over HTTP, and the
-page was cross-verified from a second machine on the LAN. The Pi currently reports zero
-PortAudio devices; the new read-only preflight classifies this as
-`blocked_no_capture_device` because ALSA exposes HDMI playback but no capture
-card. Its user service is disabled, so this receipt does not prove live
-microphone/speaker hardware, systemd supervision, or Pi latency. A physical
-audio check remains required before claiming live Pi voice operation or
-paper-grade benchmark evidence.
+page was cross-verified from a second machine on the LAN. Final injection-only
+Qwen/tool runs also built a web app served at
+`http://192.168.254.106:8090/` and returned HTTP 200. The read-only preflight
+reports `pass_devices_visible` with the Fifine capture device at `hw:2,0`.
+Its user service is disabled, and physical Pi speaker playback plus a human
+spoken turn remain unverified; this receipt does not prove systemd supervision,
+Pi latency, or paper-grade benchmark evidence.

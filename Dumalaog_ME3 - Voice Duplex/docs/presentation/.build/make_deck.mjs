@@ -6,7 +6,7 @@ import { Presentation, PresentationFile } from "@oai/artifact-tool";
 const skillDir = "C:/Users/danda/.codex/plugins/cache/openai-primary-runtime/presentations/26.1022.11436/skills/presentations";
 const workspaceDir = "C:/Users/danda/Desktop/MEng AI Notebooks/AI 222 231/AI 231/Dumalaog_ME3 - Voice Duplex";
 const tmpDir = path.join(workspaceDir, "docs/presentation/.build");
-const finalPath = path.join(workspaceDir, "docs/presentation/ME3_Voice_Duplex_Presentation_v6.pptx");
+const finalPath = path.join(workspaceDir, "docs/presentation/ME3_Voice_Duplex_Presentation_v8.pptx");
 
 const C = {
   ink: "#F7FAFC",
@@ -101,6 +101,14 @@ function bulletList(slide, items, position, color = C.ink, size = 19, gap = 38) 
   });
 }
 
+// Eight-slide revision footer. Keep the original visual placement while
+// updating the total-page marker for the localized market slide.
+function footer8(slide, page) {
+  text(slide, `ME3 VOICE DUPLEX  |  QWEN TOOL BRAIN  |  ${page}/8`,
+    { left: 64, top: 682, width: 420, height: 18 },
+    { fontSize: 11, color: C.muted, bold: true });
+}
+
 async function build() {
   await fs.mkdir(tmpDir, { recursive: true });
   await fs.mkdir(path.dirname(finalPath), { recursive: true });
@@ -157,7 +165,7 @@ async function build() {
       { fontSize: 23, color: C.ink, bold: true });
     text(slide, "Speech during TTS cancels playback and starts a new turn.", { left: 212, top: 542, width: 870, height: 22 },
       { fontSize: 17, color: C.muted });
-    footer(slide, 2);
+    footer8(slide, 2);
     notes(slide, "Walk left to right. The important change from a voice chatbot is the middle: Qwen is not only writing an answer; it is choosing typed operations, receiving their results, and continuing until the task is complete or needs clarification.");
   }
 
@@ -186,7 +194,7 @@ async function build() {
     rect(slide, { left: 170, top: 500, width: 940, height: 72 }, C.navy2, "none", "roundRect", "arch-principle");
     text(slide, "One bounded registry is shared by direct Qwen calls and MCP wrappers.", { left: 205, top: 520, width: 870, height: 26 },
       { fontSize: 21, color: C.ink, bold: true });
-    footer(slide, 3);
+    footer8(slide, 3);
     notes(slide, "Use this slide to separate responsibilities. VAD, ASR, and TTS are local. Qwen is remote and performs inference. The registry owns what may happen. The final answer is grounded in structured tool results, not just model confidence.");
   }
 
@@ -209,7 +217,7 @@ async function build() {
     text(slide, "PROJECT RESULT", { left: 898, top: 248, width: 220, height: 24 }, { fontSize: 14, color: C.green, bold: true });
     text(slide, "agent_workspace/\n  voice_webapp/\n    index.html\n    styles.css\n    app.js", { left: 898, top: 296, width: 270, height: 142 }, { fontSize: 21, color: C.ink, bold: true });
     text(slide, "Verified by a later list + read pass.", { left: 898, top: 468, width: 270, height: 24 }, { fontSize: 16, color: C.muted });
-    footer(slide, 4);
+    footer8(slide, 4);
     notes(slide, "This is the concrete capability the project needed. A spoken request can create real project files. The model then reads them back and reports what exists. The current demonstration is a local, dependency-free static web app; it does not silently publish to the internet.");
   }
 
@@ -235,7 +243,7 @@ async function build() {
     text(slide, "PARITY ≠\nUNRESTRICTED\nSHELL", { left: 934, top: 252, width: 252, height: 110 }, { fontSize: 27, color: C.amber, bold: true });
     text(slide, "Paths stay inside ME3.\nSecrets and model caches are\nblocked. Destructive patterns\nare rejected.", { left: 944, top: 394, width: 232, height: 86 }, { fontSize: 16, color: C.muted });
     text(slide, "Capability is added as a typed tool with an observable result.", { left: 82, top: 574, width: 820, height: 26 }, { fontSize: 20, color: C.ink, bold: true });
-    footer(slide, 5);
+    footer8(slide, 5);
     notes(slide, "Explain the interpretation of parity. The objective is that useful tasks Onit can perform are represented by explicit tools: files, web, commands, jobs, system information, and the existing MCP services. That does not mean granting an always-listening Pi arbitrary shell access or hidden credentials.");
   }
 
@@ -249,23 +257,45 @@ async function build() {
     bulletList(slide, [
       "Pi deployed (transfer hash verified against the release manifest)",
       "Pi --check passes; Qwen key provisioned (mode 600)",
-      "Pi text E2E: Qwen built + served a web app, URL LAN-verified",
-      "Dev box: Qwen web-app file creation + read-back; 4 tooling tests",
-      "All 4 MCP services + PortAudio smoke + v1.5 contract checks",
+      "Fifine USB capture visible: PortAudio device 0 + ALSA card",
+      "Voice injection: Qwen called tools and served a web app on the Pi",
+      "Split-device path: Pi mic stream -> workstation speaker output",
     ], { left: 108, top: 292, width: 440 }, C.ink, 18, 47);
     rect(slide, { left: 650, top: 214, width: 554, height: 360 }, C.panel, C.amber, "roundRect", "next-gates");
     text(slide, "REMAINING GATES", { left: 682, top: 244, width: 300, height: 24 }, { fontSize: 14, color: C.amber, bold: true });
     bulletList(slide, [
-      "Pi live audio run on installed hardware (0 audio devices now)",
+      "Physical Pi speaker playback and a human spoken turn",
+      "Approved Filipino ElevenLabs key + voice ID for live provider proof",
       "Clean, unaudited FULL-DUPLEX-BENCH v1.5 capture",
-      "HTTPS endpoint when an administrator provides one",
     ], { left: 682, top: 292, width: 474 }, C.ink, 18, 55);
     text(slide, "No training run is in the critical path.", { left: 682, top: 510, width: 480, height: 26 }, { fontSize: 20, color: C.green, bold: true });
-    footer(slide, 6);
-    notes(slide, "This slide protects the evidence boundary. The Pi now runs the verified release with a provisioned, mode-600 Qwen key, and a text-mode Qwen run built and served a web app on the Pi (LAN-verified). The remaining gates are physical Pi audio and a clean captured v1.5 overlap evaluation; local Windows evidence is not promoted into either claim.");
+    footer8(slide, 6);
+    notes(slide, "This slide protects the evidence boundary. The Pi now has a visible Fifine capture device, and the voice-injection run made Qwen call tools and serve a generated web app. The split-device lane routes Pi capture to this workstation's speaker. The remaining gates are a physical Pi playback check, live Filipino provider credentials, and a clean captured v1.5 overlap evaluation.");
   }
 
-  // 7. Close
+  // 7. Philippines market
+  {
+    const slide = presentation.slides.add();
+    slide.background.fill = C.navy;
+    title(slide, "Market profile", "Filipino voice, Taglish understanding, human handoff", "A Philippines customer-support pilot with bounded automation and an explicit escalation path.");
+    rect(slide, { left: 76, top: 220, width: 520, height: 310 }, C.panel, C.teal, "roundRect", "ph-language");
+    text(slide, "LANGUAGE + VOICE", { left: 108, top: 250, width: 300, height: 24 }, { fontSize: 14, color: C.teal, bold: true });
+    text(slide, "fil-PH\nFilipino by default\nEnglish + Taglish understood", { left: 108, top: 300, width: 410, height: 112 }, { fontSize: 27, color: C.ink, bold: true });
+    text(slide, "ElevenLabs Flash v2.5 + language_code=fil\nVoice ID stays in the protected operator environment.", { left: 108, top: 450, width: 430, height: 46 }, { fontSize: 16, color: C.muted });
+    rect(slide, { left: 650, top: 220, width: 554, height: 310 }, C.panel, C.amber, "roundRect", "ph-boundary");
+    text(slide, "CALL-CENTER PILOT", { left: 682, top: 250, width: 300, height: 24 }, { fontSize: 14, color: C.amber, bold: true });
+    bulletList(slide, [
+      "FAQ, status, scheduling, and ticket routing",
+      "AI disclosure and consent-aware handling",
+      "Human escalation for uncertainty or regulated cases",
+      "Audit, kill switch, privacy, and service-level review",
+    ], { left: 682, top: 300, width: 474 }, C.ink, 18, 48);
+    text(slide, "Pilot first. Measure quality, safety, cost, and handoff before scale.", { left: 682, top: 496, width: 474, height: 24 }, { fontSize: 18, color: C.green, bold: true });
+    footer8(slide, 7);
+    notes(slide, "The Philippines profile localizes the existing Qwen/tool agent rather than replacing its reasoning model. ElevenLabs documents Filipino as fil and lists it for Flash v2.5. A matching voice ID is still an operator decision. The call-center framing is a supervised pilot: the system should answer low-risk requests, disclose that it is AI, and hand off uncertain or regulated cases to people. Sources: docs/PHILIPPINE_CALL_CENTER_PILOT.md; https://elevenlabs.io/docs/help-center/other/what-languages-do-you-support.");
+  }
+
+  // 8. Close
   {
     const slide = presentation.slides.add();
     slide.background.fill = C.navy;
@@ -275,10 +305,10 @@ async function build() {
     text(slide, "ME3 combines full-duplex audio, Qwen inference, typed tools, and verification into a deployable Raspberry Pi workflow.", { left: 116, top: 358, width: 700, height: 66 }, { fontSize: 22, color: C.muted });
     rect(slide, { left: 900, top: 160, width: 250, height: 250 }, C.panel, C.blue, "roundRect", "close-card");
     text(slide, "VOICE\n→\nTOOLS\n→\nEVIDENCE", { left: 934, top: 195, width: 190, height: 170 }, { fontSize: 25, color: C.blue, bold: true });
-    text(slide, "Next: Pi audio + clean benchmark", { left: 116, top: 540, width: 600, height: 24 }, { fontSize: 19, color: C.green, bold: true });
+    text(slide, "Next: Filipino provider voice + Pi speaker + clean benchmark", { left: 116, top: 540, width: 760, height: 24 }, { fontSize: 19, color: C.green, bold: true });
     text(slide, "Documentation: ELI5/deep manual • ACM two-column paper • source + receipts", { left: 116, top: 590, width: 800, height: 24 }, { fontSize: 16, color: C.muted });
-    footer(slide, 7);
-    notes(slide, "Close by returning to the user-visible promise: speak a request, let the model call bounded tools, and receive an answer backed by what the tools actually returned. The remaining work is hardware audio and benchmark evidence, not model training.");
+    footer8(slide, 8);
+    notes(slide, "Close by returning to the user-visible promise: speak a request, let the model call bounded tools, and receive an answer backed by what the tools actually returned. Filipino localization changes the voice and support policy, not the evidence boundary. The remaining work is secure provider provisioning, physical Pi playback, and benchmark evidence.");
   }
 
   for (const [index, slide] of presentation.slides.items.entries()) {
@@ -292,7 +322,7 @@ async function build() {
   const stagingDir = path.join(workspaceDir, "docs/.presentation-finalizer");
   await fs.mkdir(stagingDir, { recursive: true });
   const result = await finalizePresentation({
-    explicitTotalSlideCount: 7,
+    explicitTotalSlideCount: 8,
     requiredNativeTableOwnerSlides: [],
     requiredNativeChartOwnerSlides: [],
     workspaceDir,
@@ -304,7 +334,7 @@ async function build() {
     layoutArgs: ["--expected-slide-size-emu", "12192000,6858000", "--validate-bullet-geometry", "--validate-heading-fit"],
     fontPolicy: { basis: "design", families: [FONT] },
     verifyArtifactToolImport: true,
-    receiptPath: path.join(stagingDir, "ME3_Voice_Duplex_Presentation_v6.validation.json"),
+    receiptPath: path.join(stagingDir, "ME3_Voice_Duplex_Presentation_v8.validation.json"),
   });
   await fs.writeFile(path.join(stagingDir, "finalizer-result.json"), JSON.stringify(result, null, 2));
 }

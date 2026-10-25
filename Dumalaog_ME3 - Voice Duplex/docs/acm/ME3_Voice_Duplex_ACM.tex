@@ -122,6 +122,10 @@ silence.
 When \texttt{ELEVENLABS\_API\_KEY} and \texttt{ELEVENLABS\_VOICE\_ID} are
 provisioned, the TTS server streams raw 16~kHz PCM from the ElevenLabs
 low-latency endpoint. Otherwise the same path uses the local Piper voice.
+The Philippines-market profile sets \texttt{language\_code=fil} for Filipino
+and keeps English and Taglish in the supported interaction set. A matching
+ElevenLabs voice ID must be selected and provisioned by the operator; the
+repository does not embed a voice identity or credential.
 Qwen remains the reasoning and tool-calling model. ElevenLabs Realtime v1
 Mini/Max is a separate hosted voice-agent architecture that also manages the
 LLM and ASR settings, so it is not silently substituted into this experiment.
@@ -241,12 +245,10 @@ The current target is \url{dalmacio@cfdfnjrpi5.local} at
 deployment remains at \url{/home/dalmacio/Desktop/dandan}. A prepared release
 is not called deployed. The local receipt must say \texttt{deployed} after SSH,
 SCP, extraction, and installation succeed. The current receipt reports
-\texttt{deployed} for release \texttt{me3-20261025-002308-88b5ae52}; after installation,
-a \texttt{--check} pass and a text-mode Qwen tool run completed on the Pi.
-The read-only audio preflight reports
-\texttt{blocked\_no\_capture\_device}: ALSA exposes HDMI playback cards but no
-capture card, and PortAudio exposes zero devices. The user service therefore
-remains disabled pending physical audio hardware.
+\texttt{deployed}; after installation, a \texttt{--check} pass, a Qwen/tool
+voice-injection run, and a Fifine USB capture preflight completed on the Pi.
+The Pi production user service remains disabled because the physical Pi
+playback path has not been exercised.
 \end{sloppypar}
 
 The API key is never included in the archive. On the Pi it must be provisioned
@@ -277,6 +279,13 @@ The deployed Pi preflight is also an explicit hardware gate. It is read-only,
 does not alter mixer state, and returns exit code 2 when no capture device is
 visible. This keeps a playback-only Pi from being mislabeled as a working
 full-duplex voice endpoint.
+
+When speaker hardware is unavailable, the project uses a separate
+injection-only lane. The evaluator feeds recorded 16~kHz PCM into the same
+VAD, ASR, Qwen/tool, TTS, and interruption state machine at wall-clock frame
+cadence, while a virtual sink records TTS timing without opening PortAudio
+output. This verifies injected-input agent behavior and virtual barge-in, but
+does not claim physical-speaker behavior or paper-native v1.5 evidence.
 
 The project also contains a separate engineering latency driver and a
 paper-native FULL-DUPLEX-BENCH v1.5 contract. The v1.5 contract includes four

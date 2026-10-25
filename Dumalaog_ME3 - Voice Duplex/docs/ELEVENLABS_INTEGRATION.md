@@ -22,6 +22,7 @@ Official references:
 - https://elevenlabs.io/docs/eleven-agents/customization/realtime-models
 - https://elevenlabs.io/docs/eleven-agents/libraries/web-sockets
 - https://elevenlabs.io/docs/api-reference/text-to-speech/stream
+- https://elevenlabs.io/docs/help-center/other/what-languages-do-you-support
 
 ## Runtime behavior
 
@@ -45,6 +46,9 @@ providers.
 The backend calls the official streaming endpoint with:
 
 - model_id=eleven_flash_v2_5, selected for low-latency voice-agent use;
+- language_code=fil for the Philippines-market profile; Filipino is supported
+  by Flash v2.5, and the voice should be selected for the intended local
+  accent from the operator's approved ElevenLabs library;
 - output_format=pcm_16000, avoiding MP3 decoding on the Pi;
 - enable_logging=false, requesting the provider's zero-retention request mode;
 - a voice ID supplied by the runtime environment.
@@ -73,15 +77,16 @@ the installer:
     chmod 600 ~/.config/me3/elevenlabs-api-key.txt
     export ELEVENLABS_VOICE_ID=<voice-id>
     export ME3_TTS_ENGINE=elevenlabs
+    export ME3_ELEVENLABS_LANGUAGE_CODE=fil
     bash install.sh
 
 For automatic fallback behavior, omit ME3_TTS_ENGINE; auto selects ElevenLabs
 only when both the key and voice ID are present.
 
-The current checkout has no ElevenLabs key or voice ID configured. Therefore
-the implementation and mocked stream tests are verified, while a provider-live
-audio call remains pending secure credential provisioning. Until then, the
-deployed Pi continues to use Piper.
+The current controlled checkout has no ElevenLabs key or voice ID configured.
+Therefore the Filipino request path and mocked stream tests are verified,
+while a provider-live audio call remains pending secure credential
+provisioning. Until then, the deployed Pi continues to use Piper.
 
 ## Readiness boundary
 
@@ -105,12 +110,23 @@ read-only preflight from the deployed project:
     python scripts/pi_audio_preflight.py
 
 It reports ALSA capture/playback enumeration separately from PortAudio device
-enumeration. A playback-only Pi is not voice-ready: attach a USB/I2S
-microphone or configure an explicit ALSA capture/loopback device, then rerun
-the preflight. For the Windows engineering driver, use the calibration-only
-gate before trials:
+enumeration. The current Pi reports the connected Fifine USB capture device;
+the physical Pi speaker remains a separate unverified gate. For the Windows
+engineering driver, use the calibration-only gate before trials:
 
     python -m me3.bench_driver --brain stub --preflight
 
 The command must report a calibrated loopback round trip. If it reports that
 the tone was not detected, no latency trials should be run or published.
+
+When the Pi speaker is unavailable, run the injection-only evaluator instead:
+
+    python scripts/injection_eval.py \
+      --input-wav runs/injection_eval_inputs/tell_me_system_status.wav \
+      --interrupt-wav runs/injection_eval_inputs/stop.wav \
+      --brain remote
+
+This uses a virtual discard sink for TTS and injects the input WAV at real-time
+frame cadence. It can verify Qwen/tool calls and barge-in state transitions,
+but the resulting artifact is explicitly not physical-speaker or paper-native
+v1.5 evidence.

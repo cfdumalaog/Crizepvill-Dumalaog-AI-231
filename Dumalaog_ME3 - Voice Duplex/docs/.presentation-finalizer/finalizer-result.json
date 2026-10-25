@@ -1,17 +1,17 @@
 {
-  "finalPath": "C:\\Users\\danda\\Desktop\\MEng AI Notebooks\\AI 222 231\\AI 231\\Dumalaog_ME3 - Voice Duplex\\docs\\presentation\\ME3_Voice_Duplex_Presentation_v6.pptx",
-  "receiptPath": "C:\\Users\\danda\\Desktop\\MEng AI Notebooks\\AI 222 231\\AI 231\\Dumalaog_ME3 - Voice Duplex\\docs\\.presentation-finalizer\\ME3_Voice_Duplex_Presentation_v6.validation.json",
+  "finalPath": "C:\\Users\\danda\\Desktop\\MEng AI Notebooks\\AI 222 231\\AI 231\\Dumalaog_ME3 - Voice Duplex\\docs\\presentation\\ME3_Voice_Duplex_Presentation_v8.pptx",
+  "receiptPath": "C:\\Users\\danda\\Desktop\\MEng AI Notebooks\\AI 222 231\\AI 231\\Dumalaog_ME3 - Voice Duplex\\docs\\.presentation-finalizer\\ME3_Voice_Duplex_Presentation_v8.validation.json",
   "schemaVersion": "presentation-finalization.v1",
-  "finalSha256": "4e32916844335c5e15ca9639843a755aa9a0de1254606f69d7aa42f01d2ce39f",
-  "byteCount": 50089,
+  "finalSha256": "bb7e1ccc6b1a91a80bad963dc68b79497546febd5c72f0765ad2fd01916cc728",
+  "byteCount": 54874,
   "packageIntegrity": {
     "chart_count": 0,
     "claim_boundary": "Structural package checks only; no slide text, notes, formulas, chart values, or native PowerPoint execution were inspected.",
     "finding_count": 0,
     "findings": [],
-    "notes_parts_skipped": 7,
-    "relationship_part_count": 24,
-    "slide_count": 7,
+    "notes_parts_skipped": 8,
+    "relationship_part_count": 26,
+    "slide_count": 8,
     "status": "pass",
     "exitCode": 0,
     "findingCount": 0,
@@ -21,18 +21,18 @@
     "finding_count": 0,
     "findings": [],
     "font_policy": {
-      "checked_text_script_count": 118,
+      "checked_text_script_count": 134,
       "native_font_rendering_verified": false,
       "observed_font_families": [
         "Arial"
       ],
       "observed_font_use_counts": {
-        "Arial": 118
+        "Arial": 134
       },
       "passed": true,
       "performed": true
     },
-    "slide_count": 7,
+    "slide_count": 8,
     "slide_size_in": [
       13.3333,
       7.5
@@ -42,13 +42,13 @@
     "exitCode": 0,
     "findingCount": 0,
     "fontPolicy": {
-      "checked_text_script_count": 118,
+      "checked_text_script_count": 134,
       "native_font_rendering_verified": false,
       "observed_font_families": [
         "Arial"
       ],
       "observed_font_use_counts": {
-        "Arial": 118
+        "Arial": 134
       },
       "passed": true,
       "performed": true
@@ -62,13 +62,13 @@
     "scriptFonts": {},
     "referenceSha256": null,
     "referenceFontsVerifiedInEncodedText": false,
-    "checked_text_script_count": 118,
+    "checked_text_script_count": 134,
     "native_font_rendering_verified": false,
     "observed_font_families": [
       "Arial"
     ],
     "observed_font_use_counts": {
-      "Arial": 118
+      "Arial": 134
     },
     "passed": true,
     "performed": true
@@ -76,8 +76,8 @@
   "firstPartyImport": {
     "performed": true,
     "passed": true,
-    "slideCount": 7,
-    "sha256": "4e32916844335c5e15ca9639843a755aa9a0de1254606f69d7aa42f01d2ce39f",
+    "slideCount": 8,
+    "sha256": "bb7e1ccc6b1a91a80bad963dc68b79497546febd5c72f0765ad2fd01916cc728",
     "runtimeNodeModules": "C:\\Users\\danda\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\node\\node_modules",
     "nodeExecutable": "C:\\Users\\danda\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\node\\bin\\node.exe"
   },
@@ -93,7 +93,7 @@
     "passed": true,
     "schema_version": "presentation-native-table-arithmetic.v1",
     "skipped_tables": [],
-    "slide_count": 7,
+    "slide_count": 8,
     "warning_count": 0,
     "warnings": []
   },
@@ -105,9 +105,9 @@
     "native_chart_count": 0,
     "native_powerpoint_verified": false,
     "passed": true,
-    "presentation_sha256": "4e32916844335c5e15ca9639843a755aa9a0de1254606f69d7aa42f01d2ce39f",
+    "presentation_sha256": "bb7e1ccc6b1a91a80bad963dc68b79497546febd5c72f0765ad2fd01916cc728",
     "schema_version": "presentation-native-chart-titles.v1",
-    "slide_count": 7,
+    "slide_count": 8,
     "source_text_emitted": false,
     "unresolved_linked_title_count": 0
   },
@@ -119,7 +119,7 @@
     "--cover-role",
     "none",
     "--expected-slide-count",
-    "7",
+    "8",
     "--approved-font-family",
     "Arial"
   ],

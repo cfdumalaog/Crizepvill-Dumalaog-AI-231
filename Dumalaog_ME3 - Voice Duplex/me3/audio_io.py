@@ -20,6 +20,8 @@ from __future__ import annotations
 
 import logging
 import queue
+import subprocess
+import threading
 import time
 
 import numpy as np
@@ -177,6 +179,15 @@ class FullDuplexAudio:
                     "no working input device found; checked config device, "
                     "each host's default, and all inputs. Check Windows sound "
                     "settings / mic drivers.")
+        self.resolve_output_device()
+
+    def resolve_output_device(self) -> None:
+        """Find a working output device without requiring a local microphone.
+
+        Split-device test transports use this path: input can arrive over a
+        network stream while TTS is played through this workstation's speaker.
+        """
+        sd = self._ensure_sd()
         if self.out_idx is None:
             for idx in self._output_candidates(sd):
                 rate = self._probe_output(sd, idx)
@@ -186,11 +197,9 @@ class FullDuplexAudio:
             if self.out_idx is None:
                 raise AudioDeviceError("no working output device found")
         devs = sd.query_devices()
-        log.info("audio devices: in=[%s] %s @ %d Hz -> %d Hz | out=[%s] %s @ %d Hz",
-                 self.in_idx, str(devs[self.in_idx].get("name"))[:48],
-                 self.io_in_rate, self.sr,
+        log.info("speaker device: out=[%s] %s @ %d Hz -> %d Hz",
                  self.out_idx, str(devs[self.out_idx].get("name"))[:48],
-                 self.io_out_rate)
+                 self.io_out_rate, self.sr)
 
     # ---- Capture -----------------------------------------------------------
     def _on_input(self, indata, frames, t, status):
@@ -262,7 +271,7 @@ class FullDuplexAudio:
         """
         sd = self._ensure_sd()
         if self.out_idx is None:
-            self.resolve_devices()
+            self.resolve_output_device()
         self.stop_playback(silent=True)
         out = pcm if self.io_out_rate == self.sr else \
             resample_to(pcm, self.sr, self.io_out_rate)
@@ -325,6 +334,234 @@ class FullDuplexAudio:
             self._stream.close()
             self._stream = None
         self.stop_playback()
+
+
+class InjectedDuplexAudio:
+    """Real-time PCM injection with a virtual, non-audible output sink.
+
+    This transport is for an explicit evaluation lane where the speaker is
+    unavailable or intentionally disabled. Input WAV/PCM is delivered as
+    16-kHz frames at wall-clock cadence, so the normal VAD/ASR/brain/TTS
+    control path sees the same frame timing as the live loop. TTS output is
+    never sent to PortAudio; only safe timing metadata is retained. A virtual
+    playback interval allows injected interrupt audio to exercise the same
+    barge-in state transition without acoustic speaker feedback.
+    """
+
+    injection_only = True
+
+    def __init__(self, sample_rate: int = 16000, frame_ms: int = 30):
+        self.sr = int(sample_rate)
+        self.frame_ms = int(frame_ms)
+        self.frame_n = int(self.sr * self.frame_ms / 1000)
+        self.in_idx = "injected_pcm"
+        self.out_idx = "virtual_discard_sink"
+        self.io_in_rate = self.sr
+        self.io_out_rate = self.sr
+        self._q: "queue.Queue[np.ndarray]" = queue.Queue()
+        self._inject_threads: list[threading.Thread] = []
+        self._closed = False
+        self._play_lock = threading.Lock()
+        self._playing = False
+        self._play_until = 0.0
+        self._play_token = 0
+        self.inject_events: list[dict] = []
+        self.output_events: list[dict] = []
+
+    def start_capture(self):
+        """Match the live transport API without opening a capture device."""
+        return None
+
+    def inject(self, pcm: np.ndarray, label: str = "input",
+               start_at: float | None = None, tail_ms: int = 0) -> float:
+        """Inject mono int16 PCM in real time and return its start timestamp.
+
+        ``tail_ms`` appends digital silence so the normal VAD endpoint can
+        close an injected utterance just as it would after a user stops
+        speaking into a live microphone.
+        """
+        if self._closed:
+            raise RuntimeError("injected audio transport is closed")
+        x = np.asarray(pcm, dtype=np.int16).ravel().copy()
+        if x.size == 0:
+            raise ValueError("cannot inject empty PCM")
+        start = float(start_at if start_at is not None
+                      else time.perf_counter())
+        tail_n = max(0, int(self.sr * int(tail_ms) / 1000))
+        stream = (np.concatenate([x, np.zeros(tail_n, dtype=np.int16)])
+                  if tail_n else x)
+        event = {
+            "label": str(label),
+            "start_abs": start,
+            "samples": int(x.size),
+            "duration_s": round(float(x.size / self.sr), 3),
+            "tail_s": round(float(tail_n / self.sr), 3),
+        }
+        self.inject_events.append(event)
+
+        def _feed() -> None:
+            first = start
+            for offset in range(0, len(stream), self.frame_n):
+                target = first + (offset / self.sr)
+                delay = target - time.perf_counter()
+                if delay > 0:
+                    time.sleep(delay)
+                if self._closed:
+                    return
+                frame = stream[offset:offset + self.frame_n]
+                if len(frame) < self.frame_n:
+                    frame = np.pad(frame, (0, self.frame_n - len(frame)))
+                self._q.put(np.ascontiguousarray(frame, dtype=np.int16))
+
+        thread = threading.Thread(target=_feed, daemon=True,
+                                  name=f"me3-inject-{label}")
+        self._inject_threads.append(thread)
+        thread.start()
+        return start
+
+    def read_frame(self, timeout: float = 0.5) -> np.ndarray | None:
+        try:
+            return self._q.get(timeout=timeout)
+        except queue.Empty:
+            return None
+
+    def play(self, pcm: np.ndarray, blocking: bool = False):
+        """Record virtual TTS timing and discard samples instead of playing."""
+        x = np.asarray(pcm, dtype=np.int16).ravel()
+        started = time.perf_counter()
+        duration = float(len(x) / self.sr) if self.sr else 0.0
+        with self._play_lock:
+            self._play_token += 1
+            token = self._play_token
+            self._playing = True
+            self._play_until = started + duration
+            self.output_events.append({
+                "token": token,
+                "started_abs": started,
+                "samples": int(len(x)),
+                "duration_s": round(duration, 3),
+                "sink": "virtual_discard",
+                "stopped_abs": None,
+            })
+        if blocking:
+            while not self.playback_done():
+                time.sleep(min(0.02, max(0.001, duration)))
+
+    def playback_done(self) -> bool:
+        with self._play_lock:
+            if self._playing and time.perf_counter() >= self._play_until:
+                self._playing = False
+            return not self._playing
+
+    def stop_playback(self, silent: bool = False):
+        with self._play_lock:
+            if not self._playing:
+                return
+            stopped = time.perf_counter()
+            self._playing = False
+            self._play_until = stopped
+            if self.output_events:
+                self.output_events[-1]["stopped_abs"] = stopped
+
+    def injections_done(self) -> bool:
+        return (all(not t.is_alive() for t in self._inject_threads)
+                and self._q.empty())
+
+    def close(self):
+        self._closed = True
+        self.stop_playback(silent=True)
+
+
+class RemoteMicAudio(FullDuplexAudio):
+    """Use a Raspberry Pi microphone as input and this host's speaker output.
+
+    The Pi runs ``arecord`` on the selected capture device and sends raw
+    signed 16-bit mono PCM through an SSH stdout pipe.  TTS remains local and
+    uses the normal PortAudio output path, so this is a deliberate local
+    split-device acceptance lane, not the Pi production transport.
+    """
+
+    def __init__(self, config: dict | None = None,
+                 ssh_host: str = "dalmacio@cfdfnjrpi5.local",
+                 remote_device: str = "hw:2,0", remote_channels: int = 2):
+        super().__init__(config)
+        self.ssh_host = str(ssh_host)
+        self.remote_device = str(remote_device)
+        self.remote_channels = max(1, int(remote_channels))
+        self.in_idx = f"ssh:{self.ssh_host}:{self.remote_device}"
+        self.io_in_rate = self.sr
+        self._remote_proc: subprocess.Popen | None = None
+        self._remote_thread: threading.Thread | None = None
+        self._remote_closed = False
+
+    def remote_command(self) -> list[str]:
+        """Return the non-secret SSH/ALSA capture command for inspection."""
+        return [
+            "ssh", "-T", self.ssh_host,
+            "arecord", "-q", "-D", self.remote_device,
+            "-f", "S16_LE", "-r", str(self.sr),
+            "-c", str(self.remote_channels),
+            "-t", "raw", "-",
+        ]
+
+    def start_capture(self):
+        if self._remote_proc is not None:
+            return
+        self.resolve_output_device()
+        self._remote_closed = False
+        self._remote_proc = subprocess.Popen(
+            self.remote_command(), stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE, bufsize=0)
+        assert self._remote_proc.stdout is not None
+
+        def _read_remote() -> None:
+            bytes_per_frame = (self.frame_n * self.remote_channels
+                               * np.dtype(np.int16).itemsize)
+            stdout = self._remote_proc.stdout
+            while not self._remote_closed:
+                data = stdout.read(bytes_per_frame)
+                if not data:
+                    break
+                frame = np.frombuffer(data, dtype=np.int16).copy()
+                if self.remote_channels > 1:
+                    usable = (frame.size // self.remote_channels) \
+                        * self.remote_channels
+                    frame = frame[:usable].reshape(
+                        -1, self.remote_channels).mean(axis=1).astype(np.int16)
+                if frame.size < self.frame_n:
+                    frame = np.pad(frame, (0, self.frame_n - frame.size))
+                try:
+                    self._q.put_nowait(frame)
+                except queue.Full:
+                    try:
+                        self._q.get_nowait()
+                    except queue.Empty:
+                        pass
+                    try:
+                        self._q.put_nowait(frame)
+                    except queue.Full:
+                        pass
+            log.info("remote microphone stream ended")
+
+        self._remote_thread = threading.Thread(
+            target=_read_remote, daemon=True, name="me3-remote-mic")
+        self._remote_thread.start()
+        log.info("remote microphone started: %s (%s)",
+                 self.ssh_host, self.remote_device)
+
+    def close(self):
+        self._remote_closed = True
+        proc, self._remote_proc = self._remote_proc, None
+        if proc is not None:
+            try:
+                proc.terminate()
+                proc.wait(timeout=2)
+            except Exception:  # noqa: BLE001
+                try:
+                    proc.kill()
+                except Exception:  # noqa: BLE001
+                    pass
+        super().close()
 
 
 def main():

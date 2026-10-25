@@ -17,7 +17,16 @@ PowerShell overrides:
 ```powershell
 & '.\scripts\Start-Local-ME3.ps1' -Device 'Fifine'     # pick a mic
 & '.\scripts\Start-Local-ME3.ps1' -Brain stub          # force canned replies
+# Pi Fifine microphone -> this workstation's default speakers
+& '..\..\.venv\Scripts\python.exe' -m me3.agent --brain remote `
+    --ssh-mic 'dalmacio@cfdfnjrpi5.local' --remote-device 'hw:2,0'
 ```
+
+The split-device command is a local acceptance test. It uses SSH only for
+raw microphone PCM and never prints or transfers the Qwen credential; TTS is
+played by the workstation's normal speaker device. The Pi production command
+(`python -m me3.agent`) remains host-local and uses the Pi's own capture and
+playback devices.
 
 Verification without the microphone:
 

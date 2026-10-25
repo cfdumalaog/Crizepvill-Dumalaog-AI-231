@@ -68,7 +68,26 @@ def test_elevenlabs_config_reads_environment_without_logging(monkeypatch):
         }
     })
     assert engine.voice_id == "voice123"
+    assert engine.language_code == "fil"
     assert engine.config.sample_rate == 16000
+
+
+def test_elevenlabs_sends_filipino_language_code_for_flash():
+    response = FakeResponse([b"\x01\x02"])
+    calls = []
+
+    def fake_post(*args, **kwargs):
+        calls.append(kwargs)
+        return response
+
+    engine = ElevenLabsTTS(
+        api_key="in-memory-test-only",
+        voice_id="voice123",
+        language_code="fil",
+        request_fn=fake_post,
+    )
+    list(engine.synthesize("Magandang araw"))
+    assert calls[0]["json"]["language_code"] == "fil"
 
 
 def test_elevenlabs_retries_timeout_without_exposing_credentials():

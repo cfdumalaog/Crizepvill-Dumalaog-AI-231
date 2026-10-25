@@ -18,9 +18,21 @@ while the agent speaks, and you can interrupt it mid-sentence (barge-in).
 ```powershell
 # or from PowerShell, with options
 & '.\scripts\Start-Local-ME3.ps1' -Device 'Fifine' -Brain stub
+# Split-device acceptance test: Pi Fifine mic -> this computer's speakers
+& $py -m me3.agent --brain remote --ssh-mic 'dalmacio@cfdfnjrpi5.local' `
+    --remote-device 'hw:2,0'
 # verification without the microphone
 & '..\..\.venv\Scripts\python.exe' -m me3.agent --check --load-models
 ```
+
+The `--ssh-mic` lane is a local acceptance path for the hardware arrangement
+where the Fifine microphone is attached to the Pi but the operator wants to
+hear TTS through this workstation's default speakers. It streams raw 16-kHz
+PCM from the Pi's `arecord` process over the existing SSH connection and keeps
+the normal VAD -> ASR -> Qwen/tool -> TTS state machine and local barge-in
+behavior. It does not replace the production Pi transport: a Pi deployment
+still expects its own output device, while the injection-only evaluator below
+remains the speaker-free evidence lane.
 
 ## Layout
 ```
@@ -60,7 +72,8 @@ Dumalaog_ME3 - Voice Duplex/
 ├── docs/ELEVENLABS_INTEGRATION.md # Qwen voice backend and Realtime decision
 ├── docs/acm/ME3_Voice_Duplex_ACM.tex # ACM two-column LaTeX source
 ├── docs/acm/ME3_Voice_Duplex_ACM.pdf # ACM two-column paper
-├── docs/presentation/ME3_Voice_Duplex_Presentation_v6.pptx # presentation deck
+├── docs/presentation/ME3_Voice_Duplex_Presentation_v8.pptx # presentation deck
+├── docs/PHILIPPINE_CALL_CENTER_PILOT.md # Philippines-market pilot and handoff manual
 ├── FULL-DUPLEX-BENCH V1.5 - EVALUATING OVERLAP.pdf # user source paper
 ├── Building AI Voice Agents - Summary.pdf           # user source paper
 ├── models/                 # downloaded models (piper voice); git-ignored
@@ -95,10 +108,37 @@ source .venv/bin/activate
 python -m me3.agent                 # run the voice agent (same local loop)
 python -m me3.bench_driver --brain stub --smoke # engineering loopback smoke (input required)
 python scripts/pi_audio_preflight.py              # Pi ALSA + PortAudio gate
+python scripts/injection_eval.py \
+  --input-wav runs/injection_eval_inputs/tell_me_system_status.wav \
+  --interrupt-wav runs/injection_eval_inputs/stop.wav \
+  --brain remote                                  # virtual speaker sink
 python -m me3.bench_driver --brain stub --preflight # calibration only, no trials
 # paper-native evaluation of captured overlap JSON:
 python scripts/fdb_v15_eval.py runs/fdb_v15/trials.json
 ```
+
+### Injection-only evaluation when the speaker is unavailable
+
+`scripts/injection_eval.py` feeds a mono 16-bit WAV into the same real-time
+VAD -> ASR -> Qwen/tool -> TTS state machine used by the voice agent. It adds
+the configured VAD silence tail, keeps wall-clock frame cadence, and uses a
+virtual discard sink for TTS. The optional interrupt WAV is injected while
+virtual TTS is active, so barge-in can be evaluated without opening a speaker
+device:
+
+```bash
+python scripts/injection_eval.py \
+  --input-wav runs/injection_eval_inputs/tell_me_system_status.wav \
+  --interrupt-wav runs/injection_eval_inputs/stop.wav \
+  --brain remote
+```
+
+Artifacts are written under `runs/injection_eval/<UTC-stamp>/`. They include
+the injected-input mode, tool-call names, transcripts/replies, virtual-output
+events, barge-in status, and safe PortAudio topology. The report explicitly
+sets `physical_speaker_exercised=false` and does not count as physical-speaker
+or paper-native FULL-DUPLEX-BENCH v1.5 evidence. The input WAVs are ordinary
+test fixtures and must not contain credentials.
 
 ## Functional Requirements Checklist
 | # | Requirement | Status | Where |
@@ -190,9 +230,12 @@ unreachable; only `deployed` counts). The currently verified deployment is
 release ID, the verified transfer hash, and the verification list. The current
 receipt is `deployed`: `--check` passes on the Pi and a live text-mode Qwen
 run built a stopwatch web app through `write_file` + `start_web_server` and
-served it over HTTP, cross-verified from a second machine on the LAN. The Pi currently reports zero
-PortAudio devices, so the user service remains disabled pending hardware
-audio validation.
+served it over HTTP, cross-verified from a second machine on the LAN. The
+current Pi preflight reports the connected Fifine USB microphone as PortAudio
+device 0 (2 input channels, 44.1-kHz native rate) and an ALSA capture card;
+the injection-only and split-device acceptance lanes are available. The
+production Pi service remains disabled until a physical Pi playback path is
+intentionally checked.
 
 ### Pi audio preflight
 

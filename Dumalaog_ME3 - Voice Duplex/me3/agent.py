@@ -12,6 +12,8 @@ Run locally (the voice loop; also what launchers/Start-ME3.bat starts):
     python -m me3.agent --check            # verify config/deps/audio devices
     python -m me3.agent --check --load-models   # + load VAD/ASR/TTS engines
     python -m me3.agent --device "Fifine"  # pick a specific input device
+    python -m me3.agent --ssh-mic dalmacio@cfdfnjrpi5.local \
+        --remote-device hw:2,0  # Pi mic -> this host's speakers
     python -m me3.agent --brain stub       # canned replies (no LLM needed)
 
 The LLM brain is remote (OpenAI-compatible vLLM endpoint from config.yaml)
@@ -39,7 +41,7 @@ from pathlib import Path
 
 import numpy as np
 
-from .audio_io import FullDuplexAudio, resample_to
+from .audio_io import FullDuplexAudio, RemoteMicAudio, resample_to
 from .brain import ToolBrain, build_system_prompt
 from .config import load_config
 
@@ -264,7 +266,8 @@ class LocalVoiceLoop:
 
     VAD_CHUNK = 512  # silero frame size @16 kHz
 
-    def __init__(self, cfg: dict | None = None, brain=None, device=None):
+    def __init__(self, cfg: dict | None = None, brain=None, device=None,
+                 audio=None):
         self.cfg = cfg or load_config()
         a = self.cfg["audio"]
         self.sr = int(a["sample_rate"])
@@ -284,7 +287,7 @@ class LocalVoiceLoop:
             a = dict(self.cfg["audio"])
             a["input_device"] = device
             self.cfg = {**self.cfg, "audio": a}
-        self.audio = FullDuplexAudio(self.cfg)
+        self.audio = audio if audio is not None else FullDuplexAudio(self.cfg)
         self.brain = brain
         self.history: list[dict] = []
         self.stats = TurnStats()
@@ -640,6 +643,12 @@ def main() -> None:
                         help="with --check: also load the VAD/ASR/TTS engines")
     parser.add_argument("--device", default=None,
                         help="input device index or name substring (default: system default)")
+    parser.add_argument("--speaker", default=None,
+                        help="local output device index or name substring")
+    parser.add_argument("--ssh-mic", default=None, metavar="HOST",
+                        help="stream Pi arecord input over SSH; play TTS locally")
+    parser.add_argument("--remote-device", default="hw:2,0",
+                        help="Pi ALSA capture device for --ssh-mic (default: hw:2,0)")
     parser.add_argument("--brain", choices=("auto", "remote", "stub"),
                         default="auto", help="LLM brain selection")
     parser.add_argument("--text", default=None,
@@ -687,7 +696,20 @@ def main() -> None:
         print(reply)
         return
 
-    loop = LocalVoiceLoop(cfg, brain=brain, device=args.device)
+    run_cfg = cfg
+    if args.speaker is not None:
+        audio_cfg = dict(cfg["audio"])
+        audio_cfg["output_device"] = args.speaker
+        run_cfg = {**cfg, "audio": audio_cfg}
+    if args.ssh_mic:
+        remote_audio = RemoteMicAudio(
+            run_cfg, ssh_host=args.ssh_mic, remote_device=args.remote_device)
+        loop = LocalVoiceLoop(run_cfg, brain=brain, audio=remote_audio)
+        log.info("split-device mode: Pi %s/%s -> local speaker %s",
+                 args.ssh_mic, args.remote_device,
+                 args.speaker or "system default")
+    else:
+        loop = LocalVoiceLoop(run_cfg, brain=brain, device=args.device)
     loop.run()
 
 

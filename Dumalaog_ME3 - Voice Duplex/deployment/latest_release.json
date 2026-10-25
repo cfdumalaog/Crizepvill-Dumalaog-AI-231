@@ -1,12 +1,13 @@
 {
-  "release_id": "me3-20261025-002525-dbae150e",
-  "status": "prepared",
-  "created_utc": "20261025-002525",
-  "source_fingerprint": "dbae150e4e20b92b7aee0abf4c6a0ff154c6b12397bc3b54c9a173e6ffbbbe91",
-  "file_count": 39,
-  "archive": "dist/me3-20261025-002525-dbae150e/me3_voice_duplex",
-  "zip": "dist/me3-20261025-002525-dbae150e.zip",
-  "zip_sha256": "8434d080cd972c64ae3d253ddba1691cb5641a187122f0d54a462d368cda6bc3",
+  "release_id": "me3-20261025-102436-ca334eab",
+  "status": "deployed",
+  "created_utc": "20261025-102436",
+  "source_fingerprint": "ca334eab548dd631953f56d79a2a889814e06f531ec7889a6d0226e0e5411b24",
+  "file_count": 43,
+  "archive": "dist/me3-20261025-102436-ca334eab/me3_voice_duplex",
+  "zip": "dist/me3-20261025-102436-ca334eab.zip",
+  "zip_sha256": "2d1d40169ab7704b61c244a675cc2fe374ad6f5083bd42287d893f03d7eac7a1",
   "target": "rpi",
-  "note": "Packaged + integrity-checked locally. NOT yet on the Pi."
+  "deployed_at": "2026-10-25T10:24:55Z",
+  "note": "Packaged and integrity-checked locally, deployed to the Pi, and verified with --check, Fifine preflight, and injection-only Qwen/tool runs."
 }

@@ -1,20 +1,29 @@
 {
   "status": "deployed",
-  "at": "2026-10-25T00:25:39Z",
-  "release_id": "me3-20261025-002525-dbae150e",
+  "at": "2026-10-25T10:24:55Z",
+  "release_id": "me3-20261025-102436-ca334eab",
   "host": "cfdfnjrpi5.local",
   "path": "/home/dalmacio/Desktop/kiko/me3_voice_duplex",
-  "zip_sha256": "8434d080cd972c64ae3d253ddba1691cb5641a187122f0d54a462d368cda6bc3",
-  "verified": [
-    "sha256 of transferred zip matches the prepared release hash",
-    "install.sh completed and normalized Linux shell/service line endings",
-    "Pi imports/checks passed with Qwen/Qwen3.8-27B configured",
-    "me3.env mode 600; VLLM_API_KEY presence verified without printing its value",
-    "ME3_TTS_ENGINE=auto with no ElevenLabs credentials selects Piper fallback",
-    "Pi Qwen text tool turn called system_info successfully",
-    "read-only Pi audio preflight is present and reports blocked_no_capture_device (exit 2)",
-    "ALSA reports HDMI playback cards but no capture card; PortAudio reports 0 devices",
-    "user services remain disabled pending physical audio hardware"
-  ],
-  "reason": null
+  "zip_sha256": "2d1d40169ab7704b61c244a675cc2fe374ad6f5083bd42287d893f03d7eac7a1",
+  "reason": null,
+  "verification": {
+    "transfer_sha256_verified": true,
+    "installer_complete": true,
+    "agent_check": "pass",
+    "qwen_tool_brain": "configured",
+    "pi_audio_preflight": "pass_devices_visible",
+    "capture_device": "fifine Microphone: USB Audio (hw:2,0)",
+    "injection_eval_status": "pass",
+    "injection_eval_artifact": "runs/injection_eval/20261025-101847",
+    "injection_tool_calls": ["run_command", "system_info"],
+    "injection_virtual_barge_in": true,
+    "webapp_voice_eval_status": "pass",
+    "webapp_voice_eval_artifact": "runs/injection_eval/20261025-102140",
+    "webapp_voice_tool_calls": ["fetch_url", "list_files", "read_file", "start_web_server", "web_servers", "write_file"],
+    "webapp_url": "http://192.168.254.106:8090/",
+    "webapp_http_status": 200,
+    "physical_pi_speaker_exercised": false,
+    "elevenlabs_live_call": false,
+    "paper_native_fdb_v15": false
+  }
 }

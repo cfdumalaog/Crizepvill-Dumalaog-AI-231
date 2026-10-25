@@ -39,6 +39,7 @@ class ElevenLabsTTS:
         voice_id: str,
         base_url: str = "https://api.elevenlabs.io/v1",
         model_id: str = "eleven_flash_v2_5",
+        language_code: str | None = None,
         output_format: str = "pcm_16000",
         timeout_s: float = 30.0,
         max_retries: int = 1,
@@ -53,6 +54,8 @@ class ElevenLabsTTS:
         self.voice_id = voice_id
         self.base_url = base_url.rstrip("/")
         self.model_id = model_id
+        self.language_code = (str(language_code).strip().lower()
+                              if language_code else None)
         self.output_format = output_format
         self.timeout_s = float(timeout_s)
         self.max_retries = max(0, int(max_retries))
@@ -83,6 +86,9 @@ class ElevenLabsTTS:
             voice_id=os.environ.get(voice_env, options.get("voice_id", "")),
             base_url=options.get("base_url", "https://api.elevenlabs.io/v1"),
             model_id=options.get("model_id", "eleven_flash_v2_5"),
+            language_code=os.environ.get(
+                "ME3_ELEVENLABS_LANGUAGE_CODE",
+                options.get("language_code", "fil")),
             output_format=options.get("output_format", "pcm_16000"),
             timeout_s=options.get("timeout_s", 30),
             max_retries=options.get("max_retries", 1),
@@ -137,6 +143,10 @@ class ElevenLabsTTS:
         }
         params = {"output_format": self.output_format, "enable_logging": "false"}
         body = {"text": text, "model_id": self.model_id}
+        # ElevenLabs rejects/ignores this for Multilingual v2; Flash v2.5 and
+        # newer multilingual-capable models accept `fil` to enforce Filipino.
+        if self.language_code and self.model_id != "eleven_multilingual_v2":
+            body["language_code"] = self.language_code
         started = time.perf_counter()
         for attempt in range(self.max_retries + 1):
             response = None

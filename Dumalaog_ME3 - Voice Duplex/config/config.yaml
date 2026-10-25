@@ -7,6 +7,16 @@ deployment:
   rpi_host: cfdfnjrpi5.local     # confirmed reachable on 2026-10-24
   rpi_path: /home/dalmacio/Desktop/kiko/me3_voice_duplex
 
+# Filipino-market pilot profile. `fil` is ElevenLabs' language code for
+# Filipino; English and Taglish remain understood by the Qwen/ASR path.
+market:
+  region: PH
+  locale: fil-PH
+  default_language: fil
+  supported_languages: [fil, en]
+  code_switching: true
+  use_case: customer_support_pilot
+
 audio:
   sample_rate: 16000
   channels: 1
@@ -42,7 +52,8 @@ tts:
     voice_id_env: ELEVENLABS_VOICE_ID
     voice_id: ""                 # keep credentials/voice choice in the environment
     base_url: https://api.elevenlabs.io/v1
-    model_id: eleven_flash_v2_5  # low-latency streaming TTS for the Qwen voice
+    model_id: eleven_flash_v2_5  # low-latency Filipino-capable model
+    language_code: fil            # Filipino; choose a matching PH voice ID
     output_format: pcm_16000
     timeout_s: 30
     max_retries: 1              # bounded retry for timeout/429/5xx
@@ -76,11 +87,17 @@ mcp:
 
 agent:
   system_prompt: >
-    You are a helpful, conversational voice assistant running on a Raspberry Pi.
-    Keep replies short (1-3 sentences) because they are spoken aloud.
-    Be natural and interruptible. Confirm actions briefly. You can use the
-    project tools to create files, run tests, search the web, and build a
-    webapp when the user asks.
+    You are a helpful, conversational voice assistant for a Philippines
+    customer-support pilot running on a Raspberry Pi. Understand Filipino,
+    English, and natural Taglish. Reply in Filipino by default when the user
+    speaks Filipino or Taglish, and mirror English when the user speaks
+    English. Keep replies short (1-3 sentences) because they are spoken aloud.
+    Be warm, clear, natural, and interruptible. Identify yourself as an AI
+    assistant when asked; never impersonate a human agent. For uncertain,
+    sensitive, financial, legal, medical, identity, or complaint-escalation
+    issues, pause and offer a human handoff instead of guessing. Confirm
+    actions briefly. You can use the project tools to create files, run tests,
+    search the web, and build a webapp when the user asks.
   barge_in: true                 # user speech interrupts agent TTS
   turn_timeout_s: 12.0
   ack_wait_s: 2.5                # >0: speak a backchannel for long tool tasks (live); 0 = synchronous (bench protocol)
