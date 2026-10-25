@@ -9,11 +9,15 @@ never logged, written to project files, or included in tool results.
 """
 from __future__ import annotations
 
+import logging
 import os
+import time
 from types import SimpleNamespace
 from urllib.parse import quote
 
 import requests
+
+log = logging.getLogger("me3.elevenlabs_tts")
 
 
 class AudioChunk:
@@ -37,6 +41,8 @@ class ElevenLabsTTS:
         model_id: str = "eleven_flash_v2_5",
         output_format: str = "pcm_16000",
         timeout_s: float = 30.0,
+        max_retries: int = 1,
+        retry_backoff_s: float = 0.15,
         request_fn=None,
     ):
         if not api_key:
@@ -49,9 +55,16 @@ class ElevenLabsTTS:
         self.model_id = model_id
         self.output_format = output_format
         self.timeout_s = float(timeout_s)
+        self.max_retries = max(0, int(max_retries))
+        self.retry_backoff_s = max(0.0, float(retry_backoff_s))
         self.request_fn = request_fn or requests.post
         self.config = SimpleNamespace(sample_rate=self._sample_rate(output_format))
         self._load_ms = 0.0
+        self.last_event = {
+            "backend": "elevenlabs",
+            "ok": None,
+            "sample_rate": self.config.sample_rate,
+        }
 
     @staticmethod
     def _sample_rate(output_format: str) -> int:
@@ -72,7 +85,44 @@ class ElevenLabsTTS:
             model_id=options.get("model_id", "eleven_flash_v2_5"),
             output_format=options.get("output_format", "pcm_16000"),
             timeout_s=options.get("timeout_s", 30),
+            max_retries=options.get("max_retries", 1),
+            retry_backoff_s=options.get("retry_backoff_s", 0.15),
         )
+
+    @staticmethod
+    def _error_class(exc: Exception, status_code: int | None = None) -> str:
+        if isinstance(exc, requests.Timeout):
+            return "timeout"
+        if isinstance(exc, (requests.ConnectionError,
+                            requests.ChunkedEncodingError)):
+            return "network"
+        if status_code in (401, 403):
+            return "auth"
+        if status_code == 429:
+            return "rate_limit"
+        if status_code is not None and status_code >= 500:
+            return "provider"
+        if status_code is not None and status_code >= 400:
+            return "http"
+        return "unknown"
+
+    def _record_event(self, *, ok: bool, attempts: int,
+                      started: float, n_bytes: int = 0,
+                      error_class: str | None = None,
+                      status_code: int | None = None) -> None:
+        event = {
+            "backend": "elevenlabs",
+            "ok": bool(ok),
+            "attempts": int(attempts),
+            "latency_ms": round((time.perf_counter() - started) * 1000, 1),
+            "bytes": int(n_bytes),
+            "sample_rate": self.config.sample_rate,
+        }
+        if error_class:
+            event["error_class"] = error_class
+        if status_code is not None:
+            event["status_code"] = int(status_code)
+        self.last_event = event
 
     def synthesize(self, text: str):
         """Yield raw PCM chunks as objects compatible with PiperVoice."""
@@ -87,20 +137,80 @@ class ElevenLabsTTS:
         }
         params = {"output_format": self.output_format, "enable_logging": "false"}
         body = {"text": text, "model_id": self.model_id}
-        response = self.request_fn(
-            url,
-            headers=headers,
-            params=params,
-            json=body,
-            stream=True,
-            timeout=self.timeout_s,
-        )
-        try:
-            response.raise_for_status()
-            for chunk in response.iter_content(chunk_size=4096):
-                if chunk:
-                    yield AudioChunk(bytes(chunk))
-        finally:
-            close = getattr(response, "close", None)
-            if close is not None:
-                close()
+        started = time.perf_counter()
+        for attempt in range(self.max_retries + 1):
+            response = None
+            n_bytes = 0
+            status_code = None
+            try:
+                response = self.request_fn(
+                    url,
+                    headers=headers,
+                    params=params,
+                    json=body,
+                    stream=True,
+                    timeout=self.timeout_s,
+                )
+                status_code = getattr(response, "status_code", None)
+                retryable = status_code == 429 or (
+                    status_code is not None and status_code >= 500)
+                if retryable and attempt < self.max_retries:
+                    log.warning(
+                        "ElevenLabs retry backend=elevenlabs attempt=%d "
+                        "status=%s", attempt + 1, status_code)
+                    continue
+                response.raise_for_status()
+                for chunk in response.iter_content(chunk_size=4096):
+                    if not chunk:
+                        continue
+                    raw = bytes(chunk)
+                    if len(raw) % 2:
+                        raise RuntimeError(
+                            "ElevenLabs returned an odd number of PCM bytes")
+                    n_bytes += len(raw)
+                    yield AudioChunk(raw)
+                self._record_event(ok=True, attempts=attempt + 1,
+                                   started=started, n_bytes=n_bytes,
+                                   status_code=status_code)
+                log.info(
+                    "ElevenLabs synthesis backend=elevenlabs attempts=%d "
+                    "bytes=%d latency_ms=%.1f sample_rate=%d",
+                    attempt + 1, n_bytes,
+                    self.last_event["latency_ms"], self.config.sample_rate)
+                return
+            except (requests.Timeout, requests.ConnectionError) as exc:
+                if attempt < self.max_retries:
+                    log.warning(
+                        "ElevenLabs retry backend=elevenlabs attempt=%d "
+                        "error_class=%s", attempt + 1,
+                        self._error_class(exc, status_code))
+                    if self.retry_backoff_s:
+                        time.sleep(self.retry_backoff_s)
+                    continue
+                error_class = self._error_class(exc, status_code)
+                self._record_event(ok=False, attempts=attempt + 1,
+                                   started=started, n_bytes=n_bytes,
+                                   error_class=error_class,
+                                   status_code=status_code)
+                raise
+            except Exception as exc:  # noqa: BLE001
+                retryable = status_code == 429 or (
+                    status_code is not None and status_code >= 500)
+                if retryable and attempt < self.max_retries:
+                    log.warning(
+                        "ElevenLabs retry backend=elevenlabs attempt=%d "
+                        "error_class=%s status=%s", attempt + 1,
+                        self._error_class(exc, status_code), status_code)
+                    if self.retry_backoff_s:
+                        time.sleep(self.retry_backoff_s)
+                    continue
+                error_class = self._error_class(exc, status_code)
+                self._record_event(ok=False, attempts=attempt + 1,
+                                   started=started, n_bytes=n_bytes,
+                                   error_class=error_class,
+                                   status_code=status_code)
+                raise
+            finally:
+                close = getattr(response, "close", None)
+                if close is not None:
+                    close()

@@ -374,16 +374,20 @@ class BenchDriver:
             t_play = time.perf_counter()
             self.loop.audio.play(tone_pcm, blocking=False)
             first = None
+            frames_seen = 0
+            max_rms = 0.0
             t_end = t_play + 1.2
             while time.perf_counter() < t_end:
                 f = self.loop.audio.read_frame(timeout=0.05)
                 if f is None:
                     continue
+                frames_seen += 1
                 tf = time.perf_counter()
                 # frames are int16 (audio_io resamples inside the callback);
                 # digital-silence noise floor is RMS < ~2, the 0.25-amp tone
                 # reads RMS > 5000 through the loopback. Detect on energy.
                 rms = float(np.sqrt(np.mean(f.astype(np.float64) ** 2)))
+                max_rms = max(max_rms, rms)
                 if rms > 500.0:
                     first = tf
                     break
@@ -392,8 +396,15 @@ class BenchDriver:
             self._drain()
             time.sleep(0.2)
         if not ests:
-            raise SystemExit("RT calibration failed: tone never detected in "
-                             "the loopback capture")
+            in_idx = self.loop.audio.in_idx
+            out_idx = self.loop.audio.out_idx
+            raise SystemExit(
+                "RT calibration failed: tone never detected in the loopback "
+                f"capture (input_index={in_idx}, output_index={out_idx}, "
+                f"capture_frames={frames_seen}, max_frame_rms="
+                f"{max_rms:.1f}). Run scripts/pi_audio_preflight.py and "
+                "verify that the selected capture device receives the "
+                "selected playback signal before running trials.")
         self.rt_ms = float(statistics.median(ests)) * 1000.0
         log.info("loopback RT calibrated: %.1f ms (est: %s ms)", self.rt_ms,
                  ", ".join(f"{e * 1000:.0f}" for e in ests))
@@ -1049,6 +1060,9 @@ def main() -> None:
         description="ME3 FDB-aligned in-process loopback benchmark")
     ap.add_argument("--smoke", action="store_true",
                     help="1 scenario (end_to_end), 1 warmup + 2 trials")
+    ap.add_argument("--preflight", action="store_true",
+                    help="open the configured loopback, calibrate RT, then "
+                         "stop without running trials")
     ap.add_argument("--trials", type=int, default=None)
     ap.add_argument("--warmup", type=int, default=None)
     ap.add_argument("--scenarios", nargs="+", default=None,
@@ -1145,7 +1159,15 @@ def main() -> None:
         log.info("brain preflight: offline stub (no remote network call)")
 
     driver = BenchDriver(cfg, in_idx, brain)
-    rt = driver.calibrate_rt()
+    try:
+        rt = driver.calibrate_rt()
+    except SystemExit:
+        driver.loop.audio.close()
+        raise
+    if args.preflight:
+        driver.loop.audio.close()
+        print(f"AUDIO PREFLIGHT PASS: loopback RT calibrated at {rt:.1f} ms")
+        return
 
     devs = sd.query_devices()
     in_name = str(devs[driver.loop.audio.in_idx].get("name"))

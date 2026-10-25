@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import base64
 import io
+import logging
 import os
 import subprocess
 import sys
@@ -33,10 +34,27 @@ from fastmcp import FastMCP
 from .config import load_config
 
 mcp = FastMCP("me3-tts")
+log = logging.getLogger("me3.mcp_tts")
 
 _engine = None
 _cfg = None
 _voice_dir = Path(__file__).resolve().parent.parent / "models" / "tts"
+
+
+def _elevenlabs_status(cfg: dict) -> dict:
+    """Return credential presence without exposing credential contents."""
+    options = cfg.get("elevenlabs", {})
+    key_env = options.get("api_key_env", "ELEVENLABS_API_KEY")
+    voice_env = options.get("voice_id_env", "ELEVENLABS_VOICE_ID")
+    key_configured = bool(os.environ.get(key_env, "").strip())
+    voice_configured = bool(
+        os.environ.get(voice_env, options.get("voice_id", "")).strip()
+    )
+    return {
+        "key_configured": key_configured,
+        "voice_configured": voice_configured,
+        "configured": key_configured and voice_configured,
+    }
 
 
 def _ensure_voice(voice_name: str) -> Path:
@@ -60,6 +78,74 @@ def _ensure_voice(voice_name: str) -> Path:
     return cand
 
 
+def _load_piper(cfg: dict):
+    """Load Piper and return its engine plus load time."""
+    from piper import PiperVoice
+    t0 = time.perf_counter()
+    voice_path = _ensure_voice(cfg["voice"])
+    engine = PiperVoice.load(voice_path)
+    engine._load_ms = (time.perf_counter() - t0) * 1000
+    return engine
+
+
+class _AutoFallbackTTS:
+    """Use ElevenLabs first, then Piper if no audio was emitted.
+
+    Falling back only before the first provider chunk avoids duplicating speech
+    after a mid-stream failure. Explicit ``ME3_TTS_ENGINE=elevenlabs`` keeps
+    its strict failure behavior; this wrapper is used only for ``auto``.
+    """
+
+    def __init__(self, primary, fallback_loader):
+        self.primary = primary
+        self._fallback_loader = fallback_loader
+        self._fallback = None
+        self.config = primary.config
+        self._load_ms = getattr(primary, "_load_ms", 0.0)
+        self.provider = "elevenlabs"
+        self.last_event = None
+
+    def synthesize(self, text: str):
+        if not str(text or "").strip():
+            return
+        emitted = False
+        try:
+            for chunk in self.primary.synthesize(text):
+                emitted = True
+                yield chunk
+            event = getattr(self.primary, "last_event", None)
+            if not emitted:
+                raise RuntimeError("ElevenLabs returned no audio")
+            self.provider = "elevenlabs"
+            self.config = self.primary.config
+            self.last_event = event
+            return
+        except Exception as exc:  # noqa: BLE001
+            if emitted:
+                self.provider = "elevenlabs"
+                self.last_event = {
+                    "backend": "elevenlabs",
+                    "ok": False,
+                    "error_class": type(exc).__name__,
+                    "fallback": "not_safe_after_partial_audio",
+                }
+                raise
+            log.warning(
+                "ElevenLabs produced no audio; using Piper fallback "
+                "error_class=%s", type(exc).__name__)
+            if self._fallback is None:
+                self._fallback = self._fallback_loader()
+            self.provider = "piper_fallback"
+            self.config = self._fallback.config
+            for chunk in self._fallback.synthesize(text):
+                yield chunk
+            self.last_event = {
+                "backend": "piper_fallback",
+                "ok": True,
+                "reason": type(exc).__name__,
+            }
+
+
 def _get_engine():
     """Lazy-load the configured TTS backend (Piper or ElevenLabs)."""
     global _engine, _cfg
@@ -67,30 +153,26 @@ def _get_engine():
         cfg = load_config()["tts"]
         requested = os.environ.get("ME3_TTS_ENGINE", cfg.get("engine", "auto"))
         requested = requested.strip().lower()
-        eleven = cfg.get("elevenlabs", {})
-        key_env = eleven.get("api_key_env", "ELEVENLABS_API_KEY")
-        voice_env = eleven.get("voice_id_env", "ELEVENLABS_VOICE_ID")
-        eleven_ready = bool(os.environ.get(key_env)) and bool(
-            os.environ.get(voice_env, eleven.get("voice_id", ""))
-        )
-        if requested == "auto":
+        auto_select = requested == "auto"
+        eleven_ready = _elevenlabs_status(cfg)["configured"]
+        if auto_select:
             requested = "elevenlabs" if eleven_ready else "piper"
         if requested == "elevenlabs":
             from .elevenlabs_tts import ElevenLabsTTS
             t0 = time.perf_counter()
-            _engine = ElevenLabsTTS.from_config(cfg)
-            _engine._load_ms = (time.perf_counter() - t0) * 1000
+            primary = ElevenLabsTTS.from_config(cfg)
+            primary._load_ms = (time.perf_counter() - t0) * 1000
+            _engine = (_AutoFallbackTTS(
+                primary, lambda: _load_piper(cfg)) if auto_select else primary)
             _cfg = dict(cfg)
             _cfg["engine"] = "elevenlabs"
-            _cfg["voice"] = _engine.voice_id
+            _cfg["voice"] = primary.voice_id
+            _cfg["auto_fallback"] = auto_select
         elif requested == "piper":
-            from piper import PiperVoice
-            t0 = time.perf_counter()
-            voice_path = _ensure_voice(cfg["voice"])
-            _engine = PiperVoice.load(voice_path)
-            _engine._load_ms = (time.perf_counter() - t0) * 1000
+            _engine = _load_piper(cfg)
             _cfg = dict(cfg)
             _cfg["engine"] = "piper"
+            _cfg["auto_fallback"] = False
         else:
             raise RuntimeError(
                 f"unsupported ME3_TTS_ENGINE={requested!r}; use auto, piper, or elevenlabs"
@@ -140,12 +222,15 @@ def synthesize(text: str) -> dict:
     pcm = b"".join(chunks)
     latency_ms = (time.perf_counter() - t0) * 1000
     audio_b64, dur = _pcm_to_wav_b64(pcm, sr)
+    backend = getattr(engine, "provider", _cfg.get("engine", "piper"))
     return {
         "audio_b64": audio_b64,
         "sample_rate": sr,
         "duration_s": round(dur, 3),
         "latency_ms": round(latency_ms, 1),
         "ttfb_ms": round(first_byte_ms or latency_ms, 1),
+        "backend": backend,
+        "backend_event": getattr(engine, "last_event", None),
     }
 
 
@@ -166,6 +251,7 @@ def synthesize_stream(text: str) -> list[dict]:
         item = {"chunk_i": i, "audio_b64": b64, "sample_rate": sr}
         if ttfb is not None:
             item["ttfb_ms"] = round(ttfb, 1)
+        item["backend"] = getattr(engine, "provider", _cfg.get("engine", "piper"))
         out.append(item)
     return out
 
@@ -186,15 +272,26 @@ def voices() -> dict:
 
 @mcp.tool()
 def health() -> dict:
-    """Report active TTS backend and configured voice."""
+    """Report active backend and credential-gated ElevenLabs status.
+
+    This is deliberately network-free. A live provider call belongs to the
+    explicit acceptance test, not the ordinary import/health smoke test.
+    """
     try:
         engine, cfg = _get_engine()
+        eleven = _elevenlabs_status(cfg)
         return {
             "ok": True,
-            "engine": cfg.get("engine", "piper"),
+            "engine": getattr(engine, "provider", cfg.get("engine", "piper")),
+            "configured_engine": cfg.get("engine", "piper"),
             "voice": cfg["voice"],
             "sample_rate": _engine_sample_rate(engine),
             "load_ms": round(getattr(engine, "_load_ms", 0.0), 1),
+            "elevenlabs_configured": eleven["configured"],
+            "elevenlabs_key_configured": eleven["key_configured"],
+            "elevenlabs_voice_configured": eleven["voice_configured"],
+            "auto_fallback": bool(cfg.get("auto_fallback", False)),
+            "last_event": getattr(engine, "last_event", None),
         }
     except Exception as e:  # noqa: BLE001
         return {"ok": False, "error": str(e)}

@@ -34,6 +34,14 @@ tts.engine is now auto:
 4. ME3_TTS_ENGINE=elevenlabs requires both ElevenLabs values and fails clearly
    if either is missing.
 
+When `tts.engine=auto` selects ElevenLabs, the adapter uses one bounded retry
+for timeout, rate-limit, and provider-server errors. If the provider fails
+before producing its first PCM chunk, ME3 loads Piper and continues the turn.
+A failure after partial audio is surfaced instead of replaying the sentence
+from the beginning, which prevents duplicated speech. Explicit
+`ME3_TTS_ENGINE=elevenlabs` remains strict and does not silently switch
+providers.
+
 The backend calls the official streaming endpoint with:
 
 - model_id=eleven_flash_v2_5, selected for low-latency voice-agent use;
@@ -46,6 +54,12 @@ Qwen tool results. The Pi installer accepts the key from the runtime
 environment or from the operator-managed file
 ~/.config/me3/elevenlabs-api-key.txt, writes the service environment file
 with mode 600, and reports only configured/not-configured status.
+
+The network-free `health()` tool reports the selected backend,
+`elevenlabs_configured`, whether automatic fallback is active, sample rate,
+and the last safe backend event. It does not make a provider request. The
+agent logs backend, attempt count, latency, sample rate, and byte count; it
+never logs the key or the spoken text as part of the provider event.
 
 ## Configure the real voice
 
@@ -80,4 +94,23 @@ record:
 - a spoken Qwen response;
 - barge-in while ElevenLabs audio is playing;
 - a Qwen tool call that creates/verifies a real artifact;
-- fallback to Piper after an ElevenLabs timeout or missing credential.
+- fallback to Piper after an ElevenLabs timeout or missing credential;
+- a `health()` record showing which backend actually produced the audio.
+
+## Pi audio gate
+
+Before enabling the user service or running a voice benchmark, run the
+read-only preflight from the deployed project:
+
+    python scripts/pi_audio_preflight.py
+
+It reports ALSA capture/playback enumeration separately from PortAudio device
+enumeration. A playback-only Pi is not voice-ready: attach a USB/I2S
+microphone or configure an explicit ALSA capture/loopback device, then rerun
+the preflight. For the Windows engineering driver, use the calibration-only
+gate before trials:
+
+    python -m me3.bench_driver --brain stub --preflight
+
+The command must report a calibrated loopback round trip. If it reports that
+the tone was not detected, no latency trials should be run or published.

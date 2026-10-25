@@ -241,10 +241,12 @@ The current target is \url{dalmacio@cfdfnjrpi5.local} at
 deployment remains at \url{/home/dalmacio/Desktop/dandan}. A prepared release
 is not called deployed. The local receipt must say \texttt{deployed} after SSH,
 SCP, extraction, and installation succeed. The current receipt reports
-\texttt{deployed} for release \texttt{me3-20261024-221844-8db80e36}; after installation,
-a \texttt{--check} pass and a text-mode Qwen run completed on the Pi that
-built a static stopwatch web app and served it over HTTP, with the page
-cross-verified from a second machine on the LAN.
+\texttt{deployed} for release \texttt{me3-20261025-002308-88b5ae52}; after installation,
+a \texttt{--check} pass and a text-mode Qwen tool run completed on the Pi.
+The read-only audio preflight reports
+\texttt{blocked\_no\_capture\_device}: ALSA exposes HDMI playback cards but no
+capture card, and PortAudio exposes zero devices. The user service therefore
+remains disabled pending physical audio hardware.
 \end{sloppypar}
 
 The API key is never included in the archive. On the Pi it must be provisioned
@@ -270,6 +272,11 @@ patterns, background task completion, and a mocked multi-step Qwen response.
 The live Qwen smoke test records an actual tool call and final answer. The
 local smoke gate loads the four MCP servers and confirms the current Windows
 PortAudio inventory. These are engineering checks, not a claim about Pi audio.
+
+The deployed Pi preflight is also an explicit hardware gate. It is read-only,
+does not alter mixer state, and returns exit code 2 when no capture device is
+visible. This keeps a playback-only Pi from being mislabeled as a working
+full-duplex voice endpoint.
 
 The project also contains a separate engineering latency driver and a
 paper-native FULL-DUPLEX-BENCH v1.5 contract. The v1.5 contract includes four

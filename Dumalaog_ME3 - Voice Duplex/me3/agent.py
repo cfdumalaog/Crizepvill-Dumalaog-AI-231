@@ -425,9 +425,15 @@ class LocalVoiceLoop:
                              "sample_rate", 22050) or 22050)
         out = resample_to(pcm, tts_sr, self.sr)
         with self._tts_lock:
-            log.info("speaking (%.2f s) [tts %.0f ms e2e %.0f ms]",
-                     len(out) / self.sr, tts_ms,
-                     (time.perf_counter() - t_start) * 1e3)
+            backend = getattr(tts_engine, "provider", "piper")
+            event = getattr(tts_engine, "last_event", None) or {}
+            log.info(
+                "speaking backend=%s duration=%.2f s [tts %.0f ms e2e %.0f "
+                "ms sample_rate=%d event=%s]",
+                backend, len(out) / self.sr, tts_ms,
+                (time.perf_counter() - t_start) * 1e3, tts_sr,
+                {k: event[k] for k in ("ok", "attempts", "latency_ms",
+                                       "bytes", "error_class") if k in event})
             self.audio.play(out, blocking=False)
         self.state = "speaking"
 

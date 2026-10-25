@@ -1,10 +1,10 @@
 {
   "status": "deployed",
-  "at": "2026-10-24T22:27:37Z",
-  "release_id": "me3-20261024-222725-8db80e36",
+  "at": "2026-10-25T00:25:39Z",
+  "release_id": "me3-20261025-002525-dbae150e",
   "host": "cfdfnjrpi5.local",
   "path": "/home/dalmacio/Desktop/kiko/me3_voice_duplex",
-  "zip_sha256": "0f0e57fc659a1ca7270a4b6b6f9b7453fe102c0a31abc2264514ca8afc006b87",
+  "zip_sha256": "8434d080cd972c64ae3d253ddba1691cb5641a187122f0d54a462d368cda6bc3",
   "verified": [
     "sha256 of transferred zip matches the prepared release hash",
     "install.sh completed and normalized Linux shell/service line endings",
@@ -12,8 +12,9 @@
     "me3.env mode 600; VLLM_API_KEY presence verified without printing its value",
     "ME3_TTS_ENGINE=auto with no ElevenLabs credentials selects Piper fallback",
     "Pi Qwen text tool turn called system_info successfully",
-    "deployed documentation receipt matches release me3-20261024-222725-8db80e36",
-    "PortAudio reports 0 devices; user services remain disabled pending hardware audio"
+    "read-only Pi audio preflight is present and reports blocked_no_capture_device (exit 2)",
+    "ALSA reports HDMI playback cards but no capture card; PortAudio reports 0 devices",
+    "user services remain disabled pending physical audio hardware"
   ],
   "reason": null
 }

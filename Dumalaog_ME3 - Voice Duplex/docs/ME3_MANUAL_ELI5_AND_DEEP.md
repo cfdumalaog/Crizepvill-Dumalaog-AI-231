@@ -72,6 +72,13 @@ tts.engine=auto, the backend uses ElevenLabs only when
 ELEVENLABS_API_KEY and ELEVENLABS_VOICE_ID are available; otherwise it falls
 back to local Piper.
 
+In automatic mode, ME3 retries one timeout, rate-limit, or provider-server
+failure. If ElevenLabs fails before its first audio chunk, the same turn uses
+Piper. If the provider fails after partial audio, ME3 reports the failure
+instead of replaying the sentence and speaking duplicate words. The health
+tool reports the active backend and a safe last-event summary without making a
+network request. Explicit `ME3_TTS_ENGINE=elevenlabs` remains strict.
+
 ElevenLabs Realtime v1 Mini and Max are complete hosted voice-agent modes that
 also manage the LLM and speech-to-text configuration. Using them would be an
 alternative architecture, not simply a voice switch for Qwen. The exact
@@ -179,13 +186,16 @@ The deployment workflow is:
 `deployment/latest_release.json` means only that a release was packaged and
 verified locally. `deployment/last_pi_deployment.json` must say `deployed`
 before the Pi is described as deployed. The verified deployment receipt is
-release `me3-20261024-221844-8db80e36` at
+release `me3-20261025-002308-88b5ae52` at
 `/home/dalmacio/Desktop/kiko/me3_voice_duplex`; the transfer hash matched the
 release manifest and the idempotent installer completed. On the Pi, `--check`
 passes, and a live text-mode Qwen run built a stopwatch web app through
 `write_file` plus `start_web_server` and served it over HTTP; the page was
-cross-verified from a second machine on the LAN. The Pi currently exposes zero PortAudio
-devices, so its user service remains disabled until hardware audio is checked.
+cross-verified from a second machine on the LAN. The Pi currently exposes zero
+PortAudio devices. The read-only Pi audio preflight reports
+`blocked_no_capture_device` (exit 2): ALSA exposes HDMI playback but no
+capture card. Its user service remains disabled until a USB/I2S microphone or
+an ALSA loopback is available.
 The installer creates a Pi-local
 virtual environment, installs the pinned runtime packages, prefetches an
 RAM-appropriate Whisper model and Piper voices, and installs four user
@@ -209,6 +219,19 @@ ELEVENLABS_API_KEY through the operator-managed
 ~/.config/me3/elevenlabs-api-key.txt file, set ELEVENLABS_VOICE_ID, and rerun
 install.sh. The current Pi has no ElevenLabs credential configured, so its
 auto-selected voice remains Piper until this gate is completed.
+
+Before enabling the user service, run the read-only Pi audio gate:
+
+```bash
+python scripts/pi_audio_preflight.py
+```
+
+This separately reports ALSA capture/playback devices and PortAudio devices.
+Playback-only HDMI output does not satisfy the duplex requirement. Connect a
+USB/I2S microphone or configure an ALSA capture/loopback device, then rerun
+the gate. On Windows, run `python -m me3.bench_driver --brain stub
+--preflight` before any latency trials; a failed tone calibration invalidates
+the run.
 
 ## Deep explanation of one turn
 
@@ -324,8 +347,9 @@ and answer a later “is it finished?” request from the stored status.
 
 ### 6. TTS and barge-in
 
-After Qwen returns final text, Piper produces PCM audio. ME3 resamples that
-audio to the configured device rate and starts non-blocking playback. VAD
+After Qwen returns final text, the selected Piper or ElevenLabs backend
+produces PCM audio. ME3 resamples that audio to the configured device rate and
+starts non-blocking playback. VAD
 continues to run. Speech detected during `speaking` stops playback and starts a
 new turn. This is the practical duplex behavior; a future Pi deployment still
 needs a physical audio check and echo-control tuning.
@@ -368,10 +392,10 @@ engineering five-scenario latency driver remain separate.
 1. The remote endpoint is currently HTTP, not HTTPS. Use it only on the trusted
    institutional network or VPN; migrate to administrator-provided HTTPS when
    available.
-2. The Pi still needs a live audio self-test after deployment. The current
-   check reports zero PortAudio devices; a connected mic,
-   speaker behavior, ALSA device choice, CPU/RAM, and systemd supervision must
-   be recorded separately from local Windows checks.
+2. The Pi still needs a live audio self-test after deployment. The read-only
+   preflight currently reports `blocked_no_capture_device` with HDMI playback
+   only; a connected mic, speaker behavior, ALSA device choice, CPU/RAM, and
+   systemd supervision must be recorded separately from local Windows checks.
 3. The Qwen API key is deliberately not included in the release. On the
    deployed Pi it is provisioned in a mode-600 runtime environment file;
    only its presence is verified, and the value is never printed.

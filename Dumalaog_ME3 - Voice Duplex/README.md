@@ -35,6 +35,7 @@ Dumalaog_ME3 - Voice Duplex/
 │   ├── Start-Local-ME3.ps1 # 0. launch the voice agent locally
 │   ├── dev_env_check.py    # 1. verify shared .venv has all ME3 deps
 │   ├── local_smoke_test.py # 2. import+health all 4 MCP servers, no Pi
+│   ├── pi_audio_preflight.py # Pi ALSA + PortAudio read-only gate
 │   ├── package_release.py  # 3. build dist/ release + sha256 manifest + zip
 │   └── deploy_to_pi.py     # 4. stage Desktop + scp to Pi + run install.sh
 ├── deployment/             # deployment STATE (read these first)
@@ -93,6 +94,8 @@ bash install.sh
 source .venv/bin/activate
 python -m me3.agent                 # run the voice agent (same local loop)
 python -m me3.bench_driver --brain stub --smoke # engineering loopback smoke (input required)
+python scripts/pi_audio_preflight.py              # Pi ALSA + PortAudio gate
+python -m me3.bench_driver --brain stub --preflight # calibration only, no trials
 # paper-native evaluation of captured overlap JSON:
 python scripts/fdb_v15_eval.py runs/fdb_v15/trials.json
 ```
@@ -153,6 +156,12 @@ uses the existing local Piper voice. This preserves the current full-duplex
 microphone, VAD, ASR, playback, and barge-in path. See
 docs/ELEVENLABS_INTEGRATION.md.
 
+In `auto`, one bounded retry handles a timeout, rate limit, or provider-server
+error. If ElevenLabs fails before its first audio chunk, ME3 switches to Piper
+for that turn and logs only the backend, error class, attempt count, byte count,
+sample rate, and latency. A mid-stream failure is surfaced rather than replayed
+from the beginning. Explicit `ME3_TTS_ENGINE=elevenlabs` remains strict.
+
 ElevenLabs Realtime v1 Mini/Max is a complete hosted voice-agent mode that also
 manages the LLM and speech recognition. It is documented as an optional
 alternative, but is not silently substituted because ME3's Qwen tool loop is
@@ -184,6 +193,25 @@ run built a stopwatch web app through `write_file` + `start_web_server` and
 served it over HTTP, cross-verified from a second machine on the LAN. The Pi currently reports zero
 PortAudio devices, so the user service remains disabled pending hardware
 audio validation.
+
+### Pi audio preflight
+
+Run this read-only gate before enabling the user service:
+
+```bash
+python scripts/pi_audio_preflight.py
+python scripts/pi_audio_preflight.py --json
+```
+
+The report separates ALSA capture/playback enumeration from PortAudio
+visibility. A Pi with HDMI playback but no capture device is not ready for
+voice duplex; connect a USB/I2S microphone or configure an ALSA loopback and
+rerun the gate. The Windows engineering driver also has a calibration-only
+mode that must pass before any latency trials are started:
+
+```bash
+python -m me3.bench_driver --brain stub --preflight
+```
 
 ## Deployment state (how to tell where things stand)
 | File | Meaning |

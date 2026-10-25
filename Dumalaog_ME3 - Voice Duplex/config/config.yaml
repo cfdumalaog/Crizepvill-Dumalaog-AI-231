@@ -45,6 +45,8 @@ tts:
     model_id: eleven_flash_v2_5  # low-latency streaming TTS for the Qwen voice
     output_format: pcm_16000
     timeout_s: 30
+    max_retries: 1              # bounded retry for timeout/429/5xx
+    retry_backoff_s: 0.15
 
 llm:
   mode: remote                   # remote (vLLM) | local (ollama)

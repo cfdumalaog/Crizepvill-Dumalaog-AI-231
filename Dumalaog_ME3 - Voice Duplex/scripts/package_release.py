@@ -43,6 +43,7 @@ INCLUDE = [
     "docs/PAPER_ALIGNMENT.md",
     "scripts/fdb_v15_eval.py",
     "scripts/check_paper_alignment.py",
+    "scripts/pi_audio_preflight.py",
     "Building AI Voice Agents - Summary.pdf",
     "FULL-DUPLEX-BENCH V1.5 - EVALUATING OVERLAP.pdf",
     "refs/FDB_paper_2503.04721.pdf",

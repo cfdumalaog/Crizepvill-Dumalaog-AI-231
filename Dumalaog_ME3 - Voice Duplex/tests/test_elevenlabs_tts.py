@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import pytest
+import requests
 
 from me3.elevenlabs_tts import ElevenLabsTTS
 
@@ -9,6 +10,7 @@ class FakeResponse:
     def __init__(self, chunks):
         self.chunks = chunks
         self.closed = False
+        self.status_code = 200
 
     def raise_for_status(self):
         return None
@@ -67,3 +69,30 @@ def test_elevenlabs_config_reads_environment_without_logging(monkeypatch):
     })
     assert engine.voice_id == "voice123"
     assert engine.config.sample_rate == 16000
+
+
+def test_elevenlabs_retries_timeout_without_exposing_credentials():
+    calls = []
+    response = FakeResponse([b"\x01\x02"])
+
+    def flaky_post(*args, **kwargs):
+        calls.append(kwargs["timeout"])
+        if len(calls) == 1:
+            raise requests.Timeout("simulated timeout")
+        return response
+
+    engine = ElevenLabsTTS(
+        api_key="in-memory-test-only",
+        voice_id="voice123",
+        timeout_s=4,
+        max_retries=1,
+        retry_backoff_s=0,
+        request_fn=flaky_post,
+    )
+    chunks = list(engine.synthesize("retry me"))
+
+    assert len(chunks) == 1
+    assert calls == [4.0, 4.0]
+    assert engine.last_event["ok"] is True
+    assert engine.last_event["attempts"] == 2
+    assert "in-memory-test-only" not in str(engine.last_event)

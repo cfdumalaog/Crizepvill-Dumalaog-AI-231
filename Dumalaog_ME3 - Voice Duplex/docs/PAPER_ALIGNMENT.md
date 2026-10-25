@@ -76,7 +76,9 @@ mode 600 and the Qwen key is provisioned (presence verified only). Pi
 `--check` passes and a live text-mode Qwen run built a stopwatch web app
 through `write_file` plus `start_web_server`, served it over HTTP, and the
 page was cross-verified from a second machine on the LAN. The Pi currently reports zero
-PortAudio devices and its user service is disabled, so this receipt does not
-prove live microphone/speaker hardware, systemd supervision, ALSA capture, or
-Pi latency. A physical audio check remains required before claiming live Pi
-voice operation or paper-grade benchmark evidence.
+PortAudio devices; the new read-only preflight classifies this as
+`blocked_no_capture_device` because ALSA exposes HDMI playback but no capture
+card. Its user service is disabled, so this receipt does not prove live
+microphone/speaker hardware, systemd supervision, or Pi latency. A physical
+audio check remains required before claiming live Pi voice operation or
+paper-grade benchmark evidence.
