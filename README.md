@@ -13,7 +13,7 @@ exercises and coursework at the University of the Philippines Diliman.
 | Exercise | Topic | Location | Status |
 |---|---|---|---|
 | **ME1** | Three-layer MNIST CNN using PyTorch tensors, Einops, and `einsum` | [`Dumalaog_ME1 - CNN using Einops/ME1_MNIST_Manual_CNN.ipynb`](<Dumalaog_ME1 - CNN using Einops/ME1_MNIST_Manual_CNN.ipynb>) | Complete — **98.60%** test accuracy after 5 epochs; fully self-contained notebook. |
-| **ME2** | Tiny Voice Command Model for smart devices | [Current two-model notebook](<Dumalaog_ME2 - Tiny Voice Command Model/notebooks/ME2_Tiny_VCM_Training.ipynb>) | Refreshed ME2 intent + retained wake pair on Pi Desktop/dandan; Gold candidate removed, not promoted. Reference 96.89% accuracy / 96.88% macro F1; personal clip holdout 94.04% / 95.12%. Gold live benchmark has not been scored; its two-slide runtime brief is in the [updated deck](<Dumalaog_ME2 - Tiny Voice Command Model/docs/slides/ME2_VCM_Gold_Live_Benchmark_20261003.pptx>). See the [project README](<Dumalaog_ME2 - Tiny Voice Command Model/README.md>). |
+| **ME2** | Tiny Voice Command Model for smart devices | [Current two-model notebook](<Dumalaog_ME2 - Tiny Voice Command Model/notebooks/ME2_Tiny_VCM_Training.ipynb>) | Refreshed ME2 intent + retained wake pair on Pi Desktop/dandan; Gold candidate removed, not promoted. Reference 96.89% accuracy / 96.88% macro F1; personal clip holdout 94.04% / 95.12%. Gold live benchmark has not been scored; the current acoustic benchmark material is in the [updated deck](<Dumalaog_ME2 - Tiny Voice Command Model/docs/slides/ME2_Acoustic_Benchmark_20261003_Codex_v7_2min.pptx>). See the [project README](<Dumalaog_ME2 - Tiny Voice Command Model/README.md>). |
 | **ME3** | Full-Duplex Voice Agent with Qwen tool calling, owned MCP services, Raspberry Pi deployment, and optional ElevenLabs voice | [ME3 project README](<Dumalaog_ME3 - Voice Duplex/README.md>) | Local Windows microphone/speaker loop and barge-in verified; ElevenLabs provider playback verified at 16 kHz; Pi release previously deployed but the Pi is currently offline. Latest Qwen endpoint reachability and approved Filipino voice remain open gates. |
 
 ## ME3 - Voice Duplex
@@ -46,7 +46,7 @@ bounded tools rather than model training:
 - [ElevenLabs integration guide](<Dumalaog_ME3 - Voice Duplex/docs/ELEVENLABS_INTEGRATION.md>)
 - [Philippine call-center pilot guide](<Dumalaog_ME3 - Voice Duplex/docs/PHILIPPINE_CALL_CENTER_PILOT.md>)
 - [ACM two-column source](<Dumalaog_ME3 - Voice Duplex/docs/acm/ME3_Voice_Duplex_ACM.tex>) and [PDF](<Dumalaog_ME3 - Voice Duplex/docs/acm/ME3_Voice_Duplex_ACM.pdf>)
-- [Presentation deck](<Dumalaog_ME3 - Voice Duplex/docs/ME3_Voice_Duplex_Presentation_v8.pptx>)
+- [Presentation deck](<Dumalaog_ME3 - Voice Duplex/docs/presentation/ME3_Voice_Duplex_Presentation_v8.pptx>)
 
 ## Repository Policy
 
