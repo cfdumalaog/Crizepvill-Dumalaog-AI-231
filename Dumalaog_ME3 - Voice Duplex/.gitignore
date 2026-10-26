@@ -17,3 +17,5 @@ refs/full-duplex-bench/
 # agent working dirs (briefs/status) - not user-facing
 subagent_briefs/
 subagent_status/
+# Local secrets written by `elevenlabs onboard`
+/.env
