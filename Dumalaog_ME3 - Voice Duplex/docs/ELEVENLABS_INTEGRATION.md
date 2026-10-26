@@ -1,6 +1,6 @@
 # ElevenLabs voice integration for ME3
 
-Version: 0.1, 25 October 2026
+Version: 0.2, 26 October 2026
 
 ## Decision in one paragraph
 
@@ -83,24 +83,41 @@ the installer:
 For automatic fallback behavior, omit ME3_TTS_ENGINE; auto selects ElevenLabs
 only when both the key and voice ID are present.
 
-The current controlled checkout has no ElevenLabs key or voice ID configured.
-Therefore the Filipino request path and mocked stream tests are verified,
-while a provider-live audio call remains pending secure credential
-provisioning. Until then, the deployed Pi continues to use Piper.
+The Windows development checkout now has the ElevenLabs key available through
+the CLI-created, gitignored `.env`; the key remains process-local and is never
+printed or committed. The voice ID is intentionally not persisted by this
+project and must be supplied by the operator in the runtime environment. A
+local provider-live acceptance call was completed on 2026-10-26 with an
+operator-selected test voice: the API returned raw PCM at 16 kHz and the
+Filipino-language test phrase played through the Windows default speaker.
+The selected account voices were labelled English, so this proves the
+integration and `language_code=fil` request path, not a native Filipino-accent
+voice approval. The Pi remains offline and has not received this local-only
+credential state.
+
+The streaming adapter reassembles 16-bit PCM when an HTTP chunk ends halfway
+through a sample, and classifies/retries `requests` chunked-encoding failures
+through the correct exception namespace. This is covered by the unit tests in
+`tests/test_elevenlabs_tts.py`.
 
 ## Readiness boundary
 
 This integration does not claim that Eleven Realtime is already active. It
-claims that ME3 can use ElevenLabs to voice the existing Qwen/tool agent when
-the runtime credentials are provisioned. A complete live acceptance test must
-record:
+claims that ME3 can use ElevenLabs to voice the existing Qwen/tool agent. The
+local provider and speaker portion is now verified, but a complete Qwen-backed
+duplex acceptance test must still record:
 
 - ElevenLabs HTTP status and first-audio-byte latency without printing the key;
-- a spoken Qwen response;
+- a spoken Qwen response from a reachable remote brain;
 - barge-in while ElevenLabs audio is playing;
 - a Qwen tool call that creates/verifies a real artifact;
 - fallback to Piper after an ElevenLabs timeout or missing credential;
 - a `health()` record showing which backend actually produced the audio.
+
+The current local Qwen attempt timed out before inference at the configured
+remote endpoint, so the provider-live result must not be presented as a full
+Qwen voice-agent turn. The earlier Qwen/tool and physical Piper barge-in
+results remain separate evidence lanes.
 
 ## Pi audio gate
 

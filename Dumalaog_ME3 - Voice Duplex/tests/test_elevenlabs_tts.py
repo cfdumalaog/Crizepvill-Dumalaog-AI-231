@@ -25,7 +25,7 @@ class FakeResponse:
 
 def test_elevenlabs_stream_is_raw_pcm_and_closes_response():
     calls = []
-    response = FakeResponse([b"\x01\x02", b"", b"\x03\x04"])
+    response = FakeResponse([b"\x01", b"\x02\x03", b"", b"\x04"])
 
     def fake_post(*args, **kwargs):
         calls.append((args, kwargs))
@@ -39,6 +39,7 @@ def test_elevenlabs_stream_is_raw_pcm_and_closes_response():
     chunks = list(engine.synthesize("hello from ME3"))
 
     assert b"".join(c.audio_int16_bytes for c in chunks) == b"\x01\x02\x03\x04"
+    assert [c.audio_int16_bytes for c in chunks] == [b"\x01\x02", b"\x03\x04"]
     assert response.closed is True
     assert calls[0][0][0].endswith("/text-to-speech/voice%2Ftest/stream")
     assert calls[0][1]["params"] == {
@@ -49,6 +50,22 @@ def test_elevenlabs_stream_is_raw_pcm_and_closes_response():
         "text": "hello from ME3",
         "model_id": "eleven_flash_v2_5",
     }
+
+
+def test_elevenlabs_rejects_odd_total_pcm_bytes_after_reassembly():
+    response = FakeResponse([b"\x01", b"\x02\x03"])
+    engine = ElevenLabsTTS(
+        api_key="in-memory-test-only",
+        voice_id="voice123",
+        request_fn=lambda *args, **kwargs: response,
+    )
+
+    with pytest.raises(RuntimeError, match="odd number of PCM bytes"):
+        list(engine.synthesize("invalid pcm"))
+
+    assert response.closed is True
+    assert engine.last_event["ok"] is False
+    assert engine.last_event["bytes"] == 2
 
 
 def test_elevenlabs_requires_key_and_voice_id():
@@ -97,7 +114,7 @@ def test_elevenlabs_retries_timeout_without_exposing_credentials():
     def flaky_post(*args, **kwargs):
         calls.append(kwargs["timeout"])
         if len(calls) == 1:
-            raise requests.Timeout("simulated timeout")
+            raise requests.exceptions.Timeout("simulated timeout")
         return response
 
     engine = ElevenLabsTTS(
@@ -115,3 +132,30 @@ def test_elevenlabs_retries_timeout_without_exposing_credentials():
     assert engine.last_event["ok"] is True
     assert engine.last_event["attempts"] == 2
     assert "in-memory-test-only" not in str(engine.last_event)
+
+
+def test_elevenlabs_retries_chunked_encoding_error_without_secondary_error():
+    calls = []
+    response = FakeResponse([b"\x01\x02"])
+
+    def flaky_post(*args, **kwargs):
+        calls.append(kwargs["timeout"])
+        if len(calls) == 1:
+            raise requests.exceptions.ChunkedEncodingError(
+                "simulated split stream")
+        return response
+
+    engine = ElevenLabsTTS(
+        api_key="in-memory-test-only",
+        voice_id="voice123",
+        timeout_s=4,
+        max_retries=1,
+        retry_backoff_s=0,
+        request_fn=flaky_post,
+    )
+
+    chunks = list(engine.synthesize("retry stream"))
+
+    assert [c.audio_int16_bytes for c in chunks] == [b"\x01\x02"]
+    assert calls == [4.0, 4.0]
+    assert engine.last_event["ok"] is True

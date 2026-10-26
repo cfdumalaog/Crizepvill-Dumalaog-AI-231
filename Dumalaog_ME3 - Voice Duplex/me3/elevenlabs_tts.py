@@ -97,10 +97,10 @@ class ElevenLabsTTS:
 
     @staticmethod
     def _error_class(exc: Exception, status_code: int | None = None) -> str:
-        if isinstance(exc, requests.Timeout):
+        if isinstance(exc, requests.exceptions.Timeout):
             return "timeout"
-        if isinstance(exc, (requests.ConnectionError,
-                            requests.ChunkedEncodingError)):
+        if isinstance(exc, (requests.exceptions.ConnectionError,
+                            requests.exceptions.ChunkedEncodingError)):
             return "network"
         if status_code in (401, 403):
             return "auth"
@@ -170,15 +170,23 @@ class ElevenLabsTTS:
                         "status=%s", attempt + 1, status_code)
                     continue
                 response.raise_for_status()
+                pending = b""
                 for chunk in response.iter_content(chunk_size=4096):
                     if not chunk:
                         continue
-                    raw = bytes(chunk)
+                    raw = pending + bytes(chunk)
                     if len(raw) % 2:
-                        raise RuntimeError(
-                            "ElevenLabs returned an odd number of PCM bytes")
+                        pending = raw[-1:]
+                        raw = raw[:-1]
+                    else:
+                        pending = b""
+                    if not raw:
+                        continue
                     n_bytes += len(raw)
                     yield AudioChunk(raw)
+                if pending:
+                    raise RuntimeError(
+                        "ElevenLabs returned an odd number of PCM bytes")
                 self._record_event(ok=True, attempts=attempt + 1,
                                    started=started, n_bytes=n_bytes,
                                    status_code=status_code)
@@ -188,7 +196,9 @@ class ElevenLabsTTS:
                     attempt + 1, n_bytes,
                     self.last_event["latency_ms"], self.config.sample_rate)
                 return
-            except (requests.Timeout, requests.ConnectionError) as exc:
+            except (requests.exceptions.Timeout,
+                    requests.exceptions.ConnectionError,
+                    requests.exceptions.ChunkedEncodingError) as exc:
                 if attempt < self.max_retries:
                     log.warning(
                         "ElevenLabs retry backend=elevenlabs attempt=%d "

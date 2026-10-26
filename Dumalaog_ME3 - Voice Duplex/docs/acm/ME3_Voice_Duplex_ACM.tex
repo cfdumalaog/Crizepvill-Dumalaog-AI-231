@@ -49,6 +49,9 @@ This paper describes the architecture, tool-call protocol, safety boundary,
 local verification, Raspberry Pi release workflow, and evidence boundary for
 the separate FULL-DUPLEX-BENCH v1.5 evaluation. The current implementation is
 an engineering release, not a claim of completed paper-grade overlap results.
+The latest local acceptance also verified a provider-live ElevenLabs rendering
+through the workstation speaker, while the remote Qwen endpoint timed out
+before a new local Qwen voice turn could be completed.
 \end{abstract}
 
 \keywords{voice agents, full duplex, Raspberry Pi, tool calling, MCP, Qwen,
@@ -129,6 +132,17 @@ repository does not embed a voice identity or credential.
 Qwen remains the reasoning and tool-calling model. ElevenLabs Realtime v1
 Mini/Max is a separate hosted voice-agent architecture that also manages the
 LLM and ASR settings, so it is not silently substituted into this experiment.
+
+On 26 October 2026, an authorized local provider-only test used the
+gitignored Windows development credential and an operator-selected account
+voice. ElevenLabs returned 54 raw-PCM chunks (163,468 bytes at 16~kHz), and a
+Filipino-language test phrase played through the workstation's default
+speaker. The adapter was corrected to reassemble 16-bit samples split across
+HTTP chunk boundaries and to classify chunked-encoding failures using the
+correct Requests exception handling. The account voices inspected
+for this test were English-labelled; therefore this result verifies the
+provider integration and output path, not approval of a native Filipino
+accent.
 
 The duplex state machine is independent of the Qwen model. This makes the
 interaction control testable without a network request and leaves room for a
@@ -248,7 +262,9 @@ SCP, extraction, and installation succeed. The current receipt reports
 \texttt{deployed}; after installation, a \texttt{--check} pass, a Qwen/tool
 voice-injection run, and a Fifine USB capture preflight completed on the Pi.
 The Pi production user service remains disabled because the physical Pi
-playback path has not been exercised.
+playback path has not been exercised. At the time of this update the Pi is
+offline, so the local ElevenLabs acceptance did not change the deployed Pi
+runtime or provide new Pi hardware evidence.
 \end{sloppypar}
 
 The API key is never included in the archive. On the Pi it must be provisioned
@@ -264,16 +280,47 @@ The current local verification sequence is:
 python scripts/dev_env_check.py
 python scripts/local_smoke_test.py --with-audio
 python scripts/check_paper_alignment.py
-python -m pytest tests/test_tooling.py -q
+python -m pytest tests -q
 python -m me3.agent --brain remote --text \\
   "Use system_info and summarize the host."
 \end{lstlisting}
 
-The tool-focused tests cover OpenAI-compatible schemas, blocked shell
-patterns, background task completion, and a mocked multi-step Qwen response.
+The complete test suite passed 18 tests in the current checkout. The
+tool-focused tests cover OpenAI-compatible schemas, blocked shell patterns,
+background task completion, and a mocked multi-step Qwen response. The
+ElevenLabs tests additionally cover split-byte PCM reassembly, genuinely odd
+total PCM rejection, timeout retry, and chunked-encoding retry without
+credential disclosure. Python compilation also passed.
 The live Qwen smoke test records an actual tool call and final answer. The
 local smoke gate loads the four MCP servers and confirms the current Windows
 PortAudio inventory. These are engineering checks, not a claim about Pi audio.
+
+The evidence status at this revision is summarized in
+Table~\ref{tab:progress}.
+
+\begin{table}[t]
+\caption{ME3 progress evidence at the 26 October 2026 revision}
+\label{tab:progress}
+\small
+\begin{tabularx}{\columnwidth}{@{}lX@{}}
+\toprule
+Evidence lane & Status and interpretation \\
+\midrule
+Tool-capable Qwen & Verified in earlier live runs: Qwen created and inspected
+a web-app artifact through bounded tools. \\
+Local duplex audio & Verified with the Windows microphone, Piper output, and
+two barge-in cancellations; echo can contaminate ASR on loud speakers. \\
+ElevenLabs renderer & Verified locally: provider-live 16-kHz PCM playback
+through the default speaker; not a native-Filipino voice-quality result. \\
+Qwen plus ElevenLabs & Not completed in this revision: the configured remote
+Qwen endpoint timed out before inference. \\
+Pi hardware & Deployment receipt is previously verified, but the Pi is
+currently offline; physical Pi speaker and human-turn evidence remain open. \\
+Paper-native FDB v1.5 & Incomplete: no clean 499-utterance overlap artifact
+or paper-grade result is claimed. \\
+\bottomrule
+\end{tabularx}
+\end{table}
 
 The deployed Pi preflight is also an explicit hardware gate. It is read-only,
 does not alter mixer state, and returns exit code 2 when no capture device is
@@ -305,6 +352,15 @@ provision the API key on the target device. The typed registry makes the
 boundary visible and testable, but it is not a complete replacement for an
 interactive coding environment.
 
+The local ElevenLabs result narrows one implementation risk: the selected
+streaming endpoint can produce audio in the PCM format consumed by the
+full-duplex playback path, and the adapter tolerates arbitrary HTTP chunk
+boundaries. It does not remove the more important system risks. A complete
+voice-agent turn still requires both a reachable Qwen brain and a voice
+approved for the intended Filipino customer-support deployment. Provider
+rendering and Qwen/tool execution are therefore reported as separate evidence
+lanes rather than collapsed into one end-to-end claim.
+
 The full-duplex behavior is also more than a transport setting. VAD must keep
 running during playback, the audio output must be cancellable, and the
 turn-state transition must preserve the interrupted user's utterance. Echo
@@ -325,9 +381,13 @@ the agent can supervise longer work without freezing the microphone. The
 implementation uses inference and tools rather than model training, keeps
 local speech services under project ownership, and records the distinction
 between local verification, prepared release, Pi deployment, and benchmark
-evidence. On the deployed Pi, a securely configured Qwen runtime key and
-a text-mode Qwen tool run are verified; the next decisive checks are a live
-Pi run with physical audio and a clean, captured v1.5 overlap evaluation.
+evidence. A provider-live ElevenLabs rendering now plays through the local
+Windows speaker, but the account voices inspected for that test were
+English-labelled and the current remote Qwen endpoint timed out. On the
+deployed Pi, a securely configured Qwen runtime key and a text-mode Qwen tool
+run are verified; the next decisive checks are a reachable Qwen-plus-voice
+turn, an approved Filipino voice, a live Pi run with physical audio, and a
+clean captured v1.5 overlap evaluation.
 
 \begin{thebibliography}{9}
 
@@ -359,7 +419,7 @@ ME3 release pins Pipecat 1.13.0 for the harness-facing adapter.
 
 \bibitem{elevenlabs}
 ElevenLabs. ``Realtime models'' and ``Stream speech.'' Official developer
-documentation, 2026. \url{https://elevenlabs.io/docs/eleven-agents/customization/realtime-models}
+documentation, 2026. \href{https://elevenlabs.io/docs/eleven-agents/customization/realtime-models}{ElevenLabs developer documentation}.
 
 \end{thebibliography}
 

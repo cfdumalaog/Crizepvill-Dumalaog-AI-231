@@ -137,9 +137,13 @@ the safe response is to stop improvising and escalate.
 ## What this project can claim today
 
 The current evidence shows a Qwen/tool-capable duplex control path, a
-Filipino-ready ElevenLabs configuration, an injection-only Pi evaluation, and
-a split-device local test path. It does not show a live ElevenLabs provider
-call in this checkout unless the operator provisions the key and voice ID, and
-it does not establish that ME3 can replace a staffed call center at production
-scale. That conclusion requires a supervised pilot with real queue metrics,
-human handoff, privacy review, safety testing, and cost/quality comparison.
+Filipino-ready ElevenLabs configuration, a provider-live local TTS call played
+through the Windows speaker, an injection-only Pi evaluation, and a
+split-device local test path. The provider-live test used an operator-selected
+account voice whose catalog label was English; it therefore validates the
+integration and Filipino language-code request, not approval of a native
+Filipino accent. The remote Qwen endpoint was unavailable during the latest
+local voice test, and the Pi is offline. This does not establish that ME3 can
+replace a staffed call center at production scale. That conclusion requires a
+supervised pilot with real queue metrics, human handoff, privacy review, safety
+testing, and cost/quality comparison.

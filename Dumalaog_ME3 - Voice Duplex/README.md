@@ -215,6 +215,13 @@ for that turn and logs only the backend, error class, attempt count, byte count,
 sample rate, and latency. A mid-stream failure is surfaced rather than replayed
 from the beginning. Explicit `ME3_TTS_ENGINE=elevenlabs` remains strict.
 
+The local provider path was exercised on 2026-10-26 using an operator-selected
+test voice: ElevenLabs returned 16-kHz raw PCM and the Filipino-language test
+phrase played through the workstation's default speaker. This validates the
+provider adapter and physical output path. It does not yet certify a native
+Filipino voice, a reachable Qwen-backed turn, or Pi hardware playback. The
+approved voice ID must be supplied at runtime and is never committed.
+
 ElevenLabs Realtime v1 Mini/Max is a complete hosted voice-agent mode that also
 manages the LLM and speech recognition. It is documented as an optional
 alternative, but is not silently substituted because ME3's Qwen tool loop is
