@@ -15,9 +15,28 @@ except ImportError:  # pragma: no cover
     yaml = None
 
 
+def _load_project_env() -> None:
+    """Load the local ElevenLabs CLI .env without overriding real env vars.
+
+    The ElevenLabs onboarding CLI stores the authorized key in ``.env``.  The
+    Pi uses systemd-provided ``~/.config/me3/me3.env`` instead, so this local
+    convenience is deliberately additive: explicit process/service variables
+    always win, and the file is never printed or copied into release artifacts.
+    """
+    try:
+        from dotenv import load_dotenv
+    except ImportError:  # pragma: no cover - requirements install it
+        return
+    root = Path(__file__).resolve().parent.parent
+    env_path = root / ".env"
+    if env_path.is_file():
+        load_dotenv(dotenv_path=env_path, override=False)
+
+
 @lru_cache(maxsize=1)
 def load_config() -> dict:
     """Load and cache the YAML config."""
+    _load_project_env()
     cfg_path = os.environ.get("ME3_CONFIG")
     if not cfg_path:
         root = Path(__file__).resolve().parent.parent

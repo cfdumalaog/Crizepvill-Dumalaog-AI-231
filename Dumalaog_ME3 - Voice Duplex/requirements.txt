@@ -28,6 +28,7 @@ scipy>=1.11                   # signal utilities
 ollama>=0.3                   # local LLM client (Pi 5 small models)
 openai>=1.35                  # OpenAI-compatible client for remote vLLM
 requests>=2.31                # Qwen tool-call transport and public web fetch
+python-dotenv>=1.0            # load the gitignored ElevenLabs CLI .env locally
 
 # --- Benchmark / classwork ---
 psutil>=5.9                   # CPU/RAM telemetry for latency benchmark

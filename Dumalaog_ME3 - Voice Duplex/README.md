@@ -204,6 +204,11 @@ uses the existing local Piper voice. This preserves the current full-duplex
 microphone, VAD, ASR, playback, and barge-in path. See
 docs/ELEVENLABS_INTEGRATION.md.
 
+The ElevenLabs CLI onboarding flow stores the local development key in the
+gitignored project `.env`. ME3 loads that file locally without overriding
+explicit process/service variables; the Pi continues to use its protected
+`~/.config/me3/me3.env` runtime file. Do not commit or print either file.
+
 In `auto`, one bounded retry handles a timeout, rate limit, or provider-server
 error. If ElevenLabs fails before its first audio chunk, ME3 switches to Piper
 for that turn and logs only the backend, error class, attempt count, byte count,
