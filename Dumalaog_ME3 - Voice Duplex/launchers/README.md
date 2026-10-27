@@ -56,9 +56,10 @@ path. The browser UI calls the same brain for explicit text/tool inspection:
 ```
 
 The page includes starter prompts for system status, channel readiness, project
-inspection, and real web-app creation. The browser speech button is a
-convenience transcription preview; the actual ME3 VAD -> Whisper -> brain ->
-TTS path is evaluated by `scripts/injection_eval.py`. Calls, SMS, and email are
+inspection, and real web-app creation. Its browser listener starts automatically
+after microphone permission and submits detected utterances without a voice
+button; the authoritative ME3 VAD -> Whisper -> brain -> TTS path remains the
+full-duplex launcher and injection evaluator. Calls, SMS, and email are
 hard-disabled in this local UI even if provider credentials exist.
 
 ## Browser access

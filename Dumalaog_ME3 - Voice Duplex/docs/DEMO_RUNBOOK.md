@@ -105,8 +105,9 @@ Open `http://127.0.0.1:8124/`. Use **System status** first, then **Build a web
 app** to demonstrate real `write_file`, verification, and bounded tool calls.
 The UI returns a visible error if Qwen is unavailable; switch to **Offline
 stub** to confirm the local browser and conversation path independently. The
-browser microphone button is only a speech-recognition convenience preview; it
-does not replace the injected full ME3 audio evaluation below.
+the browser listener starts automatically after microphone permission; there is
+no microphone button to press. It remains a browser convenience client and does
+not replace the injected full ME3 audio evaluation below.
 
 ## What to show the professor
 

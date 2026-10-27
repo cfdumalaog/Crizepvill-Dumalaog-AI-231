@@ -193,9 +193,11 @@ This serves `web/ui.html` at `http://127.0.0.1:8124/` and calls the same Qwen
 ToolBrain used by the agent. Select **Qwen + tools** to require the configured
 Qwen endpoint, **Offline stub** for an offline smoke check, or **Auto** to use
 Qwen when its protected credential is available and otherwise use the stub. The
-UI shows model timing, tool identities, channel readiness, and safe errors. It
-does not open physical audio. Calls, SMS, and email are hard-disabled in this
-console, so the unavailable Twilio account is not a blocker for local model
+The browser voice listener starts automatically after microphone permission and
+submits detected utterances without a voice button. The UI shows model timing,
+tool identities, channel readiness, and safe errors. The authoritative physical
+audio path remains `Start-ME3.bat`; calls, SMS, and email are hard-disabled in
+this console, so the unavailable Twilio account is not a blocker for local model
 evaluation.
 
 ## Functional Requirements Checklist

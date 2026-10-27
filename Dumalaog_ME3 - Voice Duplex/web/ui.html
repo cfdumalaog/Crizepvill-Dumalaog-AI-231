@@ -41,6 +41,9 @@
     button.subtle { color:var(--muted); background:transparent; }
     button:disabled { opacity:.55; cursor:wait; transform:none; }
     label.check { color:var(--muted); font-size:.83rem; display:flex; gap:6px; align-items:center; }
+    .voice-status { color:var(--amber); border:1px solid #735d2e; background:#211d14; border-radius:999px; padding:8px 11px; font-size:.8rem; }
+    .voice-status.live { color:var(--green); border-color:#2e765c; background:#0d2a29; }
+    .voice-status.warn { color:var(--amber); }
     .side { display:flex; flex-direction:column; gap:16px; }
     .section { padding:16px 18px; }
     .section h2 { margin:0 0 11px; font-size:1rem; }
@@ -71,14 +74,14 @@
       <div class="chat-top"><strong>Conversation</strong><div class="mode"><span>Brain</span><select id="mode"><option value="auto">Auto</option><option value="qwen">Qwen + tools</option><option value="stub">Offline stub</option></select></div></div>
       <div id="messages"><div class="msg assistant"><small>ME3</small>Ready. Try a system check, ask me to inspect the project, or ask me to build a small web app under <code>agent_workspace</code>.</div></div>
       <div class="composer"><textarea id="input" placeholder="Ask ME3 to check the system, build a web app, or summarize the local status..."></textarea>
-        <div class="actions"><button id="send" class="primary">Send task</button><button id="listen">🎙 Browser voice input</button><button id="clear" class="subtle">Clear</button><label class="check"><input id="speak" type="checkbox"> read reply in browser</label></div>
+        <div class="actions"><button id="send" class="primary">Send diagnostic task</button><span id="voiceStatus" class="voice-status">Auto-listener starting…</span><button id="clear" class="subtle">Clear</button><label class="check"><input id="speak" type="checkbox"> read reply in browser</label></div>
       </div>
     </section>
     <aside class="side">
       <section class="card"><div class="side-top"><strong>Live readiness</strong><button id="refresh" class="subtle">Refresh</button></div><div class="section"><div id="status" class="status-grid"><div class="status-item"><b>Loading…</b><span>checking local service</span></div></div></div></section>
       <section class="card"><div class="section"><h2>Safe diagnostic tasks</h2><div class="chips"><button data-prompt="Use system_info and summarize the host.">System status</button><button data-prompt="Check channel_health and explain what is unavailable. Do not send anything.">Channel readiness</button><button data-prompt="Build a small todo web app under agent_workspace/ui_todo, then verify the files and report what you did.">Build a web app</button><button data-prompt="List the top-level ME3 project files and summarize the local test surface.">Inspect project</button></div></div></section>
       <section class="card"><div class="section"><h2>Tool events</h2><ul id="events"><li>No tool calls yet.</li></ul></div></section>
-      <div class="notice">The browser voice button uses the browser's speech-recognition preview. The full ME3 VAD → Whisper → brain → TTS path is tested separately with the injection evaluator and does not open physical audio from this console.</div>
+      <div class="notice">Voice mode starts automatically when the page opens after the browser grants microphone permission. There is no microphone button. This browser listener is a convenience client; the authoritative ME3 VAD → Whisper → Qwen/tools → TTS full-duplex path runs from <code>Start-ME3.bat</code> and does not require this page.</div>
     </aside>
   </div>
   <footer>ME3 local UI · project tools are bounded by the same allowlist · external channels hard-disabled · use <code>scripts/Start-ME3-UI.ps1</code> to launch</footer>
@@ -94,7 +97,34 @@
   async function health(){ try { const r=await fetch('/api/health'); const d=await r.json(); const q=d.qwen||{}; const c=d.channels?.channels||{}; $('status').innerHTML=statusItem('Qwen key',q.configured?'configured':'not configured',q.configured?'ok':'warn')+statusItem('Model',q.model||'not set')+statusItem('Tool surface',String(d.tools||0)+' tools','ok')+statusItem('Twilio call',c.call?.configured?'configured':'unavailable',c.call?.configured?'warn':'warn')+statusItem('Twilio SMS',c.sms?.configured?'configured':'unavailable',c.sms?.configured?'warn':'warn')+statusItem('Resend email',c.email?.configured?'configured':'unavailable',c.email?.configured?'warn':'warn'); } catch(e){ $('status').innerHTML=statusItem('Local UI','offline','bad'); } }
   async function send(){ const input=$('input'); const text=input.value.trim(); if(!text)return; const mode=$('mode').value; input.value=''; addMessage('user',text,mode); history.push({role:'user',content:text}); $('send').disabled=true; $('send').textContent='Working…'; try { const r=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:text,mode,history})}); const d=await r.json(); if(!d.ok) throw new Error(d.message||d.error||'request failed'); const meta=(d.mode||mode)+(d.metrics?.elapsed_ms!=null?' · '+d.metrics.elapsed_ms+' ms':''); addMessage('assistant',d.reply,meta); history.push({role:'assistant',content:d.reply}); setEvents(d.events); if($('speak').checked && 'speechSynthesis' in window){ speechSynthesis.cancel(); speechSynthesis.speak(new SpeechSynthesisUtterance(d.reply)); } } catch(e){ addMessage('assistant','Local request failed: '+e.message,'error'); setEvents([]); } finally { $('send').disabled=false; $('send').textContent='Send task'; } }
   $('send').onclick=send; $('input').addEventListener('keydown',e=>{if(e.key==='Enter' && (e.ctrlKey||e.metaKey)){e.preventDefault();send();}}); $('clear').onclick=()=>{history.length=0;messages.innerHTML='';setEvents([]);}; $('refresh').onclick=health; document.querySelectorAll('[data-prompt]').forEach(b=>b.onclick=()=>{$('input').value=b.dataset.prompt;$('input').focus();});
-  let recognition; const SpeechRecognition=window.SpeechRecognition||window.webkitSpeechRecognition; if(SpeechRecognition){ recognition=new SpeechRecognition(); recognition.lang='fil-PH'; recognition.interimResults=true; recognition.onresult=e=>{$('input').value=Array.from(e.results).map(x=>x[0].transcript).join('');}; recognition.onend=()=>{$('listen').textContent='🎙 Browser voice input';}; $('listen').onclick=()=>{recognition.start();$('listen').textContent='Listening…';}; } else { $('listen').disabled=true; $('listen').textContent='Browser voice unavailable'; }
+  let recognition=null, autoListening=false, voiceBooting=false, voiceBuffer='', voiceTimer=null, restartTimer=null;
+  const SpeechRecognition=window.SpeechRecognition||window.webkitSpeechRecognition;
+  function setVoiceStatus(text, cls=''){ const el=$('voiceStatus'); el.textContent=text; el.className='voice-status '+cls; }
+  function scheduleVoiceRestart(){ if(!autoListening || !recognition || restartTimer)return; restartTimer=setTimeout(()=>{ restartTimer=null; try{ recognition.start(); }catch(e){ scheduleVoiceRestart(); } },500); }
+  async function startAutoVoice(){
+    if(!SpeechRecognition){ setVoiceStatus('Browser auto-voice unavailable; use the full-duplex launcher','warn'); return; }
+    if(autoListening || voiceBooting)return;
+    voiceBooting=true;
+    if(navigator.mediaDevices && navigator.mediaDevices.getUserMedia){
+      try{ const stream=await navigator.mediaDevices.getUserMedia({audio:true}); stream.getTracks().forEach(track=>track.stop()); }
+      catch(e){ voiceBooting=false; setVoiceStatus('Microphone permission required; full-duplex launcher remains available','warn'); return; }
+    }
+    voiceBooting=false; autoListening=true; voiceBuffer='';
+    recognition=new SpeechRecognition(); recognition.lang='fil-PH'; recognition.continuous=true; recognition.interimResults=true; recognition.maxAlternatives=1;
+    recognition.onstart=()=>setVoiceStatus('● Always listening','live');
+    recognition.onerror=e=>{ if(e.error==='not-allowed'||e.error==='service-not-allowed'){ autoListening=false; setVoiceStatus('Microphone permission required; full-duplex launcher remains available','warn'); } else { setVoiceStatus('Auto-listener reconnecting…','warn'); scheduleVoiceRestart(); } };
+    recognition.onend=()=>{ if(autoListening){ setVoiceStatus('Auto-listener reconnecting…','warn'); scheduleVoiceRestart(); } };
+    recognition.onresult=e=>{
+      let interim='';
+      for(let i=e.resultIndex;i<e.results.length;i++){ const t=e.results[i][0].transcript.trim(); if(e.results[i].isFinal) voiceBuffer+=(voiceBuffer?' ':'')+t; else interim+=(interim?' ':'')+t; }
+      $('input').value=voiceBuffer+(interim?' '+interim:'');
+      clearTimeout(voiceTimer);
+      if(voiceBuffer.trim()) voiceTimer=setTimeout(()=>{ const utterance=voiceBuffer.trim(); voiceBuffer=''; $('input').value=''; sendText(utterance,'voice-auto'); },850);
+    };
+    try{ recognition.start(); }catch(e){ setVoiceStatus('Auto-listener starting…','warn'); scheduleVoiceRestart(); }
+  }
+  function sendText(text, metaMode){ const input=$('input'); if(!text||$('send').disabled)return; const mode=$('mode').value; addMessage('user',text,metaMode||mode); history.push({role:'user',content:text}); $('send').disabled=true; $('send').textContent='Working…'; fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:text,mode,history})}).then(r=>r.json()).then(d=>{ if(!d.ok)throw new Error(d.message||d.error||'request failed'); const meta=(d.mode||mode)+(d.metrics?.elapsed_ms!=null?' · '+d.metrics.elapsed_ms+' ms':''); addMessage('assistant',d.reply,meta); history.push({role:'assistant',content:d.reply}); setEvents(d.events); if($('speak').checked && 'speechSynthesis' in window){ speechSynthesis.cancel(); speechSynthesis.speak(new SpeechSynthesisUtterance(d.reply)); } }).catch(e=>{ addMessage('assistant','Local request failed: '+e.message,'error'); setEvents([]); }).finally(()=>{ $('send').disabled=false; $('send').textContent='Send diagnostic task'; }); }
+  if(SpeechRecognition) setTimeout(startAutoVoice,250); else setVoiceStatus('Browser auto-voice unavailable; use the full-duplex launcher','warn');
   health();
 </script>
 </body>

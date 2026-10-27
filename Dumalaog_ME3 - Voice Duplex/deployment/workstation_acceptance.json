@@ -1,41 +1,41 @@
 {
   "schema": 1,
-  "acceptance_id": "workstation-20261027-121702",
+  "acceptance_id": "workstation-20261027-123835",
   "status": "pass",
-  "created_utc": "2026-10-27T12:17:02.647345+00:00",
+  "created_utc": "2026-10-27T12:38:35.908377+00:00",
   "host": "DABEXY",
   "python": "3.12.10",
   "mode": "windows_workstation_only",
   "external_side_effects": false,
   "pi_contacted": false,
   "promotion_policy": "workstation_acceptance_required",
-  "release_id": "me3-20261027-121701-c7d44678",
-  "source_fingerprint": "c7d446782414c801977fd6b633a4ede2abee3092b415e0137c116dd6eacc2f7f",
-  "zip_sha256": "3d2c4b45d382d9b2af6ead2416332dacb744ef9dc3f62046996064137467a83d",
+  "release_id": "me3-20261027-123835-5001e664",
+  "source_fingerprint": "5001e664a271d1917907a777fe9d041fdaf1b7328a5d72ec07b81f7fcb4456ca",
+  "zip_sha256": "2ecddd17f1f37670c5b330d8d51322dd406d497d949c2a2581ed6de83e64577a",
   "checks": [
     {
       "name": "shared_environment",
       "status": "pass",
       "returncode": 0,
-      "duration_s": 3.364,
+      "duration_s": 3.667,
       "command": "C:\\Users\\danda\\Desktop\\MEng AI Notebooks\\AI 222 231\\.venv\\Scripts\\python.exe scripts/dev_env_check.py",
       "stdout_tail": "                      MCP SDK - all four servers speak MCP\n  [OK ] fastapi        0.141.1                       FastMCP server framework\n  [OK ] uvicorn        0.52.4                        ASGI transport for streamable-http mode\n  [OK ] pipecat        1.13.0                        full-duplex orchestration pipeline\n  [OK ] faster_whisper 1.2.1                         SOTA ASR (CTranslate2)\n  [OK ] piper          present                       SOTA low-latency TTS\n  [OK ] onnxruntime    1.24.4                        CPU Silero VAD runtime\n  [OK ] sounddevice    0.5.6                         full-duplex mic/speaker I/O (PortAudio)\n  [OK ] requests       2.34.2                        LLM endpoint client (remote vLLM option)\n\nRESULT: PASS - all ME3 dependencies importable in this environment.\n",
-      "stderr_tail": "\u001b[32m2026-10-27 20:16:37.852\u001b[0m | \u001b[1mINFO    \u001b[0m | \u001b[36mpipecat\u001b[0m:\u001b[36m<module>\u001b[0m:\u001b[36m54\u001b[0m - \u001b[1m\\u14da\\u160f\\u15e2 Pipecat 1.13.0 (Python 3.12.10 (tags/v3.12.10:0cc8128, Apr  8 2025, 12:21:36) [MSC v.1943 64 bit (AMD64)]) \\u14da\\u160f\\u15e2\u001b[0m\n"
+      "stderr_tail": "\u001b[32m2026-10-27 20:38:13.937\u001b[0m | \u001b[1mINFO    \u001b[0m | \u001b[36mpipecat\u001b[0m:\u001b[36m<module>\u001b[0m:\u001b[36m54\u001b[0m - \u001b[1m\\u14da\\u160f\\u15e2 Pipecat 1.13.0 (Python 3.12.10 (tags/v3.12.10:0cc8128, Apr  8 2025, 12:21:36) [MSC v.1943 64 bit (AMD64)]) \\u14da\\u160f\\u15e2\u001b[0m\n"
     },
     {
       "name": "pytest",
       "status": "pass",
       "returncode": 0,
-      "duration_s": 4.558,
+      "duration_s": 5.251,
       "command": "C:\\Users\\danda\\Desktop\\MEng AI Notebooks\\AI 222 231\\.venv\\Scripts\\python.exe -m pytest tests -q",
-      "stdout_tail": "...............................                                          [100%]\n31 passed in 3.16s\n",
+      "stdout_tail": "................................                                         [100%]\n32 passed in 3.94s\n",
       "stderr_tail": ""
     },
     {
       "name": "python_compile",
       "status": "pass",
       "returncode": 0,
-      "duration_s": 0.177,
+      "duration_s": 0.155,
       "command": "C:\\Users\\danda\\Desktop\\MEng AI Notebooks\\AI 222 231\\.venv\\Scripts\\python.exe -m compileall -q me3 scripts",
       "stdout_tail": "",
       "stderr_tail": ""
@@ -44,7 +44,7 @@
       "name": "bash_syntax",
       "status": "pass",
       "returncode": 0,
-      "duration_s": 5.986,
+      "duration_s": 3.946,
       "command": "bash -n install.sh",
       "stdout_tail": "",
       "stderr_tail": ""
@@ -53,16 +53,16 @@
       "name": "mcp_and_audio_smoke",
       "status": "pass",
       "returncode": 0,
-      "duration_s": 11.662,
+      "duration_s": 10.293,
       "command": "C:\\Users\\danda\\Desktop\\MEng AI Notebooks\\AI 222 231\\.venv\\Scripts\\python.exe scripts/local_smoke_test.py --with-audio",
-      "stdout_tail": "ad_ms\": 2703.1}\n  [PASS] me3.mcp_tts   tools=4 health={\"ok\": true, \"engine\": \"piper\", \"configured_engine\": \"piper\", \"voice\": \"en_GB-alba-medium\", \"sample_rate\": 22050, \"load_\n  [PASS] me3.mcp_vad   tools=4 health={\"ok\": true, \"engine\": \"silero-vad\", \"threshold\": 0.5, \"min_silence_ms\": 450, \"load_ms\": 167.2}\n  [PASS] me3.mcp_tasks tools=25 health={\"ok\": true, \"tools\": [\"set_timer\", \"list_timers\", \"cancel_timer\", \"system_info\", \"read_file\", \"write_file\", \"run_comman\n\nBenchmark:\n  [PASS] me3.benchmark constructed; 5 benchmark scenarios registered\n\nAudio I/O:\n  [PASS] PortAudio OK; 56 devices; default in/out below\n         default in : 1\n         default out: 5\n\nRESULT: PASS - 4 MCP servers healthy, benchmark + audio OK.\nSafe to run scripts/package_release.py and then scripts/deploy_to_pi.py.\n",
-      "stderr_tail": "\u001b[32m2026-10-27 20:17:00.277\u001b[0m | \u001b[1mINFO    \u001b[0m | \u001b[36mpipecat\u001b[0m:\u001b[36m<module>\u001b[0m:\u001b[36m54\u001b[0m - \u001b[1m\\u14da\\u160f\\u15e2 Pipecat 1.13.0 (Python 3.12.10 (tags/v3.12.10:0cc8128, Apr  8 2025, 12:21:36) [MSC v.1943 64 bit (AMD64)]) \\u14da\\u160f\\u15e2\u001b[0m\n"
+      "stdout_tail": "ad_ms\": 3023.9}\n  [PASS] me3.mcp_tts   tools=4 health={\"ok\": true, \"engine\": \"piper\", \"configured_engine\": \"piper\", \"voice\": \"en_GB-alba-medium\", \"sample_rate\": 22050, \"load_\n  [PASS] me3.mcp_vad   tools=4 health={\"ok\": true, \"engine\": \"silero-vad\", \"threshold\": 0.5, \"min_silence_ms\": 450, \"load_ms\": 155.5}\n  [PASS] me3.mcp_tasks tools=25 health={\"ok\": true, \"tools\": [\"set_timer\", \"list_timers\", \"cancel_timer\", \"system_info\", \"read_file\", \"write_file\", \"run_comman\n\nBenchmark:\n  [PASS] me3.benchmark constructed; 5 benchmark scenarios registered\n\nAudio I/O:\n  [PASS] PortAudio OK; 56 devices; default in/out below\n         default in : 1\n         default out: 5\n\nRESULT: PASS - 4 MCP servers healthy, benchmark + audio OK.\nSafe to run scripts/package_release.py and then scripts/deploy_to_pi.py.\n",
+      "stderr_tail": "\u001b[32m2026-10-27 20:38:33.802\u001b[0m | \u001b[1mINFO    \u001b[0m | \u001b[36mpipecat\u001b[0m:\u001b[36m<module>\u001b[0m:\u001b[36m54\u001b[0m - \u001b[1m\\u14da\\u160f\\u15e2 Pipecat 1.13.0 (Python 3.12.10 (tags/v3.12.10:0cc8128, Apr  8 2025, 12:21:36) [MSC v.1943 64 bit (AMD64)]) \\u14da\\u160f\\u15e2\u001b[0m\n"
     },
     {
       "name": "paper_alignment",
       "status": "pass",
       "returncode": 0,
-      "duration_s": 0.401,
+      "duration_s": 0.361,
       "command": "C:\\Users\\danda\\Desktop\\MEng AI Notebooks\\AI 222 231\\.venv\\Scripts\\python.exe scripts/check_paper_alignment.py",
       "stdout_tail": "  \"timing_equations\": {\n      \"stop_latency_s\": \"tmodel_stop - tuser_start\",\n      \"response_latency_s\": \"tmodel_start - tuser_end\"\n    },\n    \"transforms\": {\n      \"talking_to_others\": {\n        \"gain_db\": -8.0,\n        \"high_shelf_hz\": 4000.0,\n        \"high_shelf_db\": -5.0,\n        \"reflections\": [\n          [\n            0.045,\n            -6.0\n          ],\n          [\n            0.12,\n            -12.0\n          ]\n        ]\n      },\n      \"background_speech\": {\n        \"gain_db\": -15.0,\n        \"lowpass_hz\": 3000.0,\n        \"echo\": [\n          0.1,\n          -10.0\n        ]\n      }\n    }\n  },\n  \"pi\": {\n    \"installer\": true,\n    \"systemd_units\": 4,\n    \"owned_mcp_servers\": 4,\n    \"full_duplex\": true,\n    \"asr_compute_type\": \"int8\"\n  }\n}\nLIVE_PI_RUN: not performed by this static check\n",
       "stderr_tail": ""
@@ -71,10 +71,10 @@
       "name": "git_whitespace",
       "status": "pass",
       "returncode": 0,
-      "duration_s": 0.08,
+      "duration_s": 0.066,
       "command": "git diff --check -- Dumalaog_ME3 - Voice Duplex",
       "stdout_tail": "",
-      "stderr_tail": "warning: in the working copy of 'Dumalaog_ME3 - Voice Duplex/launchers/README.md', CRLF will be replaced by LF the next time Git touches it\nwarning: in the working copy of 'Dumalaog_ME3 - Voice Duplex/web/index.html', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of 'Dumalaog_ME3 - Voice Duplex/web/ui.html', LF will be replaced by CRLF the next time Git touches it\n"
+      "stderr_tail": "warning: in the working copy of 'Dumalaog_ME3 - Voice Duplex/launchers/README.md', CRLF will be replaced by LF the next time Git touches it\nwarning: in the working copy of 'Dumalaog_ME3 - Voice Duplex/web/ui.html', LF will be replaced by CRLF the next time Git touches it\n"
     },
     {
       "name": "presentable_artifacts",
