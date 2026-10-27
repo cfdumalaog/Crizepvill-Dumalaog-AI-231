@@ -35,6 +35,7 @@ RELEASE_NAME = "me3_voice_duplex"
 INCLUDE = [
     "me3",                 # all MCP servers + agent + benchmark + config loader
     "config",              # config/config.yaml (single source of truth)
+    "web",                 # tracked presenter surface for local/Pi browser access
     "data/DATASET.md",     # class-group shared benchmark dataset spec
     "install.sh",          # idempotent Pi installer
     "deploy",              # systemd units

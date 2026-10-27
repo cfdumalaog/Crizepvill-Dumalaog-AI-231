@@ -129,6 +129,7 @@ def _package() -> dict:
 def _required_presentable_files() -> list[str]:
     return [
         "README.md",
+        "web/index.html",
         "docs/CHANNEL_INTEGRATIONS.md",
         "docs/DEMO_RUNBOOK.md",
         "docs/ME3_MANUAL_ELI5_AND_DEEP.md",

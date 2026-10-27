@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b1220">
+  <title>ME3 Voice Duplex</title>
+  <style>
+    :root { color-scheme: dark; --bg: #0b1220; --panel: #111c31; --line: #263756;
+      --text: #edf4ff; --muted: #a9bad4; --cyan: #6ee7f9; --green: #65e6a4;
+      --amber: #ffd27a; }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; font: 16px/1.55 system-ui, -apple-system,
+      Segoe UI, sans-serif; color: var(--text); background:
+      radial-gradient(circle at 80% 0%, #1c3860 0, transparent 36%), var(--bg); }
+    main { width: min(1120px, calc(100% - 36px)); margin: 0 auto; padding: 54px 0 72px; }
+    .eyebrow { color: var(--cyan); text-transform: uppercase; letter-spacing: .16em;
+      font-size: .75rem; font-weight: 800; }
+    h1 { margin: 10px 0 12px; font-size: clamp(2.3rem, 6vw, 5rem); line-height: .98;
+      letter-spacing: -.055em; max-width: 780px; }
+    .lead { max-width: 720px; color: var(--muted); font-size: 1.13rem; }
+    .hero { display: flex; gap: 22px; align-items: flex-end; justify-content: space-between;
+      flex-wrap: wrap; margin-bottom: 34px; }
+    .status { padding: 13px 16px; border: 1px solid #2b7359; border-radius: 14px;
+      background: #102b2a; color: var(--green); font-weight: 800; white-space: nowrap; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+      gap: 14px; margin: 24px 0; }
+    .card { border: 1px solid var(--line); border-radius: 18px; padding: 20px;
+      background: color-mix(in srgb, var(--panel) 90%, transparent); box-shadow: 0 12px 40px #05091455; }
+    .card h2 { margin: 0 0 8px; font-size: 1.05rem; }
+    .card p { margin: 0; color: var(--muted); }
+    .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%;
+      margin-right: 7px; background: var(--green); box-shadow: 0 0 12px var(--green); }
+    .amber .dot { background: var(--amber); box-shadow: 0 0 12px var(--amber); }
+    .pipeline { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 16px; }
+    .step { border: 1px solid #38537b; border-radius: 999px; padding: 7px 12px;
+      color: #d7e6ff; background: #172741; font-size: .9rem; }
+    .arrow { color: var(--cyan); }
+    .note { border-left: 3px solid var(--amber); padding: 12px 16px; margin-top: 24px;
+      color: var(--muted); background: #171e2b; border-radius: 0 12px 12px 0; }
+    code { color: var(--cyan); background: #0a1324; border-radius: 6px; padding: 2px 6px; }
+    footer { margin-top: 38px; color: #8496b3; font-size: .9rem; }
+    @media (max-width: 620px) { main { width: min(100% - 24px, 1120px); padding-top: 34px; } }
+  </style>
+</head>
+<body>
+  <main>
+    <section class="hero">
+      <div>
+        <div class="eyebrow">AI 231 · Philippines voice-agent pilot</div>
+        <h1>ME3 Voice Duplex</h1>
+        <p class="lead">A no-training, interruptible voice agent that listens, reasons
+          with Qwen, calls bounded tools, and speaks through Piper or ElevenLabs.</p>
+      </div>
+      <div class="status"><span class="dot"></span>Presentable release</div>
+    </section>
+    <section class="card">
+      <h2>Voice and tool pipeline</h2>
+      <p>Owned MCP services keep speech and task execution explicit. A web request can
+        build a real artifact; it is not only an explanatory model response.</p>
+      <div class="pipeline" aria-label="ME3 pipeline">
+        <span class="step">Microphone / injected PCM</span><span class="arrow">→</span>
+        <span class="step">Silero VAD</span><span class="arrow">→</span>
+        <span class="step">Whisper ASR</span><span class="arrow">→</span>
+        <span class="step">Qwen + MCP tools</span><span class="arrow">→</span>
+        <span class="step">Piper / ElevenLabs</span><span class="arrow">→</span>
+        <span class="step">Speaker</span>
+      </div>
+    </section>
+    <section class="grid">
+      <article class="card"><h2><span class="dot"></span>Workstation gate</h2>
+        <p>Windows is the finalization and presentation environment. The exact
+          accepted release is promoted to the Pi only after tests, artifact checks,
+          audio smoke, and package hashing pass.</p></article>
+      <article class="card"><h2><span class="dot"></span>Agentic tasks</h2>
+        <p>Voice or text can ask ME3 to create a web app, write files, run bounded
+          commands, start a local server, inspect the result, and report the URL.</p></article>
+      <article class="card amber"><h2><span class="dot"></span>Hardware gate</h2>
+        <p>The Pi software release is deployed, but physical voice service remains
+          disabled until a capture device is visible to ALSA and PortAudio.</p></article>
+      <article class="card"><h2><span class="dot"></span>Communication layer</h2>
+        <p>Confirmed Twilio calls/SMS and Resend email are implemented behind protected
+          credentials. Live provider tests remain operator-controlled.</p></article>
+    </section>
+    <div class="note"><strong>Browser scope:</strong> this is a private local/LAN
+      presenter surface. Windows uses <code>127.0.0.1:8123</code>; the ME2-style Pi
+      SSH tunnel uses <code>127.0.0.1:8090</code>. Neither URL publishes ME3 to the
+      public Internet.</div>
+    <footer>ME3 Voice Duplex · inference and tools, no model training required ·
+      static presenter surface served by the bounded project web root</footer>
+  </main>
+</body>
+</html>

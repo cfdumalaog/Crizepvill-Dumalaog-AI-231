@@ -46,6 +46,8 @@ Dumalaog_ME3 - Voice Duplex/
 │   ├── Start-Pi-Injection-Demo.bat # one-click deployed Qwen/tool demo
 ├── scripts/                # LOCAL-DEV pipeline (ME2 pattern) - run on Windows
 │   ├── Start-Local-ME3.ps1 # 0. launch the voice agent locally
+│   ├── Start-ME3-Web.ps1 # local browser preview on port 8123
+│   ├── Start-ME3-Pi-Web.ps1 # ME2-style SSH browser tunnel to Pi port 8090
 │   ├── dev_env_check.py    # 1. verify shared .venv has all ME3 deps
 │   ├── local_smoke_test.py # 2. import+health all 4 MCP servers, no Pi
 │   ├── pi_audio_preflight.py # Pi ALSA + PortAudio read-only gate
@@ -156,6 +158,18 @@ test fixtures and must not contain credentials.
 
 For a presenter-friendly sequence with a status scenario, web-app scenario,
 and physical-audio gate, use [`docs/DEMO_RUNBOOK.md`](docs/DEMO_RUNBOOK.md).
+
+### Browser access like ME2
+
+ME3 now has an explicit browser path. On Windows, double-click
+`launchers\Start-ME3-Web.bat` to serve the tracked `web/` presenter surface at
+`http://127.0.0.1:8123/`; pass `-Path agent_workspace\voice_webapp` when you
+want to serve a generated Qwen web app. The launcher also
+prints LAN URLs for another device on the same network. For the Pi, double-click
+`launchers\Start-ME3-Pi-Web.bat` to start/check the bounded Pi preview and
+forward it through SSH to `http://127.0.0.1:8090/`, matching the ME2 tunnel
+experience. Both paths are local-network/tunnel access, not public Internet
+hosting.
 
 ## Functional Requirements Checklist
 | # | Requirement | Status | Where |

@@ -386,8 +386,10 @@ def start_web_server(path: str = "agent_workspace",
         return {"ok": False,
                 "error": "server did not come up; see "
                          f"agent_workspace/.servers/http-{port}.log"}
+    lan_url = f"http://{_lan_ip()}:{port}/"
     return {"ok": True, "port": port, "pid": proc.pid,
-            "url": f"http://{_lan_ip()}:{port}",
+            "url": lan_url, "lan_url": lan_url,
+            "local_url": f"http://127.0.0.1:{port}/",
             "path": _relative(docroot)}
 
 
@@ -410,9 +412,10 @@ def web_servers() -> dict:
     with _servers_lock:
         for port, info in list(_web_servers.items()):
             alive = _pid_alive(info["pid"])
+            lan_url = f"http://{_lan_ip()}:{port}/" if alive else None
             out.append({"port": port, "pid": info["pid"], "path": info["path"],
-                        "alive": alive,
-                        "url": f"http://{_lan_ip()}:{port}" if alive else None})
+                        "alive": alive, "url": lan_url, "lan_url": lan_url,
+                        "local_url": f"http://127.0.0.1:{port}/" if alive else None})
             if not alive:
                 _web_servers.pop(port, None)
     return {"ok": True, "servers": out, "lan_ip": _lan_ip()}

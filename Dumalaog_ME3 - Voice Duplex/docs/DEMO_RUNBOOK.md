@@ -62,6 +62,21 @@ served at `http://192.168.254.106:8090/` when the Pi server is running. The
 Windows copy is served at `http://127.0.0.1:8123/` when the local demo server
 is running.
 
+For the ME2-style browser workflow, use the dedicated launchers:
+
+```powershell
+# Windows local preview; opens http://127.0.0.1:8123/
+& .\scripts\Start-ME3-Web.ps1 -OpenBrowser
+
+# Pi preview through an SSH loopback tunnel; opens http://127.0.0.1:8090/
+& .\scripts\Start-ME3-Pi-Web.ps1 -StartServer -OpenBrowser
+```
+
+The Pi launcher serves only the bounded tracked `web/` presenter folder,
+checks HTTP 200 before opening the tunnel, and keeps the endpoint private to
+the SSH connection. Press `Ctrl+C` to close the tunnel. Neither launcher
+publishes ME3 to the public Internet.
+
 ## What to show the professor
 
 1. Run the `Status` scenario and point out `status: pass`, the Qwen tool names,
