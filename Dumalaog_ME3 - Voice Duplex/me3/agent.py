@@ -44,6 +44,7 @@ import numpy as np
 from .audio_io import FullDuplexAudio, RemoteMicAudio, resample_to
 from .brain import ToolBrain, build_system_prompt
 from .config import load_config
+from .vocalis import TurnState, VocalisOrchestrator
 
 log = logging.getLogger("me3.agent")
 
@@ -73,6 +74,10 @@ class VoiceDuplexAgent:
         self.state = "idle"          # idle | listening | thinking | speaking
         self._speaking_task: asyncio.Task | None = None
         self._barge_in = self.agent.get("barge_in", True)
+        self.vocalis = VocalisOrchestrator(
+            sample_rate=self.sr,
+            backchannel=self.agent.get("backchannel", "Let me work on that."),
+        )
 
     # ---- Turn state machine ------------------------------------------------
     def on_frame(self, frame, vad_speech: bool) -> str:
@@ -80,6 +85,7 @@ class VoiceDuplexAgent:
 
         Actions: 'continue', 'start_turn', 'end_turn', 'barge_in'
         """
+        self.vocalis.on_user_vad(vad_speech)
         if self.state == "speaking" and vad_speech and self._barge_in:
             # User interrupted the agent -> stop TTS, switch to listening.
             self._cancel_speaking()
@@ -97,18 +103,21 @@ class VoiceDuplexAgent:
         """Called when VAD reports enough trailing silence during listening."""
         if self.state == "listening":
             self.state = "thinking"
+            self.vocalis.set_state(TurnState.THINKING, "silence endpoint")
             return "end_turn"
         return "continue"
 
     def on_reply_ready(self, text: str) -> str:
         """LLM produced a reply; start speaking."""
         self.state = "speaking"
+        self.vocalis.on_assistant_text_delta(text, final=True)
         self._speak(text)
         return "speaking"
 
     def on_speech_done(self) -> str:
         """TTS finished; back to idle."""
         self.state = "idle"
+        self.vocalis.on_tts_complete()
         return "idle"
 
     # ---- Speaking / barge-in ----------------------------------------------
@@ -267,7 +276,7 @@ class LocalVoiceLoop:
     VAD_CHUNK = 512  # silero frame size @16 kHz
 
     def __init__(self, cfg: dict | None = None, brain=None, device=None,
-                 audio=None):
+                 audio=None, orchestrator: VocalisOrchestrator | None = None):
         self.cfg = cfg or load_config()
         a = self.cfg["audio"]
         self.sr = int(a["sample_rate"])
@@ -296,6 +305,16 @@ class LocalVoiceLoop:
         self.backchannel = str(agent.get("backchannel", "Let me work on that."))
         self._pending = None  # (thread, holder, t_start, asr_ms) long task
         self._tts_lock = threading.Lock()
+        self.orchestrator = orchestrator or VocalisOrchestrator(
+            sample_rate=self.sr,
+            backchannel=self.backchannel,
+        )
+        self._brain_on_tool = None
+        if self.brain is not None:
+            callback = getattr(self.brain, "on_tool", None)
+            if callable(callback):
+                self._brain_on_tool = callback
+                self.brain.on_tool = self._on_brain_tool
 
         self.state = "idle"
         self._pre: deque[np.ndarray] = deque(
@@ -305,6 +324,28 @@ class LocalVoiceLoop:
         self._silence_ms = 0
         self._vad_pending = np.zeros(0, dtype=np.float32)
         self._engines = None   # (vad_model, unused, asr_engine, asr_cfg, tts_engine, tts_cfg)
+
+    def _on_brain_tool(self, kind: str, name: str, payload) -> None:
+        """Bridge Qwen tool progress into Vocalis' asynchronous event stream.
+
+        The original logging callback is retained.  Event payloads deliberately
+        contain only the tool name and success flag; arguments and tool results
+        can contain user data or credentials and must not enter the event log.
+        """
+        if self._brain_on_tool is not None:
+            self._brain_on_tool(kind, name, payload)
+        if kind == "start":
+            self.orchestrator.on_harness_event({
+                "phase": "tool_started",
+                "name": str(name),
+            })
+            return
+        ok = payload.get("ok") if isinstance(payload, dict) else True
+        self.orchestrator.on_harness_event({
+            "phase": "tool_finished",
+            "name": str(name),
+            "ok": bool(ok),
+        })
 
     # ---- Engine loading -----------------------------------------------------
     def _load_engines(self) -> None:
@@ -365,8 +406,11 @@ class LocalVoiceLoop:
         if not text:
             log.info("turn ignored (empty transcript) [asr %.0f ms]", asr_ms)
             self.state = "idle"
+            self.orchestrator.set_state(TurnState.LISTENING, "empty transcript")
             return
         log.info("heard: %r [asr %.0f ms]", text, asr_ms)
+        self.orchestrator.on_transcript_delta(text, final=True,
+                                              timestamp=t_start)
 
         t0 = time.perf_counter()
         if self.ack_wait_s > 0:
@@ -390,6 +434,7 @@ class LocalVoiceLoop:
                 self.history.append({"role": "user", "content": text})
                 self.stats.llm_ms.append((time.perf_counter() - t0) * 1e3)
                 log.info("long task running in background; backchannel")
+                self.orchestrator.begin_backchannel(self.backchannel)
                 self._speak_text(tts_engine, self.backchannel, t_start,
                                  asr_ms, (time.perf_counter() - t0) * 1e3)
                 self.state = "awaiting"
@@ -407,6 +452,7 @@ class LocalVoiceLoop:
         self.history = self.history[-8:]
         log.info("reply (%s, %.0f ms): %r", self.brain.name, llm_ms,
                  reply[:120])
+        self.orchestrator.on_assistant_text_delta(reply, final=True)
         self._speak_text(tts_engine, reply, t_start, asr_ms, llm_ms)
 
     def _speak_text(self, tts_engine, text: str, t_start: float,
@@ -423,6 +469,7 @@ class LocalVoiceLoop:
         if pcm.size == 0:
             log.warning("TTS produced no audio")
             self.state = "idle"
+            self.orchestrator.on_tts_complete()
             return
         tts_sr = int(getattr(getattr(tts_engine, "config", None),
                              "sample_rate", 22050) or 22050)
@@ -466,6 +513,7 @@ class LocalVoiceLoop:
         self._uttr = []
         if len(utterance) < self.sr * 0.15:  # <150 ms of audio: ignore
             self.state = "idle"
+            self.orchestrator.set_state(TurnState.LISTENING, "short audio ignored")
             return
         t_end = time.perf_counter()
         try:
@@ -473,6 +521,7 @@ class LocalVoiceLoop:
         except Exception as exc:  # noqa: BLE001 - keep the loop alive
             self.stats.n_errors += 1
             self.state = "idle"
+            self.orchestrator.set_state(TurnState.LISTENING, "turn error")
             log.exception("turn processing failed: %s", exc)
 
     # ---- Main loop ----------------------------------------------------------
@@ -484,6 +533,7 @@ class LocalVoiceLoop:
         self._load_engines()
         self.audio.start_capture()
         self.audio.startup_signal_check()
+        self.orchestrator.set_state(TurnState.LISTENING, "audio capture started")
         log.info("LISTENING. Speak to the microphone; interrupt me mid-sentence "
                  "to barge in. Ctrl+C stops.")
 
@@ -505,21 +555,29 @@ class LocalVoiceLoop:
                                 m["first_tool_ms"])
                         log.info("background task finished; announcing")
                         if reply:
+                            self.orchestrator.on_assistant_text_delta(
+                                reply, final=True)
                             self._speak_text(self._engines[3], reply,
                                              t_start, asr_ms, 0.0,
                                              count_e2e=False)
                         elif self.state in ("awaiting",):
                             self.state = "idle"
+                            self.orchestrator.set_state(
+                                TurnState.LISTENING,
+                                "background task returned empty",
+                            )
                 frame = self.audio.read_frame(timeout=0.5)
                 if frame is None:
                     if self.state == "speaking" and self.audio.playback_done():
                         self.state = "idle"
+                        self.orchestrator.on_tts_complete()
                         log.info("agent finished speaking; idle")
                     continue
                 for p in self._vad_probs(frame):
                     self._on_vad_frame(p, frame)
                 if self.state == "speaking" and self.audio.playback_done():
                     self.state = "idle"
+                    self.orchestrator.on_tts_complete()
                     log.info("agent finished speaking; idle")
         except KeyboardInterrupt:
             pass
@@ -530,6 +588,8 @@ class LocalVoiceLoop:
     def _on_vad_frame(self, p: float, frame: np.ndarray) -> None:
         speech = p >= self.vad_thr
         t = time.perf_counter()
+        self.orchestrator.on_user_vad(
+            speech, timestamp=t, probability=p)
 
         if self.state in ("speaking", "awaiting"):
             if speech and self.barge_in:

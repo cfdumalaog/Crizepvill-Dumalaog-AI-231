@@ -325,6 +325,35 @@ idle --speech--> listening --enough silence--> thinking
 The state machine is separate from the language model. This means it can be
 unit-tested and can also be used by a Pipecat transport.
 
+### 1a. Vocalis-Pi: the always-listening contract
+
+The ELI5 version is: ME3 has a traffic controller for the conversation. It
+keeps listening while it is talking. When it hears the user speak over the
+reply, it tells the speaker to throw away queued audio, fades the current
+audio, and listens to the new request. When a task takes a while, it can say a
+short acknowledgement while the Qwen tools keep working.
+
+The controller is implemented by `VocalisOrchestrator` in
+`me3/vocalis.py`. Its stable states are:
+
+| State | Plain meaning |
+|---|---|
+| `LISTENING` | The microphone is ready for a new turn. |
+| `THINKING` | ASR produced a final transcript and Qwen/tools are working. |
+| `SPEAKING` | Reply text has been sent to the TTS path. |
+| `BACKCHANNELING` | A short acknowledgement is playing during a long task. |
+| `INTERRUPTED` | Overlap was detected and TTS is being stopped. |
+
+The controller publishes machine-readable events instead of hiding these
+decisions in a UI. The input side carries VAD states and transcript deltas;
+the output side carries assistant text, TTS controls, turn-state changes, and
+an optional JSON-RPC `harness_dispatch` request. The current Qwen path still
+executes the bounded ME3 tool registry locally, while tool start/finish
+progress is mirrored as sanitized harness events. A future Onit/Pipecat
+adapter can consume the same contract without changing the microphone or
+barge-in logic. See [`VOCALIS_PROTOCOL.md`](VOCALIS_PROTOCOL.md) for the
+complete schema and deployment boundary.
+
 ### 2. ASR
 
 At the end of a turn, faster-whisper transcribes the PCM signal using the

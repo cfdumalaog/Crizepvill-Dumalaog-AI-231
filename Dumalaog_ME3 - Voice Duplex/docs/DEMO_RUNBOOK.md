@@ -34,6 +34,12 @@ speaking to test barge-in; the current TTS playback is stopped and the new turn
 is captured. The browser console at port 8124 is a secondary text/tool
 diagnostic surface, not a replacement for this voice loop.
 
+The same run is observable through the Vocalis-Pi contract: the live loop
+publishes turn state, VAD, transcript, assistant-text, TTS-control, and
+sanitized tool-progress events. The event contract is documented in
+[VOCALIS_PROTOCOL.md](VOCALIS_PROTOCOL.md); the browser is not required to
+activate the microphone or submit a turn.
+
 ## Fastest Windows demo
 
 The Windows workstation is the primary development and presentation target.

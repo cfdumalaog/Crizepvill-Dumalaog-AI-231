@@ -22,6 +22,14 @@ the reply is spoken. New speech while ME3 is speaking cancels the current TTS
 playback and becomes the next turn. The browser UI below is a secondary text and
 diagnostic console for inspection; it is not the definition of the voice agent.
 
+The live loop exposes the Vocalis-Pi contract in
+[docs/VOCALIS_PROTOCOL.md](docs/VOCALIS_PROTOCOL.md): VAD and transcript
+events continue while TTS plays, a barge-in emits queue-flush/fade controls,
+long tool turns can use a backchannel, and sanitized Qwen tool progress is
+available to a background harness adapter. The verified default remains the
+bounded local Qwen tool loop; the external harness dispatch is an explicit
+MCP/JSON-RPC seam rather than an unconfigured network dependency.
+
 ```powershell
 # or from PowerShell, with options
 & '.\scripts\Start-Local-ME3.ps1' -Device 'Fifine' -Brain stub
@@ -76,12 +84,14 @@ Dumalaog_ME3 - Voice Duplex/
 │   ├── mcp_vad.py          # VAD MCP server (Pipecat-bundled Silero ONNX)
 │   ├── mcp_tasks.py        # real-world task tools (+ ME2 bridge)
 │   ├── agent.py            # full-duplex control + local voice loop + Pipecat
+│   ├── vocalis.py          # Vocalis-Pi state/event protocol and MCP harness seam
 │   ├── audio_io.py         # full-duplex mic/speaker (barge-in)
 │   ├── benchmark.py        # legacy FDB-v1 + latency metric helpers
 │   ├── fdb_v15.py          # paper-native v1.5 contract/transforms
 │   ├── record_dataset.py   # record the 8 canonical stimuli
 │   └── verify_dataset.py   # validate dataset standard
 ├── docs/PAPER_ALIGNMENT.md # paper scope, evidence boundary, and Pi path
+├── docs/VOCALIS_PROTOCOL.md # full-duplex input/output event contract
 ├── docs/ME3_MANUAL_ELI5_AND_DEEP.md # ELI5 + deep technical manual
 ├── docs/ELEVENLABS_INTEGRATION.md # Qwen voice backend and Realtime decision
 ├── docs/CHANNEL_INTEGRATIONS.md # call, SMS/text, email API requirements

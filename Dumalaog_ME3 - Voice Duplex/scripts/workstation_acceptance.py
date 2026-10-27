@@ -136,6 +136,7 @@ def _required_presentable_files() -> list[str]:
         "launchers/Start-ME3-UI.bat",
         "docs/CHANNEL_INTEGRATIONS.md",
         "docs/DEMO_RUNBOOK.md",
+        "docs/VOCALIS_PROTOCOL.md",
         "docs/ME3_MANUAL_ELI5_AND_DEEP.md",
         "docs/PHILIPPINE_CALL_CENTER_PILOT.md",
         "docs/acm/ME3_Voice_Duplex_ACM.tex",

@@ -1,12 +1,12 @@
 {
-  "release_id": "me3-20261027-123835-5001e664",
+  "release_id": "me3-20261027-130101-3bec53d3",
   "status": "prepared",
-  "created_utc": "20261027-123835",
-  "source_fingerprint": "5001e664a271d1917907a777fe9d041fdaf1b7328a5d72ec07b81f7fcb4456ca",
-  "file_count": 50,
-  "archive": "dist/me3-20261027-123835-5001e664/me3_voice_duplex",
-  "zip": "dist/me3-20261027-123835-5001e664.zip",
-  "zip_sha256": "2ecddd17f1f37670c5b330d8d51322dd406d497d949c2a2581ed6de83e64577a",
+  "created_utc": "20261027-130101",
+  "source_fingerprint": "3bec53d33d354e37bda41e17c8c21bd333e6ef2168f01dfa6e4416a7f6bbd644",
+  "file_count": 52,
+  "archive": "dist/me3-20261027-130101-3bec53d3/me3_voice_duplex",
+  "zip": "dist/me3-20261027-130101-3bec53d3.zip",
+  "zip_sha256": "b7ab67adce65f01ab795c28a93f0a8227bab8c72f0fb29a1897bcac781557f05",
   "target": "rpi",
   "note": "Packaged + integrity-checked locally. NOT yet on the Pi."
 }

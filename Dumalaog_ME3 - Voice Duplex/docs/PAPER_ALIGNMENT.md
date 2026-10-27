@@ -22,6 +22,10 @@ for a completed FULL-DUPLEX-BENCH v1.5 experiment.
 - `me3/agent.py` and `me3/audio_io.py` provide the local full-duplex loop:
   microphone capture and speaker playback remain open together, and speech
   during TTS can stop playback and start a new turn.
+- `me3/vocalis.py` defines the Vocalis-Pi state/event contract. The live loop
+  emits VAD, transcript, assistant-text, TTS-control, turn-state, and sanitized
+  harness-progress events; the JSON-RPC harness dispatch is an explicit adapter
+  seam while the verified default remains the bounded local Qwen tool loop.
 - `me3/fdb_v15.py` is the paper-native v1.5 contract. It contains the exact
   four scenario counts, expected categories, response labels, timing
   equations, and deterministic signal treatments. It accepts the paper labels

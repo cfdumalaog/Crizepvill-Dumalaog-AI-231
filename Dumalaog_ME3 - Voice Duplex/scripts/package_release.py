@@ -47,6 +47,7 @@ INCLUDE = [
     "docs/ME3_MANUAL_ELI5_AND_DEEP.md",
     "docs/CHANNEL_INTEGRATIONS.md",
     "docs/DEMO_RUNBOOK.md",
+    "docs/VOCALIS_PROTOCOL.md",
     "docs/WORKSTATION_FIRST_RELEASE.md",
     "scripts/fdb_v15_eval.py",
     "scripts/check_paper_alignment.py",

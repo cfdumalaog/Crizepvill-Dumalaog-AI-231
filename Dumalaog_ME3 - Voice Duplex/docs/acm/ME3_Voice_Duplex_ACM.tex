@@ -49,9 +49,12 @@ This paper describes the architecture, tool-call protocol, safety boundary,
 local verification, Raspberry Pi release workflow, and evidence boundary for
 the separate FULL-DUPLEX-BENCH v1.5 evaluation. The current implementation is
 an engineering release, not a claim of completed paper-grade overlap results.
-The latest acceptance verified ElevenLabs playback locally and authenticated
-Qwen model and chat requests from the deployed Pi. A complete spoken Pi turn
-remains blocked by the absence of a capture device.
+The current revision also specifies the Vocalis-Pi event contract: continuous
+VAD/transcript inputs, explicit turn states, interrupt controls, and an
+adapter seam for asynchronous MCP harness work. The workstation acceptance
+passed 36 tests and produced a 52-file prepared release; the last Pi receipt
+still refers to an earlier deployed release, so this revision is not presented
+as a fresh Pi deployment.
 \end{abstract}
 
 \keywords{voice agents, full duplex, Raspberry Pi, tool calling, MCP, Qwen,
@@ -150,6 +153,34 @@ accent.
 The duplex state machine is independent of the Qwen model. This makes the
 interaction control testable without a network request and leaves room for a
 Pipecat transport to reuse the same transition logic.
+
+\subsection{Vocalis-Pi event contract}
+
+The implementation makes the full-duplex behavior observable through a
+transport-independent Vocalis-Pi orchestrator. Its external states are
+\texttt{LISTENING}, \texttt{THINKING}, \texttt{SPEAKING},
+\texttt{BACKCHANNELING}, and \texttt{INTERRUPTED}. The local loop remains
+active on the microphone while the speaker plays. A VAD update received during
+\texttt{SPEAKING}, \texttt{THINKING}, or \texttt{BACKCHANNELING} publishes a
+\texttt{barge\_in\_event}, then emits \texttt{FLUSH\_QUEUE} and
+\texttt{FADE\_OUT} TTS controls before returning to \texttt{LISTENING}.
+
+The protocol carries four input/event types: VAD state, transcript deltas,
+overlap signals, and asynchronous harness events. Its output types are
+assistant-text deltas, TTS control actions, turn-state transitions, and
+optional harness dispatch requests. A long Qwen tool turn can therefore
+produce a short \texttt{BACKCHANNELING} acknowledgement while its task
+continues. Tool progress is mirrored as sanitized harness events; arguments
+and results are excluded from these events because they can contain user data
+or credentials. The exact channel names and JSON examples are documented in
+the repository's Vocalis protocol manual.
+
+The optional harness adapter emits a JSON-RPC 2.0 \texttt{tools/call} request
+named \texttt{harness\_dispatch}. The default verified release keeps the
+bounded Qwen tool loop in-process for low overhead and uses the adapter as a
+stable seam for an Onit, Pipecat, or OpenCode background worker. This makes
+the contract testable without claiming that a separate external harness is
+already running in every deployment.
 
 \subsection{Tool-using Qwen brain}
 
@@ -280,7 +311,9 @@ SCP, extraction, and installation succeed. The current receipt reports
 authenticated Qwen model/chat probes completed on the Pi. The read-only
 Fifine preflight currently reports no PortAudio capture device, so the Pi
 production user service remains disabled. HDMI playback is enumerated, but no
-physical Pi speaker turn or human spoken turn is claimed.
+physical Pi speaker turn or human spoken turn is claimed. At this revision,
+the receipt's deployed identifier is an earlier release; the new 52-file
+Vocalis release is locally prepared and has not been transferred.
 \end{sloppypar}
 
 The API key is never included in the archive. On the Pi it must be provisioned
@@ -301,7 +334,7 @@ python -m me3.agent --brain remote --text \\
   "Use system_info and summarize the host."
 \end{lstlisting}
 
-The complete test suite passed 25 tests in the current checkout. The
+The complete test suite passed 36 tests in the current checkout. The
 tool-focused tests cover OpenAI-compatible schemas, blocked shell patterns,
 background task completion, and a mocked multi-step Qwen response. The
 ElevenLabs tests additionally cover split-byte PCM reassembly, genuinely odd
@@ -309,6 +342,11 @@ total PCM rejection, timeout retry, and chunked-encoding retry without
 credential disclosure. The channel tests cover confirmation gating, E.164
 validation, Twilio request construction, HTTPS call-webhook enforcement,
 Resend request construction, and safe metadata. Python compilation also passed.
+The Vocalis tests cover state transitions, JSON-RPC harness dispatch,
+barge-in TTS-control ordering, and LocalVoiceLoop tool-progress bridging.
+One current injection-only fixture run also completed with one turn and zero
+errors; it remains engineering evidence and not physical-speaker or v1.5
+evidence.
 The live Qwen smoke test records an actual tool call and final answer. The
 local smoke gate loads the four MCP servers and confirms the current Windows
 PortAudio inventory. These are engineering checks, not a claim about Pi audio.
@@ -401,7 +439,8 @@ safety boundary.
 
 \section{Conclusion}
 
-ME3 now combines full-duplex voice interaction with a real Qwen tool loop. A
+\noindent ME3 now combines full-duplex voice interaction with a real Qwen tool loop and
+an explicit Vocalis-Pi event contract. A
 spoken build request can result in actual project files and verification, and
 the agent can supervise longer work without freezing the microphone. The
 implementation uses inference and tools rather than model training, keeps
@@ -410,10 +449,11 @@ between local verification, prepared release, Pi deployment, and benchmark
 evidence. A provider-live ElevenLabs rendering now plays through the local
 Windows speaker, but the account voices inspected for that test were
 English-labelled and an approved Filipino/Philippine-English voice is still
-required. On the deployed Pi, authenticated Qwen model/chat requests and the
-new channel adapter import are verified; the next decisive checks are a
-capture device, a Qwen-plus-voice turn, operator-owned live channel tests, and
-a clean captured v1.5 overlap evaluation.
+required. The current workstation release passes 36 tests and the injection
+lane passes one clean fixture run; the latest prepared bundle is not yet the
+Pi-installed bundle. The next decisive checks are a capture device, a
+Qwen-plus-voice turn, operator-owned live channel tests, and a clean captured
+v1.5 overlap evaluation.
 
 \begin{thebibliography}{9}
 
