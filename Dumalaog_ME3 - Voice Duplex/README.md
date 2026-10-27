@@ -49,8 +49,9 @@ Dumalaog_ME3 - Voice Duplex/
 │   ├── dev_env_check.py    # 1. verify shared .venv has all ME3 deps
 │   ├── local_smoke_test.py # 2. import+health all 4 MCP servers, no Pi
 │   ├── pi_audio_preflight.py # Pi ALSA + PortAudio read-only gate
-│   ├── package_release.py  # 3. build dist/ release + sha256 manifest + zip
-│   └── deploy_to_pi.py     # 4. stage Desktop + scp to Pi + run install.sh
+│   ├── workstation_acceptance.py # 3. local presentable-output gate
+│   ├── package_release.py  # 4. build dist/ release + sha256 manifest + zip
+│   └── deploy_to_pi.py     # 5. accepted bundle only: scp + install.sh
 ├── deployment/             # deployment STATE (read these first)
 │   ├── latest_release.json     # last PREPARED release (local only)
 │   └── last_pi_deployment.json # last Pi sync: never/pending/failed/deployed
@@ -84,10 +85,12 @@ Dumalaog_ME3 - Voice Duplex/
 └── runs/                   # local run logs; git-ignored
 ```
 
-## Local development before Pi deployment (the ME2 pattern)
+## Workstation-first finalization before Pi deployment
 
-ME3 is built and validated on the Windows dev box first, then shipped to the
-Pi. **Local success is not proof of Pi deployment.** Four steps:
+ME3 is finalized on the Windows dev box first, then the exact accepted bundle
+is shipped to the Pi. **A package cannot be deployed unless the workstation
+acceptance record matches its release ID, source fingerprint, and archive
+hash.** Five steps:
 
 ```powershell
 cd "C:\Users\danda\Desktop\MEng AI Notebooks\AI 222 231\AI 231\Dumalaog_ME3 - Voice Duplex"
@@ -96,14 +99,18 @@ $py = "..\..\.venv\Scripts\python.exe"
 & $py scripts\dev_env_check.py            # 1. deps present in shared .venv?
 & $py scripts\local_smoke_test.py --with-audio  # 2. all 4 MCP servers healthy?
 & $py scripts\check_paper_alignment.py          # source contract + Pi release check
-& $py scripts\package_release.py          # 3. -> deployment/latest_release.json (prepared)
-& $py scripts\deploy_to_pi.py --dry-run   # 4a. preview the scp/ssh steps
-& $py scripts\deploy_to_pi.py             # 4b. real sync (needs Pi reachable)
+& $py scripts\workstation_acceptance.py    # 3. tests + docs + package + acceptance record
+& $py scripts\deploy_to_pi.py --dry-run    # 4. preview the accepted transfer
+& $py scripts\deploy_to_pi.py              # 5. real sync (needs Pi reachable)
 ```
 
-If the Pi is unreachable, step 4 records `pending_sync` in
+The acceptance gate is local-only; it does not contact the Pi or place live
+channel side effects. If the Pi is unreachable, the final step records `pending_sync` in
 `deployment/last_pi_deployment.json`, preserves the prepared release, and
 returns failure. Retry later (or double-click `~/Desktop/me3_voice_duplex\Deploy-ME3.bat`).
+
+The complete policy and post-deployment hardware gate are in
+[`docs/WORKSTATION_FIRST_RELEASE.md`](docs/WORKSTATION_FIRST_RELEASE.md).
 
 ## Quick start (on the Pi)
 ```bash

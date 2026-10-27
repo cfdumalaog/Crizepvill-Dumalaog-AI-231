@@ -1,10 +1,9 @@
 """ME3 - Voice Duplex: one-command deploy to the Raspberry Pi.
 
 Flow (mirrors ME2's deploy_latest_vcm.py):
-  1. Read deployment/latest_release.json (must exist; build with
-     scripts/package_release.py first if missing).
-  2. Verify the zip sha256 against the manifest.
-  3. scp the zip to the Pi, unzip into rpi_path, run install.sh there.
+  1. Read the workstation-accepted deployment/latest_release.json.
+  2. Verify the acceptance record and zip sha256 against the release.
+  3. scp the accepted zip to the Pi, unzip into rpi_path, run install.sh there.
   4. Write deployment/last_pi_deployment.json (status=deployed | pending_sync).
 
 Usage:
@@ -25,6 +24,7 @@ from pathlib import Path, PurePosixPath
 
 PROJECT = Path(__file__).resolve().parent.parent
 DEPLOY = PROJECT / "deployment"
+ACCEPTANCE = DEPLOY / "workstation_acceptance.json"
 if str(PROJECT) not in sys.path:
     sys.path.insert(0, str(PROJECT))
 
@@ -35,6 +35,25 @@ def _die(msg: str, state: dict | None = None) -> None:
             json.dumps(state, indent=2) + "\n", encoding="utf-8")
     print(f"FAIL: {msg}", file=sys.stderr)
     raise SystemExit(1)
+
+
+def validate_workstation_acceptance(release: dict, acceptance: dict) -> str | None:
+    """Return a safe reason when a release is not eligible for Pi promotion."""
+    if acceptance.get("status") != "pass":
+        return "workstation acceptance status is not pass"
+    if not acceptance.get("pi_deploy_allowed"):
+        return "workstation acceptance did not authorize promotion"
+    if acceptance.get("release_id") != release.get("release_id"):
+        return "acceptance release_id does not match latest prepared release"
+    if acceptance.get("source_fingerprint") != release.get("source_fingerprint"):
+        return "acceptance source fingerprint does not match latest prepared release"
+    if acceptance.get("zip_sha256") != release.get("zip_sha256"):
+        return "acceptance archive hash does not match latest prepared release"
+    if acceptance.get("pi_contacted"):
+        return "workstation acceptance record unexpectedly contacted the Pi"
+    if acceptance.get("external_side_effects"):
+        return "workstation acceptance record reports external side effects"
+    return None
 
 
 def main() -> None:
@@ -56,11 +75,19 @@ def main() -> None:
     if not zip_path.is_file():
         _die(f"release zip missing: {zip_path}")
 
+    if not ACCEPTANCE.is_file():
+        _die("no workstation acceptance report; run scripts/workstation_acceptance.py first")
+    acceptance = json.loads(ACCEPTANCE.read_text(encoding="utf-8"))
+    acceptance_error = validate_workstation_acceptance(lr, acceptance)
+    if acceptance_error:
+        _die(f"release is not workstation-accepted: {acceptance_error}")
+    print(f"[1/5] workstation acceptance OK: {acceptance['acceptance_id']}")
+
     # 2. integrity
     actual = hashlib.sha256(zip_path.read_bytes()).hexdigest()
     if actual != lr.get("zip_sha256"):
         _die("zip sha256 mismatch - release archive is corrupt")
-    print(f"[1/4] release OK: {lr['release_id']} ({len(actual)//2} bytes verified)")
+    print(f"[2/5] release OK: {lr['release_id']} ({len(actual)//2} bytes verified)")
 
     # 3. target
     from me3.config import load_config
@@ -72,7 +99,7 @@ def main() -> None:
                        "/home/dalmacio/Desktop/kiko/me3_voice_duplex")
     if not host:
         _die("no rpi_host configured (config.yaml deployment.rpi_host)")
-    print(f"[2/4] target: {user}@{host}:{rpi_path}")
+    print(f"[3/5] target: {user}@{host}:{rpi_path}")
 
     if args.dry_run:
         print("[dry-run] stopping before transfer")
@@ -93,7 +120,7 @@ def main() -> None:
             "reason": "Pi unreachable (ssh failed). Package preserved locally.",
         }
         _die(f"Pi unreachable at {host} - release preserved as pending_sync", state)
-    print("[3/4] ssh OK")
+    print("[4/5] ssh OK")
 
     r = subprocess.run(
         ["scp", "-o", "BatchMode=yes", str(zip_path),
@@ -127,7 +154,7 @@ def main() -> None:
                  "%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
               "release_id": lr["release_id"], "host": host, "path": rpi_path,
               "zip_sha256": actual, "reason": "remote install.sh failed"})
-    print("[4/4] installed on Pi")
+    print("[5/5] installed on Pi")
 
     state = {
         "status": "deployed",

@@ -3,6 +3,7 @@
 
 deployment:
   target: rpi                    # rpi | dev (dev = run on this Windows box for testing)
+  promotion_policy: workstation_acceptance_required
   rpi_user: dalmacio
   rpi_host: cfdfnjrpi5.local     # confirmed reachable on 2026-10-24
   rpi_path: /home/dalmacio/Desktop/kiko/me3_voice_duplex

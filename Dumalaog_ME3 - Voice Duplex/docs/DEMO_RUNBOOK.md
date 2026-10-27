@@ -20,6 +20,21 @@ lanes separate in the presentation and paper.
 
 ## Fastest Windows demo
 
+The Windows workstation is the primary development and presentation target.
+Run the workstation-first acceptance gate before promoting a new bundle to the
+Pi:
+
+```powershell
+$py = '..\..\.venv\Scripts\python.exe'
+& $py scripts\workstation_acceptance.py
+```
+
+The gate is local-only and does not send calls, SMS, email, or contact the Pi.
+It writes `deployment/workstation_acceptance.json`; the Pi deployer refuses a
+release whose acceptance record does not match the exact package hash. See
+[`WORKSTATION_FIRST_RELEASE.md`](WORKSTATION_FIRST_RELEASE.md) for the full
+promotion procedure.
+
 From File Explorer, double-click:
 
 `launchers\Start-Pi-Injection-Demo.bat`
