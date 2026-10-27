@@ -1,9 +1,9 @@
 {
   "status": "deployed",
-  "at": "2026-10-27T04:46:03Z",
-  "release_id": "me3-20261027-044531-62f3a18a",
+  "at": "2026-10-27T05:07:00Z",
+  "release_id": "me3-20261027-050639-4bf5e009",
   "host": "cfdfnjrpi5.local",
   "path": "/home/dalmacio/Desktop/kiko/me3_voice_duplex",
-  "zip_sha256": "19c8bfa8068ebb065826b607a3bd5431780f981b6aba1dc944293c16672aacae",
+  "zip_sha256": "47edc0a3f83136a217452a5be0e3d4b5f2f664071d4506a116f089a724a4fcf3",
   "reason": null
 }
