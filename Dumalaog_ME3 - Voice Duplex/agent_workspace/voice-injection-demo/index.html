@@ -7,44 +7,41 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div class="rainbow-bar"></div>
+  <div class="blob blob-1"></div>
+  <div class="blob blob-2"></div>
+  <div class="blob blob-3"></div>
 
   <main class="card">
     <h1>🎙️ Voice Injection Demo</h1>
-    <p class="subtitle">Type something and inject it straight into your speakers.</p>
+    <p class="subtitle">Type a message, pick a voice, and inject it into the browser.</p>
 
-    <label for="text">Text to speak</label>
-    <textarea id="text" rows="3">Hello! This is a tiny voice injection demo. Pick a voice, crank the pitch, and hit inject!</textarea>
+    <label for="message">Message to inject</label>
+    <textarea id="message" rows="3" placeholder="e.g. Hello! This is a voice injection.">Hello! This is a voice injection.</textarea>
 
-    <div class="controls">
-      <div class="control">
-        <label for="voice">Voice</label>
-        <select id="voice"></select>
-      </div>
-      <div class="control">
-        <label for="rate">Rate: <span id="rateVal">1.0</span></label>
-        <input type="range" id="rate" min="0.5" max="2" step="0.1" value="1" />
-      </div>
-      <div class="control">
-        <label for="pitch">Pitch: <span id="pitchVal">1.0</span></label>
+    <label for="voice">Voice</label>
+    <select id="voice"></select>
+
+    <div class="sliders">
+      <div>
+        <label for="pitch">Pitch: <span id="pitchVal">1</span></label>
         <input type="range" id="pitch" min="0" max="2" step="0.1" value="1" />
       </div>
+      <div>
+        <label for="rate">Speed: <span id="rateVal">1</span></label>
+        <input type="range" id="rate" min="0.5" max="2" step="0.1" value="1" />
+      </div>
     </div>
 
-    <div class="buttons">
-      <button id="inject" class="btn primary">🚀 Inject Voice</button>
-      <button id="stop" class="btn">⏹ Stop</button>
+    <button id="injectBtn" class="inject-btn">⚡ Inject Voice</button>
+
+    <div class="meter" id="meter" aria-hidden="true">
+      <div class="meter-fill" id="meterFill"></div>
     </div>
 
-    <div id="status" class="status" aria-live="polite">Ready. Voices load a moment after the page opens.</div>
-
-    <div class="wave" id="wave" aria-hidden="true">
-      <span></span><span></span><span></span><span></span><span></span>
-      <span></span><span></span><span></span><span></span><span></span>
-    </div>
+    <p class="status" id="status">Ready. Waiting for injection…</p>
   </main>
 
-  <footer class="foot">Runs 100% in your browser via the Web Speech API — no servers, no secrets.</footer>
+  <footer class="foot">Tiny demo • Web Speech API • No data leaves your browser</footer>
 
   <script src="app.js"></script>
 </body>

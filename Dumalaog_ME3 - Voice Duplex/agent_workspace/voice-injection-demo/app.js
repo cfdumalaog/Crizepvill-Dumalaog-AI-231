@@ -1,15 +1,15 @@
-const textEl = document.getElementById("text");
+const messageEl = document.getElementById("message");
 const voiceEl = document.getElementById("voice");
-const rateEl = document.getElementById("rate");
 const pitchEl = document.getElementById("pitch");
-const rateVal = document.getElementById("rateVal");
+const rateEl = document.getElementById("rate");
 const pitchVal = document.getElementById("pitchVal");
-const injectBtn = document.getElementById("inject");
-const stopBtn = document.getElementById("stop");
+const rateVal = document.getElementById("rateVal");
+const injectBtn = document.getElementById("injectBtn");
+const meterFill = document.getElementById("meterFill");
 const statusEl = document.getElementById("status");
-const waveEl = document.getElementById("wave");
 
 let voices = [];
+let progressTimer = null;
 
 function loadVoices() {
   voices = speechSynthesis.getVoices();
@@ -26,51 +26,66 @@ function loadVoices() {
     opt.textContent = `${v.name} (${v.lang})${v.default ? " — default" : ""}`;
     voiceEl.appendChild(opt);
   });
-  const def = voices.findIndex((v) => v.default);
-  if (def >= 0) voiceEl.value = String(def);
-  setStatus(`Loaded ${voices.length} voice${voices.length === 1 ? "" : "s"}. Ready to inject.`);
+  const defIdx = voices.findIndex((v) => v.default);
+  if (defIdx >= 0) voiceEl.value = String(defIdx);
 }
 
-function setStatus(msg, speaking = false) {
-  statusEl.textContent = msg;
-  statusEl.classList.toggle("speaking", speaking);
-  waveEl.classList.toggle("active", speaking);
+loadVoices();
+speechSynthesis.onvoiceschanged = loadVoices;
+
+pitchEl.addEventListener("input", () => (pitchVal.textContent = pitchEl.value));
+rateEl.addEventListener("input", () => (rateVal.textContent = rateEl.value));
+
+function setMeter(pct) {
+  meterFill.style.width = pct + "%";
 }
 
-function speak() {
-  const text = textEl.value.trim();
+function stopProgress() {
+  clearInterval(progressTimer);
+  progressTimer = null;
+}
+
+function startProgress() {
+  stopProgress();
+  setMeter(0);
+  let pct = 0;
+  progressTimer = setInterval(() => {
+    pct = Math.min(100, pct + 2);
+    setMeter(pct);
+  }, 120);
+}
+
+injectBtn.addEventListener("click", () => {
+  const text = messageEl.value.trim();
   if (!text) {
-    setStatus("Type something first — nothing to inject!");
+    statusEl.textContent = "Please type a message first!";
     return;
   }
   if (!("speechSynthesis" in window)) {
-    setStatus("Sorry, this browser doesn't support the Web Speech API.");
+    statusEl.textContent = "Sorry, your browser does not support speech synthesis.";
     return;
   }
+
   speechSynthesis.cancel();
-  const u = new SpeechSynthesisUtterance(text);
-  if (voices.length) u.voice = voices[Number(voiceEl.value)] || null;
-  u.rate = Number(rateEl.value);
-  u.pitch = Number(pitchEl.value);
-  u.onstart = () => setStatus("Injecting voice… 🎶", true);
-  u.onend = () => setStatus("Injection complete. Nice and colorful, right?");
-  u.onerror = (e) => setStatus(`Voice error: ${e.error}`);
-  speechSynthesis.speak(u);
-}
+  const utter = new SpeechSynthesisUtterance(text);
+  const idx = parseInt(voiceEl.value, 10);
+  if (!Number.isNaN(idx) && voices[idx]) utter.voice = voices[idx];
+  utter.pitch = parseFloat(pitchEl.value);
+  utter.rate = parseFloat(rateEl.value);
 
-function stop() {
-  speechSynthesis.cancel();
-  setStatus("Stopped. Silence restored.");
-}
+  injectBtn.disabled = true;
+  meterFill.classList.add("speaking");
+  startProgress();
+  statusEl.textContent = "Injecting voice… 🔊";
 
-injectBtn.addEventListener("click", speak);
-stopBtn.addEventListener("click", stop);
-rateEl.addEventListener("input", () => (rateVal.textContent = Number(rateEl.value).toFixed(1)));
-pitchEl.addEventListener("input", () => (pitchVal.textContent = Number(pitchEl.value).toFixed(1)));
+  utter.onend = utter.onerror = () => {
+    injectBtn.disabled = false;
+    meterFill.classList.remove("speaking");
+    stopProgress();
+    setMeter(100);
+    statusEl.textContent = "Injection complete! ✅";
+    setTimeout(() => setMeter(0), 1200);
+  };
 
-if ("speechSynthesis" in window) {
-  loadVoices();
-  speechSynthesis.onvoiceschanged = loadVoices;
-} else {
-  setStatus("This browser doesn't support the Web Speech API. Try Chrome or Edge.");
-}
+  speechSynthesis.speak(utter);
+});

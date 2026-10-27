@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#09111f">
+  <title>ME3 Local Agent Console</title>
+  <style>
+    :root { color-scheme: dark; --bg:#09111f; --panel:#101d31; --panel2:#13253d;
+      --line:#263c5b; --text:#eef6ff; --muted:#9db1ca; --cyan:#64e6f5;
+      --green:#6ee7a7; --amber:#ffd17b; --red:#ff8d8d; }
+    * { box-sizing:border-box; }
+    body { margin:0; min-height:100vh; color:var(--text); font:15px/1.5 Inter,ui-sans-serif,system-ui,sans-serif;
+      background:radial-gradient(circle at 80% -10%,#21446b 0,transparent 35%),var(--bg); }
+    main { width:min(1240px,calc(100% - 32px)); margin:auto; padding:30px 0 54px; }
+    header { display:flex; gap:20px; align-items:flex-end; justify-content:space-between; flex-wrap:wrap; margin-bottom:22px; }
+    .eyebrow { color:var(--cyan); text-transform:uppercase; letter-spacing:.16em; font-size:.72rem; font-weight:800; }
+    h1 { margin:8px 0 5px; font-size:clamp(2rem,5vw,3.8rem); letter-spacing:-.055em; line-height:1; }
+    .lead { margin:0; max-width:690px; color:var(--muted); font-size:1.02rem; }
+    .pill { border:1px solid #2e765c; color:var(--green); background:#0d2a29; border-radius:999px; padding:9px 13px; font-weight:800; }
+    .layout { display:grid; grid-template-columns:minmax(0,1.45fr) minmax(280px,.75fr); gap:16px; }
+    .card { border:1px solid var(--line); border-radius:18px; background:#0f1a2cdd; box-shadow:0 16px 50px #02071166; }
+    .chat { min-height:620px; display:flex; flex-direction:column; overflow:hidden; }
+    .chat-top,.side-top { padding:16px 18px; border-bottom:1px solid var(--line); display:flex; gap:12px; justify-content:space-between; align-items:center; }
+    .chat-top strong { font-size:1.05rem; }
+    .mode { display:flex; gap:7px; align-items:center; color:var(--muted); font-size:.84rem; }
+    select,textarea,button { font:inherit; }
+    select { color:var(--text); background:var(--panel2); border:1px solid var(--line); border-radius:9px; padding:7px 9px; }
+    #messages { flex:1; min-height:380px; max-height:610px; overflow:auto; padding:18px; }
+    .msg { max-width:88%; padding:12px 14px; border-radius:15px; margin:0 0 13px; white-space:pre-wrap; overflow-wrap:anywhere; }
+    .msg.user { margin-left:auto; background:#1d4266; border:1px solid #2f6b99; }
+    .msg.assistant { background:#14263d; border:1px solid #294568; }
+    .msg small { display:block; color:#9bb2ca; font-size:.72rem; margin-bottom:5px; }
+    .composer { padding:14px; border-top:1px solid var(--line); background:#0b1728; }
+    textarea { width:100%; min-height:74px; resize:vertical; color:var(--text); background:#0a1424; border:1px solid var(--line); border-radius:12px; padding:12px; outline:none; }
+    textarea:focus { border-color:var(--cyan); box-shadow:0 0 0 3px #64e6f522; }
+    .actions { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-top:9px; }
+    button { cursor:pointer; border:1px solid #3e638a; border-radius:9px; color:var(--text); background:#173250; padding:9px 13px; }
+    button:hover { border-color:var(--cyan); transform:translateY(-1px); }
+    button.primary { color:#07131e; background:var(--cyan); border-color:var(--cyan); font-weight:800; }
+    button.subtle { color:var(--muted); background:transparent; }
+    button:disabled { opacity:.55; cursor:wait; transform:none; }
+    label.check { color:var(--muted); font-size:.83rem; display:flex; gap:6px; align-items:center; }
+    .side { display:flex; flex-direction:column; gap:16px; }
+    .section { padding:16px 18px; }
+    .section h2 { margin:0 0 11px; font-size:1rem; }
+    .status-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+    .status-item { border:1px solid var(--line); border-radius:12px; padding:10px; background:#0e1a2b; }
+    .status-item b { display:block; font-size:.88rem; }
+    .status-item span { color:var(--muted); font-size:.77rem; }
+    .ok { color:var(--green)!important; } .warn { color:var(--amber)!important; } .bad { color:var(--red)!important; }
+    .chips { display:flex; gap:7px; flex-wrap:wrap; }
+    .chips button { font-size:.82rem; padding:7px 9px; background:#13263e; }
+    #events { margin:0; padding:0; list-style:none; max-height:230px; overflow:auto; }
+    #events li { border-bottom:1px solid #1b2d47; padding:7px 0; color:var(--muted); font-size:.8rem; }
+    #events code { color:var(--cyan); }
+    .notice { border-left:3px solid var(--amber); color:var(--muted); padding:10px 12px; background:#211d14; border-radius:0 10px 10px 0; font-size:.84rem; }
+    footer { color:#7890ad; font-size:.78rem; margin-top:16px; }
+    @media(max-width:850px){ .layout{grid-template-columns:1fr;} .chat{min-height:560px;} }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <div><div class="eyebrow">AI 231 · workstation evaluation</div><h1>ME3 Local Agent Console</h1>
+      <p class="lead">Talk to the same Qwen + MCP tool brain used by ME3. Use the offline stub when the Qwen endpoint is unavailable. Twilio, SMS, and email are disabled in this console.</p></div>
+    <div class="pill">● localhost-only safety mode</div>
+  </header>
+  <div class="layout">
+    <section class="card chat">
+      <div class="chat-top"><strong>Conversation</strong><div class="mode"><span>Brain</span><select id="mode"><option value="auto">Auto</option><option value="qwen">Qwen + tools</option><option value="stub">Offline stub</option></select></div></div>
+      <div id="messages"><div class="msg assistant"><small>ME3</small>Ready. Try a system check, ask me to inspect the project, or ask me to build a small web app under <code>agent_workspace</code>.</div></div>
+      <div class="composer"><textarea id="input" placeholder="Ask ME3 to check the system, build a web app, or summarize the local status..."></textarea>
+        <div class="actions"><button id="send" class="primary">Send task</button><button id="listen">🎙 Browser voice input</button><button id="clear" class="subtle">Clear</button><label class="check"><input id="speak" type="checkbox"> read reply in browser</label></div>
+      </div>
+    </section>
+    <aside class="side">
+      <section class="card"><div class="side-top"><strong>Live readiness</strong><button id="refresh" class="subtle">Refresh</button></div><div class="section"><div id="status" class="status-grid"><div class="status-item"><b>Loading…</b><span>checking local service</span></div></div></div></section>
+      <section class="card"><div class="section"><h2>Safe starter tasks</h2><div class="chips"><button data-prompt="Use system_info and summarize the host.">System status</button><button data-prompt="Check channel_health and explain what is unavailable. Do not send anything.">Channel readiness</button><button data-prompt="Build a small todo web app under agent_workspace/ui_todo, then verify the files and report what you did.">Build a web app</button><button data-prompt="List the top-level ME3 project files and summarize the local test surface.">Inspect project</button></div></div></section>
+      <section class="card"><div class="section"><h2>Tool events</h2><ul id="events"><li>No tool calls yet.</li></ul></div></section>
+      <div class="notice">The browser voice button uses the browser's speech-recognition preview. The full ME3 VAD → Whisper → brain → TTS path is tested separately with the injection evaluator and does not open physical audio from this console.</div>
+    </aside>
+  </div>
+  <footer>ME3 local UI · project tools are bounded by the same allowlist · external channels hard-disabled · use <code>scripts/Start-ME3-UI.ps1</code> to launch</footer>
+</main>
+<script>
+  const $ = (id) => document.getElementById(id);
+  const history = [];
+  const messages = $('messages');
+  function addMessage(role, text, meta='') { const el=document.createElement('div'); el.className='msg '+role; el.innerHTML='<small>'+(role==='user'?'You':'ME3')+(meta?' · '+meta:'')+'</small>'+escapeHtml(text); messages.appendChild(el); messages.scrollTop=messages.scrollHeight; }
+  function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+  function setEvents(events) { const list=$('events'); list.innerHTML=''; if(!events || !events.length){ list.innerHTML='<li>No tool calls in this turn.</li>'; return; } events.forEach(e=>{ const li=document.createElement('li'); const result=e.kind==='finish'?(e.ok?'✓ completed':'✕ returned an error'):'started'; li.innerHTML='<code>'+escapeHtml(e.name)+'</code> · '+result; list.appendChild(li); }); }
+  function statusItem(label, value, cls='') { return '<div class="status-item"><b class="'+cls+'">'+escapeHtml(label)+'</b><span>'+escapeHtml(value)+'</span></div>'; }
+  async function health(){ try { const r=await fetch('/api/health'); const d=await r.json(); const q=d.qwen||{}; const c=d.channels?.channels||{}; $('status').innerHTML=statusItem('Qwen key',q.configured?'configured':'not configured',q.configured?'ok':'warn')+statusItem('Model',q.model||'not set')+statusItem('Tool surface',String(d.tools||0)+' tools','ok')+statusItem('Twilio call',c.call?.configured?'configured':'unavailable',c.call?.configured?'warn':'warn')+statusItem('Twilio SMS',c.sms?.configured?'configured':'unavailable',c.sms?.configured?'warn':'warn')+statusItem('Resend email',c.email?.configured?'configured':'unavailable',c.email?.configured?'warn':'warn'); } catch(e){ $('status').innerHTML=statusItem('Local UI','offline','bad'); } }
+  async function send(){ const input=$('input'); const text=input.value.trim(); if(!text)return; const mode=$('mode').value; input.value=''; addMessage('user',text,mode); history.push({role:'user',content:text}); $('send').disabled=true; $('send').textContent='Working…'; try { const r=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:text,mode,history})}); const d=await r.json(); if(!d.ok) throw new Error(d.message||d.error||'request failed'); const meta=(d.mode||mode)+(d.metrics?.elapsed_ms!=null?' · '+d.metrics.elapsed_ms+' ms':''); addMessage('assistant',d.reply,meta); history.push({role:'assistant',content:d.reply}); setEvents(d.events); if($('speak').checked && 'speechSynthesis' in window){ speechSynthesis.cancel(); speechSynthesis.speak(new SpeechSynthesisUtterance(d.reply)); } } catch(e){ addMessage('assistant','Local request failed: '+e.message,'error'); setEvents([]); } finally { $('send').disabled=false; $('send').textContent='Send task'; } }
+  $('send').onclick=send; $('input').addEventListener('keydown',e=>{if(e.key==='Enter' && (e.ctrlKey||e.metaKey)){e.preventDefault();send();}}); $('clear').onclick=()=>{history.length=0;messages.innerHTML='';setEvents([]);}; $('refresh').onclick=health; document.querySelectorAll('[data-prompt]').forEach(b=>b.onclick=()=>{$('input').value=b.dataset.prompt;$('input').focus();});
+  let recognition; const SpeechRecognition=window.SpeechRecognition||window.webkitSpeechRecognition; if(SpeechRecognition){ recognition=new SpeechRecognition(); recognition.lang='fil-PH'; recognition.interimResults=true; recognition.onresult=e=>{$('input').value=Array.from(e.results).map(x=>x[0].transcript).join('');}; recognition.onend=()=>{$('listen').textContent='🎙 Browser voice input';}; $('listen').onclick=()=>{recognition.start();$('listen').textContent='Listening…';}; } else { $('listen').disabled=true; $('listen').textContent='Browser voice unavailable'; }
+  health();
+</script>
+</body>
+</html>

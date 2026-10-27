@@ -24,7 +24,9 @@ class ToolBrain:
 
     name = "qwen-tools"
 
-    def __init__(self, cfg: dict, system_prompt: str, on_tool: Callable | None = None):
+    def __init__(self, cfg: dict, system_prompt: str,
+                 on_tool: Callable | None = None,
+                 dispatch_fn: Callable | None = None):
         self.cfg = cfg
         self.base_url = cfg.get("base_url", "").rstrip("/")
         self.model = cfg.get("model", "")
@@ -39,6 +41,10 @@ class ToolBrain:
         self.max_tool_steps = max(1, min(int(cfg.get("max_tool_steps", 8)), 16))
         self.api_key = os.environ.get(self.api_key_env, "")
         self.on_tool = on_tool
+        # The default is the real ME3 tool dispatcher.  Local UI/demo surfaces
+        # can inject a narrower dispatcher so provider side effects stay off
+        # while the model and project tools are exercised normally.
+        self.dispatch_fn = dispatch_fn or dispatch
         if not self.api_key:
             raise RuntimeError(f"{self.api_key_env} is required for the Qwen tool brain")
 
@@ -135,7 +141,7 @@ class ToolBrain:
                         self.on_tool("start", name, args)
                     log.info("tool call: %s", name)
                     t_call = time.perf_counter()
-                    result = dispatch(name, args)
+                    result = self.dispatch_fn(name, args)
                     tool_ms = (time.perf_counter() - t_call) * 1e3
                     self.metrics["tool_calls"].append({
                         "name": name, "ms": round(tool_ms),

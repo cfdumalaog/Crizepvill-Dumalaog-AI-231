@@ -5,6 +5,7 @@ Double-click these Windows launchers from File Explorer:
 | Launcher | What it opens | Notes |
 |---|---|---|
 | `Start-ME3.bat` | The full-duplex voice agent (console app) | No browser/ports. The console stays open while the agent listens; speak to the microphone and interrupt it mid-sentence to barge in. `Ctrl+C` (or closing the window) stops it. |
+| `Start-ME3-UI.bat` | Interactive local agent console | Opens `http://127.0.0.1:8124/`; Qwen + tools or offline stub, tool events, and hard-disabled Twilio/Resend side effects. |
 | `Start-ME3-Web.bat` | Local browser preview | Serves the tracked `web\` presenter surface on `http://127.0.0.1:8123/` and reports LAN URLs. Pass `-Path agent_workspace\voice_webapp` for a generated app. |
 | `Start-ME3-Pi-Web.bat` | ME2-style Pi browser tunnel | Starts the Pi static preview when available, forwards it to `http://127.0.0.1:8090/`, and opens the browser. `Ctrl+C` closes the tunnel. |
 | `Start-Pi-Injection-Demo.bat` | The deployed Pi Qwen/tool demo | Uses reviewed WAV fixtures and a virtual sink; recommended when the physical Fifine input is occupied or the speaker path is not ready. |
@@ -39,6 +40,23 @@ Verification without the microphone:
 
 For the full presentation sequence, including the web-app scenario and the
 physical-audio boundary, see [`docs/DEMO_RUNBOOK.md`](../docs/DEMO_RUNBOOK.md).
+
+## Interactive local UI
+
+The UI is the workstation test console, not a separate mock model. It calls the
+same `ToolBrain` and bounded project-tool dispatcher used by the voice path:
+
+```powershell
+& '.\scripts\Start-ME3-UI.ps1' -OpenBrowser       # auto: Qwen when configured, else stub
+& '.\scripts\Start-ME3-UI.ps1' -Brain qwen        # require the Qwen endpoint
+& '.\scripts\Start-ME3-UI.ps1' -Brain stub        # fully offline conversation check
+```
+
+The page includes starter prompts for system status, channel readiness, project
+inspection, and real web-app creation. The browser speech button is a
+convenience transcription preview; the actual ME3 VAD -> Whisper -> brain ->
+TTS path is evaluated by `scripts/injection_eval.py`. Calls, SMS, and email are
+hard-disabled in this local UI even if provider credentials exist.
 
 ## Browser access
 

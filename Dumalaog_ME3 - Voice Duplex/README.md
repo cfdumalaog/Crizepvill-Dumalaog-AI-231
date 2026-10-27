@@ -44,8 +44,10 @@ Dumalaog_ME3 - Voice Duplex/
 ├── data/DATASET.md         # class-group shared benchmark dataset spec
 ├── launchers/              # Windows quick launch (ME2 pattern)
 │   ├── Start-Pi-Injection-Demo.bat # one-click deployed Qwen/tool demo
+│   └── Start-ME3-UI.bat        # localhost Qwen/tool test console
 ├── scripts/                # LOCAL-DEV pipeline (ME2 pattern) - run on Windows
 │   ├── Start-Local-ME3.ps1 # 0. launch the voice agent locally
+│   ├── Start-ME3-UI.ps1 # localhost interactive UI on port 8124
 │   ├── Start-ME3-Web.ps1 # local browser preview on port 8123
 │   ├── Start-ME3-Pi-Web.ps1 # ME2-style SSH browser tunnel to Pi port 8090
 │   ├── dev_env_check.py    # 1. verify shared .venv has all ME3 deps
@@ -170,6 +172,24 @@ prints LAN URLs for another device on the same network. For the Pi, double-click
 forward it through SSH to `http://127.0.0.1:8090/`, matching the ME2 tunnel
 experience. Both paths are local-network/tunnel access, not public Internet
 hosting.
+
+### Interactive local UI
+
+For local model and tool testing on this workstation, use
+`launchers\Start-ME3-UI.bat` or:
+
+```powershell
+& '.\scripts\Start-ME3-UI.ps1' -OpenBrowser
+```
+
+This serves `web/ui.html` at `http://127.0.0.1:8124/` and calls the same Qwen
+ToolBrain used by the agent. Select **Qwen + tools** to require the configured
+Qwen endpoint, **Offline stub** for an offline smoke check, or **Auto** to use
+Qwen when its protected credential is available and otherwise use the stub. The
+UI shows model timing, tool identities, channel readiness, and safe errors. It
+does not open physical audio. Calls, SMS, and email are hard-disabled in this
+console, so the unavailable Twilio account is not a blocker for local model
+evaluation.
 
 ## Functional Requirements Checklist
 | # | Requirement | Status | Where |

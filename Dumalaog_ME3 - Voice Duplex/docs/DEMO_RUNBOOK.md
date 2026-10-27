@@ -77,6 +77,21 @@ checks HTTP 200 before opening the tunnel, and keeps the endpoint private to
 the SSH connection. Press `Ctrl+C` to close the tunnel. Neither launcher
 publishes ME3 to the public Internet.
 
+For the interactive workstation UI, which exercises the same ToolBrain without
+opening physical audio or contacting Twilio/Resend, run:
+
+```powershell
+# localhost-only UI; choose Qwen + tools, Auto, or Offline stub in the page
+& .\scripts\Start-ME3-UI.ps1 -OpenBrowser
+```
+
+Open `http://127.0.0.1:8124/`. Use **System status** first, then **Build a web
+app** to demonstrate real `write_file`, verification, and bounded tool calls.
+The UI returns a visible error if Qwen is unavailable; switch to **Offline
+stub** to confirm the local browser and conversation path independently. The
+browser microphone button is only a speech-recognition convenience preview; it
+does not replace the injected full ME3 audio evaluation below.
+
 ## What to show the professor
 
 1. Run the `Status` scenario and point out `status: pass`, the Qwen tool names,

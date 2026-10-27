@@ -130,6 +130,10 @@ def _required_presentable_files() -> list[str]:
     return [
         "README.md",
         "web/index.html",
+        "web/ui.html",
+        "scripts/local_ui_server.py",
+        "scripts/Start-ME3-UI.ps1",
+        "launchers/Start-ME3-UI.bat",
         "docs/CHANNEL_INTEGRATIONS.md",
         "docs/DEMO_RUNBOOK.md",
         "docs/ME3_MANUAL_ELI5_AND_DEEP.md",
