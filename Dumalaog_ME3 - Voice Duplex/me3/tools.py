@@ -24,6 +24,7 @@ from urllib.parse import quote_plus, urlparse
 
 from .config import load_config
 from .task_runner import BackgroundTaskManager
+from . import channels
 
 PROJECT = Path(__file__).resolve().parent.parent
 AGENT_ROOT = PROJECT / "agent_workspace"
@@ -470,6 +471,10 @@ _FUNCTIONS = {
     "set_timer": set_timer,
     "list_timers": list_timers,
     "cancel_timer": cancel_timer,
+    "channel_health": channels.channel_health,
+    "send_sms": channels.send_sms,
+    "make_call": channels.make_call,
+    "send_email": channels.send_email,
 }
 
 
@@ -549,6 +554,38 @@ def tool_definitions() -> list[dict]:
             "include_cancelled": {"type": "boolean", "default": False}}),
         spec("cancel_timer", "Cancel a pending timer by id.",
              {"timer_id": {"type": "string"}}, ("timer_id",)),
+        spec("channel_health", (
+            "Report safe configuration status for call, SMS, and email. "
+            "This does not contact providers or send anything."), {}),
+        spec("send_sms", (
+            "Send one SMS through Twilio. Ask the user for explicit confirmation "
+            "before setting confirm=true; this has an external side effect. "
+            "Use E.164 phone numbers."), {
+            "to": {"type": "string"},
+            "body": {"type": "string"},
+            "confirm": {"type": "boolean", "default": False},
+            "from_number": {"type": "string"},
+            "messaging_service_sid": {"type": "string"},
+        }, ("to", "body")),
+        spec("make_call", (
+            "Start one outbound Twilio call through the reviewed HTTPS call-flow "
+            "webhook. Ask the user for explicit confirmation before setting "
+            "confirm=true; this has an external side effect."), {
+            "to": {"type": "string"},
+            "confirm": {"type": "boolean", "default": False},
+            "twiml_url": {"type": "string"},
+            "from_number": {"type": "string"},
+        }, ("to",)),
+        spec("send_email", (
+            "Send a transactional email through Resend. Ask the user for "
+            "explicit confirmation before setting confirm=true; this has an "
+            "external side effect."), {
+            "to": {"type": "array", "items": {"type": "string"}},
+            "subject": {"type": "string"},
+            "text": {"type": "string"},
+            "confirm": {"type": "boolean", "default": False},
+            "from_email": {"type": "string"},
+        }, ("to", "subject", "text")),
     ]
 
 

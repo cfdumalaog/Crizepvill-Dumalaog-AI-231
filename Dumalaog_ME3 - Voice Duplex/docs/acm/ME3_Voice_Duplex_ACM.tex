@@ -49,9 +49,9 @@ This paper describes the architecture, tool-call protocol, safety boundary,
 local verification, Raspberry Pi release workflow, and evidence boundary for
 the separate FULL-DUPLEX-BENCH v1.5 evaluation. The current implementation is
 an engineering release, not a claim of completed paper-grade overlap results.
-The latest local acceptance also verified a provider-live ElevenLabs rendering
-through the workstation speaker, while the remote Qwen endpoint timed out
-before a new local Qwen voice turn could be completed.
+The latest acceptance verified ElevenLabs playback locally and authenticated
+Qwen model and chat requests from the deployed Pi. A complete spoken Pi turn
+remains blocked by the absence of a capture device.
 \end{abstract}
 
 \keywords{voice agents, full duplex, Raspberry Pi, tool calling, MCP, Qwen,
@@ -85,7 +85,9 @@ The contributions of this work are:
 \item an OpenAI-compatible Qwen tool loop that can create and verify a static
 web application through voice or text;
 \item one bounded registry shared by direct Qwen calls and MCP wrappers;
-\item background task supervision so builds do not block the microphone; and
+\item confirmation-gated Twilio call/SMS and Resend email adapters with a
+safe provider-response boundary;
+\item background task supervision so builds do not block the microphone;
 \item a reproducible local-dev, package, deploy, and evidence workflow for the
 Raspberry Pi target.
 \end{itemize}
@@ -101,7 +103,8 @@ deployment path are not duplicated across scripts.
 
 The current engineering scope includes interruptible spoken conversation,
 remote Qwen inference, project-local coding tools, public web lookup, timers,
-system information, and the existing ME2 bridge. It does not claim unrestricted
+system information, the existing ME2 bridge, and credential-gated outbound
+call, SMS, and email actions. It does not claim unrestricted
 Onit equivalence. An always-listening device needs a narrower default action
 surface than an interactive coding IDE. Capabilities that would add external
 side effects, credential use, repository rewrites, or arbitrary shell access
@@ -205,6 +208,9 @@ Tool & Purpose \\
 \texttt{system\_info} & Return non-secret host information. \\
 \texttt{fetch\_url/web\_search} & Read public HTTP(S) resources. \\
 \texttt{git\_status} & Inspect repository status without mutation. \\
+\texttt{channel\_health} & Report safe call, SMS, and email configuration. \\
+\texttt{send\_sms/make\_call/send\_email} & Confirmation-gated external
+communication through Twilio and Resend. \\
 \bottomrule
 \end{tabularx}
 \end{table}
@@ -221,6 +227,17 @@ This boundary is a design choice rather than an implementation accident. A
 voice transcript can be ambiguous, and the assistant is not an appropriate
 place for silent arbitrary shell execution. The registry is sufficient for the
 demonstration web app while keeping higher-risk operations explicit.
+
+The external communication tools use the same registry and are stricter than
+the local project tools. \texttt{channel\_health} is network-free. Each
+\texttt{send\_sms}, \texttt{make\_call}, and \texttt{send\_email} request first
+validates its target and returns a confirmation-required status unless the
+operator has explicitly confirmed the side effect. The adapters then send one
+bounded REST request and return only a status, channel, and safe provider ID;
+provider response bodies and authorization headers are discarded. Twilio call
+initiation additionally requires a reviewed public HTTPS TwiML URL. A complete
+call-center bridge, inbound webhooks, identity/CRM actions, consent, recording,
+and human transfer remain outside this adapter boundary.
 
 \section{Web-App Capability}
 
@@ -259,12 +276,11 @@ The current target is \url{dalmacio@cfdfnjrpi5.local} at
 deployment remains at \url{/home/dalmacio/Desktop/dandan}. A prepared release
 is not called deployed. The local receipt must say \texttt{deployed} after SSH,
 SCP, extraction, and installation succeed. The current receipt reports
-\texttt{deployed}; after installation, a \texttt{--check} pass, a Qwen/tool
-voice-injection run, and a Fifine USB capture preflight completed on the Pi.
-The Pi production user service remains disabled because the physical Pi
-playback path has not been exercised. At the time of this update the Pi is
-offline, so the local ElevenLabs acceptance did not change the deployed Pi
-runtime or provide new Pi hardware evidence.
+\texttt{deployed}; after installation, a \texttt{--check} pass and
+authenticated Qwen model/chat probes completed on the Pi. The read-only
+Fifine preflight currently reports no PortAudio capture device, so the Pi
+production user service remains disabled. HDMI playback is enumerated, but no
+physical Pi speaker turn or human spoken turn is claimed.
 \end{sloppypar}
 
 The API key is never included in the archive. On the Pi it must be provisioned
@@ -285,12 +301,14 @@ python -m me3.agent --brain remote --text \\
   "Use system_info and summarize the host."
 \end{lstlisting}
 
-The complete test suite passed 18 tests in the current checkout. The
+The complete test suite passed 25 tests in the current checkout. The
 tool-focused tests cover OpenAI-compatible schemas, blocked shell patterns,
 background task completion, and a mocked multi-step Qwen response. The
 ElevenLabs tests additionally cover split-byte PCM reassembly, genuinely odd
 total PCM rejection, timeout retry, and chunked-encoding retry without
-credential disclosure. Python compilation also passed.
+credential disclosure. The channel tests cover confirmation gating, E.164
+validation, Twilio request construction, HTTPS call-webhook enforcement,
+Resend request construction, and safe metadata. Python compilation also passed.
 The live Qwen smoke test records an actual tool call and final answer. The
 local smoke gate loads the four MCP servers and confirms the current Windows
 PortAudio inventory. These are engineering checks, not a claim about Pi audio.
@@ -299,7 +317,7 @@ The evidence status at this revision is summarized in
 Table~\ref{tab:progress}.
 
 \begin{table}[t]
-\caption{ME3 progress evidence at the 26 October 2026 revision}
+\caption{ME3 progress evidence at the 27 October 2026 revision}
 \label{tab:progress}
 \small
 \begin{tabularx}{\columnwidth}{@{}lX@{}}
@@ -312,10 +330,12 @@ Local duplex audio & Verified with the Windows microphone, Piper output, and
 two barge-in cancellations; echo can contaminate ASR on loud speakers. \\
 ElevenLabs renderer & Verified locally: provider-live 16-kHz PCM playback
 through the default speaker; not a native-Filipino voice-quality result. \\
-Qwen plus ElevenLabs & Not completed in this revision: the configured remote
-Qwen endpoint timed out before inference. \\
-Pi hardware & Deployment receipt is previously verified, but the Pi is
-currently offline; physical Pi speaker and human-turn evidence remain open. \\
+Qwen endpoint & Authenticated model discovery and chat probe pass from the
+deployed Pi; a full spoken turn is still blocked by capture hardware. \\
+External channels & Twilio/Resend adapters and fake-request tests pass; no
+live call, SMS, or email side effect has been placed. \\
+Pi hardware & Deployment receipt is verified, but PortAudio reports no capture
+device; physical Pi speaker and human-turn evidence remain open. \\
 Paper-native FDB v1.5 & Incomplete: no clean 499-utterance overlap artifact
 or paper-grade result is claimed. \\
 \bottomrule
@@ -357,8 +377,12 @@ streaming endpoint can produce audio in the PCM format consumed by the
 full-duplex playback path, and the adapter tolerates arbitrary HTTP chunk
 boundaries. It does not remove the more important system risks. A complete
 voice-agent turn still requires both a reachable Qwen brain and a voice
-approved for the intended Filipino customer-support deployment. Provider
-rendering and Qwen/tool execution are therefore reported as separate evidence
+approved for the intended Filipino customer-support deployment. The new
+communication adapters narrow the integration boundary but do not establish
+that the agent can safely replace a staffed call center: provider accounts,
+webhooks, media streaming, consent, retention, escalation, and supervised
+quality gates remain necessary. Provider rendering, Qwen/tool execution, and
+external-channel side effects are therefore reported as separate evidence
 lanes rather than collapsed into one end-to-end claim.
 
 The full-duplex behavior is also more than a transport setting. VAD must keep
@@ -367,11 +391,13 @@ turn-state transition must preserve the interrupted user's utterance. Echo
 control, microphone placement, and ALSA device selection remain physical Pi
 concerns. A successful Windows loopback does not prove those conditions.
 
-Future work should add a Pi-local live self-test, secure credential
-provisioning guidance, a reviewed web-app preview server with explicit
-approval, and the full v1.5 overlap capture/evaluation. Additional Onit-like
-capabilities should be introduced as typed, auditable functions rather than by
-removing the voice safety boundary.
+Future work should add a Pi-local live self-test, a reviewed HTTPS
+call/media-stream bridge, inbound webhook signature verification, secure
+credential provisioning and rotation, operator-owned Twilio/Resend tests, a
+reviewed web-app preview server with explicit approval, and the full v1.5
+overlap capture/evaluation. Additional Onit-like capabilities should be
+introduced as typed, auditable functions rather than by removing the voice
+safety boundary.
 
 \section{Conclusion}
 
@@ -383,11 +409,11 @@ local speech services under project ownership, and records the distinction
 between local verification, prepared release, Pi deployment, and benchmark
 evidence. A provider-live ElevenLabs rendering now plays through the local
 Windows speaker, but the account voices inspected for that test were
-English-labelled and the current remote Qwen endpoint timed out. On the
-deployed Pi, a securely configured Qwen runtime key and a text-mode Qwen tool
-run are verified; the next decisive checks are a reachable Qwen-plus-voice
-turn, an approved Filipino voice, a live Pi run with physical audio, and a
-clean captured v1.5 overlap evaluation.
+English-labelled and an approved Filipino/Philippine-English voice is still
+required. On the deployed Pi, authenticated Qwen model/chat requests and the
+new channel adapter import are verified; the next decisive checks are a
+capture device, a Qwen-plus-voice turn, operator-owned live channel tests, and
+a clean captured v1.5 overlap evaluation.
 
 \begin{thebibliography}{9}
 
@@ -420,6 +446,14 @@ ME3 release pins Pipecat 1.13.0 for the harness-facing adapter.
 \bibitem{elevenlabs}
 ElevenLabs. ``Realtime models'' and ``Stream speech.'' Official developer
 documentation, 2026. \href{https://elevenlabs.io/docs/eleven-agents/customization/realtime-models}{ElevenLabs developer documentation}.
+\bibitem{twilio}
+Twilio. ``Call resource'' and ``Message resource.'' Official Voice and
+Messaging API documentation, 2026.
+\href{https://www.twilio.com/docs/voice/api/call-resource}{Twilio Voice API}.
+
+\bibitem{resend}
+Resend. ``Send Email.'' Official API reference, 2026.
+\href{https://resend.com/docs/api-reference/emails/send-email}{Resend API reference}.
 
 \end{thebibliography}
 

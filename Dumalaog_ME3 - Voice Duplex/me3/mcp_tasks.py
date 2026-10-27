@@ -282,6 +282,42 @@ def project_git_status() -> dict:
 
 
 @mcp.tool()
+def channel_health() -> dict:
+    """Report safe call, SMS, and email configuration without network calls."""
+    return project_tools.channels.channel_health()
+
+
+@mcp.tool()
+def send_sms(to: str, body: str, confirm: bool = False,
+             from_number: str = "", messaging_service_sid: str = "") -> dict:
+    """Send one Twilio SMS only after explicit confirmation."""
+    return project_tools.channels.send_sms(
+        to, body, confirm=confirm,
+        from_number=from_number or None,
+        messaging_service_sid=messaging_service_sid or None,
+    )
+
+
+@mcp.tool()
+def make_call(to: str, confirm: bool = False, twiml_url: str = "",
+              from_number: str = "") -> dict:
+    """Start one Twilio call through a reviewed HTTPS call-flow webhook."""
+    return project_tools.channels.make_call(
+        to, confirm=confirm, twiml_url=twiml_url or None,
+        from_number=from_number or None,
+    )
+
+
+@mcp.tool()
+def send_email(to: list[str], subject: str, text: str, confirm: bool = False,
+               from_email: str = "") -> dict:
+    """Send one Resend transactional email only after explicit confirmation."""
+    return project_tools.channels.send_email(
+        to, subject, text, confirm=confirm, from_email=from_email or None,
+    )
+
+
+@mcp.tool()
 def health() -> dict:
     """Report tasks server health and available tools."""
     return {"ok": True,
@@ -290,7 +326,8 @@ def health() -> dict:
                       "list_project_files", "read_project_file", "write_project_file",
                       "search_project_text", "run_project_command", "start_project_task",
                       "project_task_status", "project_task_output", "cancel_project_task",
-                      "fetch_public_url", "search_public_web", "project_git_status"],
+                      "fetch_public_url", "search_public_web", "project_git_status",
+                      "channel_health", "send_sms", "make_call", "send_email"],
             "allowlist_cmds": sorted(_ALLOWED_CMDS)}
 
 

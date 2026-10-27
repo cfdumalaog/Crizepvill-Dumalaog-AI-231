@@ -109,6 +109,20 @@ ELEVENLABS_KEY="${ELEVENLABS_KEY//$'\r'/}"
 ELEVENLABS_KEY="${ELEVENLABS_KEY//$'\n'/}"
 ELEVENLABS_VOICE="${ELEVENLABS_VOICE_ID:-}"
 TTS_ENGINE="${ME3_TTS_ENGINE:-auto}"
+# Preserve channel credentials already provisioned in the protected runtime
+# file.  This is line-based rather than `source`-based so a malformed env file
+# cannot execute arbitrary shell code during an upgrade.  Values never reach
+# stdout; only configured/not-configured summaries are printed below.
+for env_name in \
+  TWILIO_ACCOUNT_SID TWILIO_AUTH_TOKEN TWILIO_FROM_NUMBER \
+  TWILIO_MESSAGING_SERVICE_SID TWILIO_VOICE_URL RESEND_API_KEY RESEND_FROM_EMAIL; do
+  if [ -z "${!env_name:-}" ] && [ -f "$ENV_DIR/me3.env" ]; then
+    old_line="$(grep -m1 -E "^${env_name}=" "$ENV_DIR/me3.env" || true)"
+    old_value="${old_line#*=}"
+    old_value="${old_value//$'\r'/}"
+    printf -v "$env_name" '%s' "$old_value"
+  fi
+done
 cat > "$ENV_DIR/me3.env" <<EOF
 ME3_ASR_MODEL=$ASR_MODEL
 ME3_OVERLAP_VOICE=$OVERLAP_VOICE
@@ -116,6 +130,13 @@ ME3_TTS_ENGINE=$TTS_ENGINE
 ELEVENLABS_API_KEY=${ELEVENLABS_KEY:-}
 ELEVENLABS_VOICE_ID=${ELEVENLABS_VOICE:-}
 VLLM_API_KEY=${VLLM_KEY:-${VLLM_API_KEY:-}}
+TWILIO_ACCOUNT_SID=${TWILIO_ACCOUNT_SID:-}
+TWILIO_AUTH_TOKEN=${TWILIO_AUTH_TOKEN:-}
+TWILIO_FROM_NUMBER=${TWILIO_FROM_NUMBER:-}
+TWILIO_MESSAGING_SERVICE_SID=${TWILIO_MESSAGING_SERVICE_SID:-}
+TWILIO_VOICE_URL=${TWILIO_VOICE_URL:-}
+RESEND_API_KEY=${RESEND_API_KEY:-}
+RESEND_FROM_EMAIL=${RESEND_FROM_EMAIL:-}
 EOF
 chmod 600 "$ENV_DIR/me3.env"
 if [ -n "$VLLM_KEY" ] || [ -n "${VLLM_API_KEY:-}" ]; then
@@ -129,6 +150,16 @@ if [ -n "$ELEVENLABS_KEY" ]; then
   echo "  ELEVENLABS_API_KEY: set (value hidden; streaming voice enabled when TTS=auto)"
 else
   echo "  ELEVENLABS_API_KEY: not configured -> Piper fallback remains active"
+fi
+if [ -n "${TWILIO_ACCOUNT_SID:-}" ] && [ -n "${TWILIO_AUTH_TOKEN:-}" ]; then
+  echo "  Twilio credentials: set (value hidden)"
+else
+  echo "  Twilio credentials: not configured -> call/SMS tools remain gated"
+fi
+if [ -n "${RESEND_API_KEY:-}" ] && [ -n "${RESEND_FROM_EMAIL:-}" ]; then
+  echo "  Resend credentials: set (value hidden)"
+else
+  echo "  Resend credentials: not configured -> email tool remains gated"
 fi
 for svc in me3-asr me3-tts me3-vad me3-agent; do
   if [ -f "$SCRIPT_DIR/deploy/$svc.service" ]; then

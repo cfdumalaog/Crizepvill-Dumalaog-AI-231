@@ -60,6 +60,7 @@ Dumalaog_ME3 - Voice Duplex/
 │   ├── mcp_asr.py          # ASR MCP server (faster-whisper)
 │   ├── mcp_tts.py          # TTS MCP server (Piper fallback + ElevenLabs stream)
 │   ├── elevenlabs_tts.py   # optional ElevenLabs PCM streaming adapter
+│   ├── channels.py         # credential-gated Twilio/Resend adapters
 │   ├── mcp_vad.py          # VAD MCP server (Pipecat-bundled Silero ONNX)
 │   ├── mcp_tasks.py        # real-world task tools (+ ME2 bridge)
 │   ├── agent.py            # full-duplex control + local voice loop + Pipecat
@@ -71,6 +72,7 @@ Dumalaog_ME3 - Voice Duplex/
 ├── docs/PAPER_ALIGNMENT.md # paper scope, evidence boundary, and Pi path
 ├── docs/ME3_MANUAL_ELI5_AND_DEEP.md # ELI5 + deep technical manual
 ├── docs/ELEVENLABS_INTEGRATION.md # Qwen voice backend and Realtime decision
+├── docs/CHANNEL_INTEGRATIONS.md # call, SMS/text, email API requirements
 ├── docs/acm/ME3_Voice_Duplex_ACM.tex # ACM two-column LaTeX source
 ├── docs/acm/ME3_Voice_Duplex_ACM.pdf # ACM two-column paper
 ├── docs/presentation/ME3_Voice_Duplex_Presentation_v8.pptx # presentation deck
@@ -166,8 +168,11 @@ and physical-audio gate, use [`docs/DEMO_RUNBOOK.md`](docs/DEMO_RUNBOOK.md).
 | FR13 | LLM brain (local or commercial API) | ✅ config | `config.yaml` llm.remote/local |
 | FR14 | Local-dev-before-deploy pipeline (ME2 pattern) | ✅ built | `scripts/` + `deployment/` state files |
 | FR15 | Local quick launch like ME2 | ✅ built | `launchers/Start-ME3.bat` + `scripts/Start-Local-ME3.ps1` |
-| FR16 | Agentic tool calling (build real artifacts from voice) | ✅ verified | `me3/brain.py` (Qwen tool loop) + `me3/tools.py` (19 tools) + `me3/task_runner.py` |
+| FR16 | Agentic tool calling (build real artifacts from voice) | ✅ verified | `me3/brain.py` (Qwen tool loop) + `me3/tools.py` (23 tools) + `me3/task_runner.py` |
 | FR17 | Optional ElevenLabs voice renderer for Qwen | ✅ implemented, credential-gated | `me3/elevenlabs_tts.py` + `config/config.yaml` (`tts.engine: auto`) |
+| FR18 | Outbound voice-call integration | ✅ implemented, credential-gated | `me3/channels.py` (`make_call`) + Twilio Calls API; requires reviewed HTTPS TwiML/media bridge |
+| FR19 | SMS/text integration | ✅ implemented, credential-gated | `me3/channels.py` (`send_sms`) + Twilio Messages API |
+| FR20 | Transactional email integration | ✅ implemented, credential-gated | `me3/channels.py` (`send_email`) + Resend Send Email API |
 
 ## Tool brain (agentic capabilities)
 
@@ -178,12 +183,14 @@ tool execution. Verified end-to-end on the dev box (2026-10-25): Qwen created
 `agent_workspace/voice_webapp/index.html`, and a later Qwen verification
 pass listed and read `index.html`, `styles.css`, and `app.js`.
 
-Available tools (19): file ops (`list_files`, `read_file`, `write_file`,
+Available tools (23): file ops (`list_files`, `read_file`, `write_file`,
 `search_text`), build/test (`run_command`, `start_background_task`,
 `task_status`, `task_output`, `cancel_task`), web serving
 (`start_web_server`, `stop_web_server`, `web_servers`), research
 (`fetch_url`, `web_search`), system (`system_info`, `git_status`), and
-timers (`set_timer`, `list_timers`, `cancel_timer`).
+timers (`set_timer`, `list_timers`, `cancel_timer`). The channel tools are
+`channel_health`, `send_sms`, `make_call`, and `send_email`; the latter three
+require explicit confirmation and protected provider configuration.
 
 Safety: all file paths are confined to the ME3 project; commands run
 tokenized (no shell) against an allowlist; secret-looking files are refused;
@@ -192,6 +199,23 @@ tool output never contains environment variables or key material.
 Requirements: `VLLM_API_KEY` must be present in the runtime environment for
 remote Qwen calls. The agent never writes or prints the key. Without it the
 agent falls back to the stub brain and the voice pipeline still runs.
+
+## Call, text, and email integrations
+
+ME3 includes shared direct-Qwen and MCP tools for outbound Twilio calls,
+Twilio SMS, and Resend transactional email. They are deliberately
+credential-gated and confirmation-gated: the agent must identify the target
+and content, receive explicit confirmation, and only then pass `confirm=true`.
+The tools never return credential material or provider response bodies. The
+complete account/API/webhook checklist is in
+[`docs/CHANNEL_INTEGRATIONS.md`](docs/CHANNEL_INTEGRATIONS.md).
+
+Current implementation status is “adapter tested, live side effect not yet
+placed.” `channel_health` is network-free and reports only configured/missing
+environment names. An outbound call starts a Twilio call using a reviewed
+HTTPS TwiML URL; conversational inbound/outbound call-center behavior still
+requires the operator's media-stream bridge, transfer workflow, consent,
+recording policy, and CRM/identity integrations.
 
 ## Pi deployment (tool brain key)
 

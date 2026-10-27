@@ -111,6 +111,11 @@ The direct Qwen registry contains these project-local capabilities:
 | `stop_web_server` | Stops a running preview server | “Stop the web server.” |
 | `web_servers` | Lists active preview servers | “What is running on this machine?” |
 
+| `channel_health` | Reports safe call/SMS/email configuration status | "Are the communication channels configured?" |
+| `send_sms` | Sends one confirmed Twilio SMS | "Text the customer this update." |
+| `make_call` | Starts one confirmed outbound Twilio call | "Call the customer and use the support flow." |
+| `send_email` | Sends one confirmed Resend email | "Email the customer the appointment details." |
+
 The same registry is exposed through the owned tasks MCP server with explicit
 MCP names such as `write_project_file`, `run_project_command`,
 `start_project_task`, `search_public_web`, and `project_git_status`. The older
@@ -134,6 +139,22 @@ The intended flow is:
 The included demonstration at `agent_workspace/voice_webapp/` is a
 dependency-free static HTML/CSS/JavaScript app with a command input,
 microphone placeholder, status area, and tool-activity log.
+
+### ELI5: calls, texts, and emails
+
+ME3 now has three communication helpers, but they behave like a locked
+outbox. `channel_health` checks whether the operator configured a provider; it
+does not send anything. For a text, call, or email, ME3 must say who will
+receive it and what it will contain, then wait for the user's clear yes. Only
+then can Qwen call the matching tool with `confirm=true`.
+
+Twilio handles the phone call and SMS. Resend handles transactional email. A
+call starts through a reviewed HTTPS TwiML URL. That URL is the call-flow
+instruction that Twilio fetches; a real call-center conversation additionally
+needs an approved media-stream bridge, customer consent, AI disclosure,
+recording policy, human transfer, and CRM/identity integrations. The full
+provider checklist and required environment names are in
+`docs/CHANNEL_INTEGRATIONS.md`.
 
 ## How to run it on Windows
 
@@ -357,6 +378,26 @@ executes it and sends back:
 
 The tool result, rather than a model assumption, is the source of truth.
 
+### 3a. External-channel tool protocol
+
+The external tools follow the same Qwen function-call loop, but their
+side-effect boundary is stricter:
+
+1. `channel_health` returns only configured/not-configured state and required
+   environment names; it performs no network request.
+2. `send_sms`, `make_call`, and `send_email` validate the target locally.
+3. Without `confirm=true`, each returns `confirmation_required` and
+   `network_called=false`.
+4. With confirmation, the adapter sends one bounded REST request and returns
+   only `ok`, provider, status code, channel, and a safe provider ID.
+5. Provider response bodies and headers are discarded, because they can
+   contain account details or customer data.
+
+Phone targets must be E.164. Calls require a reviewed HTTPS webhook; email is
+plain-text and bounded to ten recipients in the first implementation. The
+adapters are shared by direct Qwen calls and the `me3-tasks` MCP wrappers, so
+adding a second harness does not create a second permission policy.
+
 ### 4. File and command safety
 
 The tool registry is not a general unrestricted shell. It applies these rules:
@@ -448,9 +489,10 @@ engineering five-scenario latency driver remain separate.
    study.
 5. A complete 499-trial v1.5 overlap run, judge transcripts, and before/after
    prosodic analysis remain future benchmark work.
-6. The voice capability should be extended through reviewed typed tools for
-   deployment, database, and external-service actions rather than unrestricted
-   shell access.
+6. Inbound call/SMS/email webhooks, provider signature verification,
+   idempotency, queueing, CRM/identity actions, and human transfer remain
+   production integration work. The outbound adapters are ready for
+   operator-owned tests, not an unsupervised customer rollout.
 
 ## Quick troubleshooting
 
@@ -483,6 +525,7 @@ Ask for `task_status` and `task_output`, or cancel it. The manager caps tasks at
 - Runtime configuration: `config/config.yaml`
 - Qwen brain: `me3/brain.py`
 - Tool registry: `me3/tools.py`
+- External channels: `me3/channels.py`, `docs/CHANNEL_INTEGRATIONS.md`
 - Background jobs: `me3/task_runner.py`
 - Full-duplex loop: `me3/agent.py` and `me3/audio_io.py`
 - Owned MCP servers: `me3/mcp_*.py`

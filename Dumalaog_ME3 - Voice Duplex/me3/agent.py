@@ -619,6 +619,11 @@ def cmd_check(args) -> int:
     have_key = bool(os.environ.get(llm["api_key_env"], ""))
     print(f"  LLM brain: {llm['model']} @ {llm['base_url']} "
           f"({llm['api_key_env']} {'configured' if have_key else 'NOT set -> stub'})")
+    from .channels import channel_health
+    channel_state = channel_health()["channels"]
+    print("  external channels: " + ", ".join(
+        f"{name}={'configured' if state['configured'] else 'not configured'}"
+        for name, state in channel_state.items()))
     if args.load_models:
         loop = LocalVoiceLoop(cfg)
         loop._load_engines()

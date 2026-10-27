@@ -12,6 +12,10 @@ ME3 now has a Philippines-market runtime profile:
   ID. `ME3_ELEVENLABS_LANGUAGE_CODE=fil` can override the configured language.
 - `auto` remains safe: it selects ElevenLabs only when both secrets are
   present, and falls back to Piper otherwise.
+- The first external-channel layer is implemented: explicit-confirmation
+  tools can start an outbound Twilio call, send Twilio SMS, and send a Resend
+  transactional email. Provider account, webhook, consent, and production
+  gates are documented in `docs/CHANNEL_INTEGRATIONS.md`.
 - The voice agent is positioned as a first-line support pilot with explicit
   human escalation, not as an unconditional replacement for a call center.
 

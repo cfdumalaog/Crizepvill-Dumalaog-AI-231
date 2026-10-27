@@ -104,3 +104,8 @@ It captures from the Pi and plays TTS through the Windows workstation speakers.
   human turn is recorded with the hardware owner/process state documented.
 - ElevenLabs Filipino voice: only claim live use after an authorized
   provider call; otherwise `tts.engine: auto` uses the local Piper fallback.
+- Call/SMS/email tools: run `channel_health` for a network-free configuration
+  check. Do not set `confirm=true` in a classroom demo; live Twilio/Resend
+  tests require an operator-owned destination and an explicit out-of-band
+  approval. See `docs/CHANNEL_INTEGRATIONS.md` for the required APIs and the
+  remaining TwiML/media-stream, consent, and human-handoff gates.

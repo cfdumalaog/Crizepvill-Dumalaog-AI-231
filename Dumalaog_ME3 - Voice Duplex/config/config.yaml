@@ -73,6 +73,25 @@ llm:
     ollama_host: http://localhost:11434
     model: qwen2.5:3b            # Pi 5 only; Pi 4 -> remote mode
 
+# External communication adapters.  Values stay in the protected runtime
+# environment; these names are documentation/configuration metadata only.
+# Twilio supplies SMS and outbound call initiation.  A call requires a
+# reviewed, publicly reachable HTTPS webhook that returns TwiML; a local Pi
+# URL is not sufficient.  Resend supplies transactional email.
+channels:
+  twilio:
+    base_url: https://api.twilio.com/2010-04-01
+    account_sid_env: TWILIO_ACCOUNT_SID
+    auth_token_env: TWILIO_AUTH_TOKEN
+    from_number_env: TWILIO_FROM_NUMBER
+    messaging_service_sid_env: TWILIO_MESSAGING_SERVICE_SID
+    voice_url_env: TWILIO_VOICE_URL
+  email:
+    provider: resend
+    base_url: https://api.resend.com
+    api_key_env: RESEND_API_KEY
+    from_email_env: RESEND_FROM_EMAIL
+
 mcp:
   transport: stdio               # stdio (local) | streamable-http (network)
   servers:
@@ -97,7 +116,11 @@ agent:
     sensitive, financial, legal, medical, identity, or complaint-escalation
     issues, pause and offer a human handoff instead of guessing. Confirm
     actions briefly. You can use the project tools to create files, run tests,
-    search the web, and build a webapp when the user asks.
+    search the web, and build a webapp when the user asks. For calls, SMS, or
+    email, first describe the recipient and content and ask for explicit user
+    confirmation; only then set confirm=true. Never expose credentials, invent
+    provider configuration, or claim a call/message/email succeeded unless the
+    tool reports success.
   barge_in: true                 # user speech interrupts agent TTS
   turn_timeout_s: 12.0
   ack_wait_s: 2.5                # >0: speak a backchannel for long tool tasks (live); 0 = synchronous (bench protocol)
