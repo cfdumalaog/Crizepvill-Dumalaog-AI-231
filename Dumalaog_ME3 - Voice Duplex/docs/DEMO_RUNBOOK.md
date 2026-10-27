@@ -18,6 +18,22 @@ This is strong agent/tool evidence, but it is not a claim that the physical
 Fifine microphone or a physical speaker was exercised. Keep those evidence
 lanes separate in the presentation and paper.
 
+## Primary interaction: automatic full-duplex voice
+
+For the actual ME3 interaction, do not use the browser Send button. Launch the
+voice loop:
+
+```powershell
+& .\scripts\Start-Local-ME3.ps1 -Brain remote
+```
+
+The microphone remains open. Speak normally, stop speaking, and ME3 automatically
+endpoints the turn, runs ASR, sends the transcript internally to Qwen, executes
+approved tools when needed, and speaks the result. Speak again while it is
+speaking to test barge-in; the current TTS playback is stopped and the new turn
+is captured. The browser console at port 8124 is a secondary text/tool
+diagnostic surface, not a replacement for this voice loop.
+
 ## Fastest Windows demo
 
 The Windows workstation is the primary development and presentation target.

@@ -15,6 +15,13 @@ in a console window using the shared workspace `.venv` — the mic stays live
 while the agent speaks, and you can interrupt it mid-sentence (barge-in).
 `Ctrl+C` or closing the window stops it. See [launchers/README.md](launchers/README.md).
 
+This is the primary ME3 interaction. There is no Send button: the loop listens
+continuously, Silero VAD detects the start and end of a turn, Whisper transcribes
+the captured utterance internally, Qwen may execute tools automatically, and
+the reply is spoken. New speech while ME3 is speaking cancels the current TTS
+playback and becomes the next turn. The browser UI below is a secondary text and
+diagnostic console for inspection; it is not the definition of the voice agent.
+
 ```powershell
 # or from PowerShell, with options
 & '.\scripts\Start-Local-ME3.ps1' -Device 'Fifine' -Brain stub
@@ -173,7 +180,7 @@ forward it through SSH to `http://127.0.0.1:8090/`, matching the ME2 tunnel
 experience. Both paths are local-network/tunnel access, not public Internet
 hosting.
 
-### Interactive local UI
+### Interactive local UI (diagnostic console)
 
 For local model and tool testing on this workstation, use
 `launchers\Start-ME3-UI.bat` or:

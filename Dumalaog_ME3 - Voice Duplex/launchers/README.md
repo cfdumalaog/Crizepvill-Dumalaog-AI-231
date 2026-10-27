@@ -4,7 +4,7 @@ Double-click these Windows launchers from File Explorer:
 
 | Launcher | What it opens | Notes |
 |---|---|---|
-| `Start-ME3.bat` | The full-duplex voice agent (console app) | No browser/ports. The console stays open while the agent listens; speak to the microphone and interrupt it mid-sentence to barge in. `Ctrl+C` (or closing the window) stops it. |
+| `Start-ME3.bat` | **Primary full-duplex voice agent** | No Send button: the mic stays live, VAD endpoints turns, Qwen/tools execute automatically, TTS speaks, and new speech barges in. `Ctrl+C` stops it. |
 | `Start-ME3-UI.bat` | Interactive local agent console | Opens `http://127.0.0.1:8124/`; Qwen + tools or offline stub, tool events, and hard-disabled Twilio/Resend side effects. |
 | `Start-ME3-Web.bat` | Local browser preview | Serves the tracked `web\` presenter surface on `http://127.0.0.1:8123/` and reports LAN URLs. Pass `-Path agent_workspace\voice_webapp` for a generated app. |
 | `Start-ME3-Pi-Web.bat` | ME2-style Pi browser tunnel | Starts the Pi static preview when available, forwards it to `http://127.0.0.1:8090/`, and opens the browser. `Ctrl+C` closes the tunnel. |
@@ -41,10 +41,13 @@ Verification without the microphone:
 For the full presentation sequence, including the web-app scenario and the
 physical-audio boundary, see [`docs/DEMO_RUNBOOK.md`](../docs/DEMO_RUNBOOK.md).
 
-## Interactive local UI
+## Interactive local UI (diagnostic console)
 
-The UI is the workstation test console, not a separate mock model. It calls the
-same `ToolBrain` and bounded project-tool dispatcher used by the voice path:
+The UI is a workstation diagnostic console, not the primary voice interaction.
+The primary path is `Start-ME3.bat`: it listens continuously and automatically
+passes each VAD-ended utterance to the same ToolBrain and bounded project-tool
+dispatcher, then speaks the response. There is no manual Send step in that
+path. The browser UI calls the same brain for explicit text/tool inspection:
 
 ```powershell
 & '.\scripts\Start-ME3-UI.ps1' -OpenBrowser       # auto: Qwen when configured, else stub

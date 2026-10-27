@@ -63,7 +63,7 @@
 <main>
   <header>
     <div><div class="eyebrow">AI 231 · workstation evaluation</div><h1>ME3 Local Agent Console</h1>
-      <p class="lead">Talk to the same Qwen + MCP tool brain used by ME3. Use the offline stub when the Qwen endpoint is unavailable. Twilio, SMS, and email are disabled in this console.</p></div>
+      <p class="lead">This is the secondary diagnostic console for the same Qwen + MCP tool brain used by ME3. The primary interface is the automatic full-duplex voice loop: launch <code>Start-ME3.bat</code> to listen, execute, speak, and interrupt without a Send button.</p></div>
     <div class="pill">● localhost-only safety mode</div>
   </header>
   <div class="layout">
@@ -76,7 +76,7 @@
     </section>
     <aside class="side">
       <section class="card"><div class="side-top"><strong>Live readiness</strong><button id="refresh" class="subtle">Refresh</button></div><div class="section"><div id="status" class="status-grid"><div class="status-item"><b>Loading…</b><span>checking local service</span></div></div></div></section>
-      <section class="card"><div class="section"><h2>Safe starter tasks</h2><div class="chips"><button data-prompt="Use system_info and summarize the host.">System status</button><button data-prompt="Check channel_health and explain what is unavailable. Do not send anything.">Channel readiness</button><button data-prompt="Build a small todo web app under agent_workspace/ui_todo, then verify the files and report what you did.">Build a web app</button><button data-prompt="List the top-level ME3 project files and summarize the local test surface.">Inspect project</button></div></div></section>
+      <section class="card"><div class="section"><h2>Safe diagnostic tasks</h2><div class="chips"><button data-prompt="Use system_info and summarize the host.">System status</button><button data-prompt="Check channel_health and explain what is unavailable. Do not send anything.">Channel readiness</button><button data-prompt="Build a small todo web app under agent_workspace/ui_todo, then verify the files and report what you did.">Build a web app</button><button data-prompt="List the top-level ME3 project files and summarize the local test surface.">Inspect project</button></div></div></section>
       <section class="card"><div class="section"><h2>Tool events</h2><ul id="events"><li>No tool calls yet.</li></ul></div></section>
       <div class="notice">The browser voice button uses the browser's speech-recognition preview. The full ME3 VAD → Whisper → brain → TTS path is tested separately with the injection evaluator and does not open physical audio from this console.</div>
     </aside>

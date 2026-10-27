@@ -81,10 +81,14 @@
       <article class="card"><h2><span class="dot"></span>Communication layer</h2>
         <p>Confirmed Twilio calls/SMS and Resend email are implemented behind protected
           credentials. Live provider tests remain operator-controlled.</p></article>
-      <article class="card"><h2><span class="dot"></span>Local agent console</h2>
-        <p>Run <code>Start-ME3-UI.bat</code> to open the interactive workstation UI at
+      <article class="card"><h2><span class="dot"></span>Primary interaction</h2>
+        <p>Run <code>Start-ME3.bat</code>. ME3 listens continuously, endpoints turns,
+          executes Qwen tools automatically, speaks the result, and supports
+          barge-in. No Send button is involved.</p></article>
+      <article class="card"><h2><span class="dot"></span>Diagnostic console</h2>
+        <p>Run <code>Start-ME3-UI.bat</code> to inspect Qwen and tools at
           <a href="http://127.0.0.1:8124/" style="color:var(--cyan)">127.0.0.1:8124</a>.
-          It exercises Qwen and project tools while blocking external channels.</p></article>
+          This secondary text surface blocks external channels.</p></article>
     </section>
     <div class="note"><strong>Browser scope:</strong> this is a private local/LAN
       presenter surface. Windows uses <code>127.0.0.1:8123</code>; the ME2-style Pi
