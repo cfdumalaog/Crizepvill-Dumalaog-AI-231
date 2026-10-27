@@ -49,6 +49,10 @@ bounded tools rather than model training:
   artifact, audio, paper-alignment, and package-integrity gate; the Pi deployer
   rejects any release whose acceptance record does not match its exact hash.
   See the [workstation-first release guide](<Dumalaog_ME3 - Voice Duplex/docs/WORKSTATION_FIRST_RELEASE.md>).
+- **Browser access:** the tracked presenter surface is available locally at
+  `http://127.0.0.1:8123/`; the Pi has an ME2-style SSH-forwarded surface at
+  `http://127.0.0.1:8090/`. Both launchers are private local/LAN paths, not
+  public hosting.
 
 ### ME3 documentation
 
@@ -57,6 +61,7 @@ bounded tools rather than model training:
 - [ElevenLabs integration guide](<Dumalaog_ME3 - Voice Duplex/docs/ELEVENLABS_INTEGRATION.md>)
 - [Call, SMS, and email API requirements](<Dumalaog_ME3 - Voice Duplex/docs/CHANNEL_INTEGRATIONS.md>)
 - [Workstation-first release and Pi promotion guide](<Dumalaog_ME3 - Voice Duplex/docs/WORKSTATION_FIRST_RELEASE.md>)
+- [ME2-style browser access](<Dumalaog_ME3 - Voice Duplex/launchers/README.md>)
 - [Philippine call-center pilot guide](<Dumalaog_ME3 - Voice Duplex/docs/PHILIPPINE_CALL_CENTER_PILOT.md>)
 - [ACM two-column source](<Dumalaog_ME3 - Voice Duplex/docs/acm/ME3_Voice_Duplex_ACM.tex>) and [PDF](<Dumalaog_ME3 - Voice Duplex/docs/acm/ME3_Voice_Duplex_ACM.pdf>)
 - [Presentation deck](<Dumalaog_ME3 - Voice Duplex/docs/presentation/ME3_Voice_Duplex_Presentation_v8.pptx>)
