@@ -1,0 +1,557 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#06090e">
+<title>ME3 Voice Duplex - Live Assistant</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#06090e; --panel:rgba(16,24,38,.7); --line:rgba(255,255,255,.08);
+  --blue:#3b82f6; --green:#10b981; --purple:#8b5cf6; --gold:#f59e0b; --red:#ef4444;
+  --text:#f1f5f9; --muted:#94a3b8;
+}
+*{box-sizing:border-box; margin:0; padding:0;}
+html,body{height:100%;}
+body{
+  background:radial-gradient(circle at 50% 35%, #0f1929 0%, #080d14 60%, var(--bg) 100%);
+  color:var(--text); font-family:"Plus Jakarta Sans",ui-sans-serif,system-ui,sans-serif;
+  height:100vh; overflow:hidden; user-select:none; display:flex; flex-direction:column;
+}
+header{
+  display:flex; align-items:center; justify-content:space-between; gap:16px;
+  padding:14px 22px; border-bottom:1px solid var(--line); flex:0 0 auto;
+}
+.brand{display:flex; align-items:center; gap:12px;}
+.dot{width:10px; height:10px; border-radius:50%; background:#475569; box-shadow:0 0 0 0 rgba(16,185,129,0); transition:all .3s;}
+.dot.active{background:var(--green); box-shadow:0 0 12px 2px rgba(16,185,129,.7);}
+.title-line{display:flex; align-items:center; gap:9px; flex-wrap:wrap;}
+.brand h1{font-size:1.05rem; font-weight:800; letter-spacing:-.02em;}
+.brand .sub{color:var(--muted); font-size:.8rem; font-weight:500;}
+.variant-pill{display:inline-flex; align-items:center; border:1px solid rgba(59,130,246,.55); background:rgba(59,130,246,.16); color:#bfdbfe; border-radius:999px; padding:3px 8px; font-size:.66rem; font-weight:800; letter-spacing:.06em; white-space:nowrap;}
+.variant-pill.qwen{border-color:rgba(139,92,246,.65); background:rgba(139,92,246,.18); color:#ddd6fe;}
+.nav{display:flex; align-items:center; gap:10px;}
+.nav a{
+  color:var(--text); text-decoration:none; font-size:.82rem; font-weight:600;
+  border:1px solid var(--line); background:rgba(255,255,255,.04);
+  padding:7px 13px; border-radius:999px; transition:all .2s;
+}
+.nav a:hover{border-color:var(--blue); background:rgba(59,130,246,.15);}
+.clock{font-family:"JetBrains Mono",monospace; font-size:.8rem; color:var(--muted); margin-left:6px;}
+#offlineBanner{
+  flex:0 0 auto; background:#3b0d12; border-bottom:1px solid rgba(239,68,68,.4);
+  color:#fecaca; font-size:.85rem; font-weight:600; text-align:center; padding:9px 16px;
+}main{
+  flex:1 1 auto; min-height:0; display:grid; grid-template-columns:minmax(300px,1fr) minmax(300px,360px) minmax(300px,1fr);
+  gap:16px; padding:16px 22px 18px;
+}
+.col{display:flex; flex-direction:column; gap:14px; min-height:0; overflow:auto;}
+.col.center{align-items:center; justify-content:center;}
+.card{
+  background:var(--panel); border:1px solid var(--line); border-radius:16px;
+  padding:16px; backdrop-filter:blur(8px);
+}
+.card h2{font-size:.78rem; text-transform:uppercase; letter-spacing:.14em; color:var(--muted); margin-bottom:12px; font-weight:700;}
+.event-tag{
+  display:inline-block; font-weight:800; font-size:.95rem; letter-spacing:.06em;
+  padding:8px 16px; border-radius:999px; border:1px solid var(--line);
+  background:rgba(59,130,246,.12); color:var(--blue); margin-bottom:10px;
+  font-family:"JetBrains Mono",monospace;
+}
+.event-tag.listening{background:rgba(16,185,129,.12); color:var(--green);}
+.event-tag.thinking{background:rgba(139,92,246,.12); color:var(--purple);}
+.event-tag.awaiting{background:rgba(245,158,11,.12); color:var(--gold);}
+.event-tag.speaking{background:rgba(59,130,246,.12); color:var(--blue);}
+.event-tag.offline{background:rgba(148,163,184,.1); color:var(--muted);}
+.state-reason{color:var(--muted); font-size:.85rem; margin-bottom:14px; min-height:1.2em;}
+.vad-label{font-size:.78rem; color:var(--muted); margin-bottom:6px; display:flex; justify-content:space-between;}
+.vad-bar{height:8px; border-radius:99px; background:rgba(255,255,255,.07); overflow:hidden; margin-bottom:16px;}
+#vadFill{height:100%; width:0%; border-radius:99px; background:linear-gradient(90deg,var(--green),var(--blue)); transition:width .12s linear;}
+.stats-row{display:grid; grid-template-columns:repeat(4,1fr); gap:8px;}
+.stat{border:1px solid var(--line); border-radius:12px; padding:9px 6px; text-align:center; background:rgba(255,255,255,.03);}
+.stat b{display:block; font-size:1.15rem; font-family:"JetBrains Mono",monospace;}
+.stat span{font-size:.7rem; color:var(--muted); text-transform:uppercase; letter-spacing:.08em;}
+.talk{min-height:86px;}
+.talk-label{font-size:.78rem; text-transform:uppercase; letter-spacing:.14em; color:var(--muted); font-weight:700; margin-bottom:8px;}
+.talk-label .kind{font-family:"JetBrains Mono",monospace; font-size:.68rem; color:var(--gold); border:1px solid rgba(245,158,11,.4); border-radius:99px; padding:2px 8px; margin-left:6px; vertical-align:1px;}
+.talk-text{font-size:.95rem; line-height:1.45; word-wrap:break-word; max-height:110px; overflow:auto;}
+.talk-at{color:#64748b; font-size:.72rem; margin-top:7px; font-family:"JetBrains Mono",monospace;}
+#orbCanvas{filter:drop-shadow(0 0 40px rgba(59,130,246,.25));}
+.orb-hint{color:var(--muted); font-size:.8rem; margin-top:14px; text-align:center;}
+.echo-toggle{margin-top:16px; color:var(--muted); font-size:.78rem; display:flex; gap:8px; align-items:center; cursor:pointer; max-width:300px; text-align:left;}
+.audio-controls{display:grid; gap:9px; font-size:.78rem; color:var(--muted);}
+.audio-controls label{display:grid; gap:5px;}
+.audio-controls select,.audio-controls button{width:100%; border:1px solid var(--line); border-radius:9px; background:#0b1220; color:var(--text); padding:8px 9px; font:inherit;}
+.audio-controls button{cursor:pointer; font-weight:700; background:rgba(59,130,246,.15); border-color:rgba(59,130,246,.45);}
+.audio-controls button:hover{background:rgba(59,130,246,.28);}
+.audio-note{font-size:.72rem; line-height:1.35; color:#64748b;}
+.tool-feed{list-style:none; max-height:220px; overflow:auto;}
+.tool-feed li{display:flex; gap:8px; align-items:baseline; padding:7px 0; border-bottom:1px solid rgba(255,255,255,.05); font-size:.82rem;}
+.tool-feed li:last-child{border-bottom:none;}
+.tool-feed li code{font-family:"JetBrains Mono",monospace; font-size:.8rem; color:var(--blue); word-break:break-all;}
+.tool-feed li .tl{font-weight:700; font-size:.74rem;}
+.tool-feed li.ok .tl{color:var(--green);}
+.tool-feed li.err .tl{color:var(--red);}
+.tool-feed li.started .tl{color:var(--gold);}
+.tool-feed li .tt{margin-left:auto; color:#64748b; font-size:.7rem; font-family:"JetBrains Mono",monospace; flex:0 0 auto;}
+.tool-feed li.empty{color:var(--muted); justify-content:center;}
+.terminal-card{padding-bottom:12px;}
+.terminal-title{display:flex; justify-content:space-between; align-items:center; gap:8px;}
+.terminal-title h2{margin-bottom:0;}
+.terminal-badge{font-family:"JetBrains Mono",monospace; font-size:.62rem; letter-spacing:.08em; color:var(--green); border:1px solid rgba(16,185,129,.35); background:rgba(16,185,129,.08); border-radius:999px; padding:3px 7px; white-space:nowrap;}
+.terminal-view{margin-top:10px; min-height:150px; max-height:260px; overflow:auto; white-space:pre-wrap; word-break:break-word; background:#05080d; border:1px solid rgba(148,163,184,.18); border-radius:10px; padding:10px; color:#cbd5e1; font-family:"JetBrains Mono",monospace; font-size:.72rem; line-height:1.45; user-select:text;}
+.terminal-note{margin-top:7px; color:#64748b; font-size:.68rem; line-height:1.35;}
+.lat-row{display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid rgba(255,255,255,.05); font-size:.84rem;}
+.lat-row:last-child{border-bottom:none;}
+.lat-row .lat-name{color:var(--muted); font-weight:600;}
+.lat-row .lat-val{font-family:"JetBrains Mono",monospace; font-size:.78rem;}
+.runtime{font-size:.82rem; line-height:1.7;}
+.runtime div{display:flex; justify-content:space-between; gap:10px; border-bottom:1px solid rgba(255,255,255,.05); padding:4px 0;}
+.runtime div:last-child{border-bottom:none;}
+.runtime .k{color:var(--muted);}
+.runtime .v{font-family:"JetBrains Mono",monospace; font-size:.76rem; text-align:right; word-break:break-all;}
+.readiness{font-size:.78rem; line-height:1.35;}
+.readiness-group{border-top:1px solid rgba(255,255,255,.06); padding:9px 0 0; margin-top:9px;}
+.readiness-group:first-of-type{border-top:none; padding-top:0; margin-top:0;}
+.readiness-group h3{font-size:.7rem; text-transform:uppercase; letter-spacing:.1em; margin-bottom:5px;}
+.readiness-group.done h3{color:var(--green);}
+.readiness-group.pending h3{color:var(--gold);}
+.readiness-group.provide h3{color:#93c5fd;}
+.readiness-list{list-style:none; display:grid; gap:4px; color:var(--muted);}
+.readiness-list li{position:relative; padding-left:15px;}
+.readiness-list li:before{content:'•'; position:absolute; left:0; color:#64748b;}
+.readiness-group.done .readiness-list li:before{content:'✓'; color:var(--green);}
+.readiness-group.pending .readiness-list li:before{content:'!'; color:var(--gold); font-weight:800;}
+.readiness-group.provide .readiness-list li:before{content:'→'; color:#93c5fd;}
+.spin{display:inline-block; width:10px; height:10px; border:2px solid rgba(245,158,11,.3); border-top-color:var(--gold); border-radius:50%; animation:sp .8s linear infinite;}
+@keyframes sp{to{transform:rotate(360deg);}}
+@media(max-width:1100px){
+  body{overflow:auto;}
+  main{grid-template-columns:1fr;}
+  .col.center{order:-1;}
+}
+</style>
+</head><body>
+<div id="offlineBanner" hidden>Status server offline - reconnect the ME3 page or check the Pi tunnel/service.</div>
+<header>
+  <div class="brand">
+    <span class="dot" id="statusDot"></span>
+    <div><div class="title-line"><h1>ME3 Voice Duplex</h1><span class="variant-pill own" id="variantPill">ME3 FASTER-WHISPER + PIPER</span></div><div class="sub">live assistant - full duplex, protected playback + voice controls</div></div>
+  </div>
+  <div class="nav">
+    <a id="linkConsole" href="http://127.0.0.1:8124/" target="_blank">Console</a>
+    <a id="linkRoadmap" href="/roadmap" target="_blank">Roadmap</a>
+    <span class="clock" id="clock"></span>
+  </div>
+</header>
+<main>
+  <section class="col left">
+    <div class="card">
+      <div class="event-tag" id="eventTag">OFFLINE</div>
+      <div class="state-reason" id="stateReason">waiting for the voice loop...</div>
+      <div class="vad-label"><span>VAD (Silero) speech probability</span><span id="vadPct">0%</span></div>
+      <div class="vad-bar"><div id="vadFill"></div></div>
+      <div class="stats-row">
+        <div class="stat"><b id="statTurns">0</b><span>turns</span></div>
+        <div class="stat"><b id="statBarge">0</b><span>controls</span></div>
+        <div class="stat"><b id="statErrors">0</b><span>errors</span></div>
+        <div class="stat"><b id="statUptime">-</b><span>uptime</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Pi audio routing</h2>
+      <div class="audio-controls">
+        <label>Pi microphone<input type="text" id="piInputSelect" list="piInputList" placeholder="auto / device name / index"><datalist id="piInputList"></datalist></label>
+        <label>ME3 output<select id="piOutputSelect"><option value="browser">This browser / connected PC speaker</option></select></label>
+        <label>Browser speaker<select id="browserSinkSelect"><option value="default">Browser default speaker</option></select></label>
+        <button id="applyAudio" type="button">Apply Pi audio routing</button>
+        <button id="connectAudio" type="button">Connect browser speaker</button>
+        <div class="audio-note" id="audioStatus">Pi audio controls appear when the LAN server is running. Browser output needs one click because browsers block autoplay.</div>
+      </div>
+    </div>
+    <div class="card talk">
+      <div class="talk-label">You said</div>
+      <div class="talk-text" id="lastTranscript">-</div>
+      <div class="talk-at" id="transcriptAt"></div>
+    </div>
+    <div class="card talk">
+      <div class="talk-label">ME3 says <span class="kind" id="replyKind" hidden></span></div>
+      <div class="talk-text" id="lastReply">-</div>
+      <div class="talk-at" id="replyAt"></div>
+    </div>
+  </section>
+  <section class="col center">
+    <canvas id="orbCanvas" width="280" height="280"></canvas>
+    <div class="orb-hint" id="orbHint">protected playback - say "stop processing", "skip", or "steer"</div>
+    <div class="echo-toggle">PCM speaker route is authoritative. Browser speech synthesis is disabled so every response uses the selected ME3 voice only.</div>
+  </section>
+  <section class="col right">
+    <div class="card">
+      <h2>Tool activity (sanitized: names + status only)</h2>
+      <ul class="tool-feed" id="toolFeed"><li class="empty">no tool calls yet</li></ul>
+    </div>
+    <div class="card terminal-card">
+      <div class="terminal-title"><h2>Runtime terminal</h2><span class="terminal-badge">SAFE EVENTS</span></div>
+      <pre id="terminalView" class="terminal-view">[BOOT] waiting for ME3 status...</pre>
+      <div class="terminal-note">Operational state, ASR, TTS, tool names/status, and task routing only; hidden chain-of-thought is never displayed.</div>
+    </div>
+    <div class="card">
+      <h2>Latency (last / median / p95)</h2>
+      <div id="latency">
+        <div class="lat-row"><span class="lat-name">ASR</span><span class="lat-val">-</span></div>
+        <div class="lat-row"><span class="lat-name">LLM</span><span class="lat-val">-</span></div>
+        <div class="lat-row"><span class="lat-name">TTS</span><span class="lat-val">-</span></div>
+        <div class="lat-row"><span class="lat-name">E2E</span><span class="lat-val">-</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Runtime</h2>
+      <div class="runtime" id="runtime"><div><span class="k">brain</span><span class="v">-</span></div></div>
+    </div>
+    <div class="card">
+      <h2>Release</h2>
+      <div class="runtime" id="release"><div><span class="k">release</span><span class="v">-</span></div></div>
+    </div>
+    <div class="card readiness">
+      <h2>Demo readiness</h2>
+      <div class="readiness-group done">
+        <h3>Accomplished</h3>
+        <ul class="readiness-list">
+          <li>Continuous Silero VAD voice loop with automatic ASR, inference, tools, and TTS</li>
+          <li>Protected speaking with explicit voice controls, echo guard, Pi Fifine input, and browser/PC speaker routing</li>
+          <li>One fixed voice per profile for replies, backchannels, and completion notices</li>
+          <li>Bounded MCP tools for files, commands, websites/web servers, timers, Git, and system tasks</li>
+          <li>Direct LLM response streaming; hidden reasoning is disabled from spoken/UI output</li>
+          <li>Workstation regression suite and release acceptance checks are passing</li>
+        </ul>
+      </div>
+      <div class="readiness-group pending">
+        <h3>Still needs a clean demo check</h3>
+        <ul class="readiness-list">
+          <li>One operator test with the physical Fifine mic, long task, backchannel, completion, and barge-in</li>
+          <li>Paper-native full-duplex overlap benchmark with the required clean labels and dataset</li>
+          <li>Production call/SMS/email configuration, public HTTPS webhooks, and policy review</li>
+        </ul>
+      </div>
+      <div class="readiness-group provide">
+        <h3>Provide when moving to production</h3>
+        <ul class="readiness-list">
+          <li>Keep the Qwen VPN/API endpoint and protected key available for the Qwen profile</li>
+          <li>Twilio and Resend credentials, caller/sender identity, consent, disclosure, retention, and handoff policy</li>
+          <li>Run only one profile at a time on the shared Fifine microphone during the presentation</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+</main><script>
+'use strict';
+const $ = (id) => document.getElementById(id);
+// Never add a second browser-native voice on top of the Qwen/Piper PCM stream.
+// This also stops an utterance left over by an older ME3 tab after reload.
+if ('speechSynthesis' in window) speechSynthesis.cancel();
+const STATUS_BASE = (location.port === '8126' || location.port === '8090' || location.port === '8136' || location.port === '8100') ? '' : 'http://127.0.0.1:8126';
+$('linkRoadmap').href = STATUS_BASE + '/roadmap';
+async function apiState(){
+  const r = await fetch(STATUS_BASE + '/api/state', {cache:'no-store'});
+  if (!r.ok) throw new Error('status offline');
+  return r.json();
+}
+const HUES = { idle: 220, listening: 150, thinking: 265, awaiting: 45, speaking: 200 };
+
+let last = null, online = false;
+let smoothRms = 0, orbHue = 220, orbPhase = 0;
+let bargeFlashUntil = 0, seenBargeAt = null;
+let prevState = null, stateSince = 0, seenTranscriptAt = null, seenReplyAt = null;
+let audioSocket = null, audioContext = null, audioNextTime = 0, audioNodes = [];
+
+setInterval(() => { $('clock').textContent = new Date().toLocaleTimeString('en-PH', {hour12:false}); }, 1000);
+$('clock').textContent = new Date().toLocaleTimeString('en-PH', {hour12:false});
+
+function fmtTime(iso){ if(!iso) return ''; const d = new Date(iso); return d.toLocaleTimeString('en-PH', {hour12:false}); }
+function fmtUptime(s){ if(s == null) return '-'; if(s < 60) return Math.round(s)+'s'; if(s < 3600) return Math.floor(s/60)+'m '+(s%60|0)+'s'; return Math.floor(s/3600)+'h '+Math.floor((s%3600)/60)+'m'; }
+
+function eventTagFor(state, loopOn){
+  if(!loopOn) return ['LOOP STOPPED','offline'];
+  if(state === 'listening'){
+    const secs = stateSince ? ((Date.now() - stateSince)/1000).toFixed(1) : '0.0';
+    return ['LISTENING (' + secs + 's)','listening'];
+  }
+  if(state === 'thinking') return ['THINKING','thinking'];
+  if(state === 'awaiting') return ['AWAITING (long task)','awaiting'];
+  if(state === 'speaking') return ['SPEAKING','speaking'];
+  return ['STANDBY','idle'];
+}
+
+function renderState(d){
+  const tag = eventTagFor(d.state, d.loop);
+  const el = $('eventTag');
+  el.textContent = tag[0]; el.className = 'event-tag ' + tag[1];
+  $('stateReason').textContent = d.loop
+    ? (d.state_reason || d.state)
+    : 'Pi voice loop stopped - web server is reachable; check the microphone/device route and restart ME3.';
+  const p = (d.vad && d.loop) ? Math.max(0, Math.min(1, d.vad.probability)) : 0;
+  $('vadFill').style.width = (p*100).toFixed(0) + '%';
+  $('vadPct').textContent = (p*100).toFixed(0) + '%';
+  const st = d.stats || {};
+  $('statTurns').textContent = st.n_turns != null ? st.n_turns : 0;
+  $('statBarge').textContent = st.n_control != null ? st.n_control : 0;
+  $('statErrors').textContent = st.n_errors != null ? st.n_errors : 0;
+  $('statUptime').textContent = d.loop ? fmtUptime(d.uptime_s) : '-';
+  const lt = d.last_transcript || {};
+  if(lt.at && lt.at !== seenTranscriptAt){
+    seenTranscriptAt = lt.at;
+    $('lastTranscript').textContent = lt.text || '-';
+    $('transcriptAt').textContent = fmtTime(lt.at);
+  }
+  const lr = d.last_reply || {};
+  if(lr.at && lr.at !== seenReplyAt){
+    seenReplyAt = lr.at;
+    $('lastReply').textContent = lr.text || '-';
+    $('replyAt').textContent = fmtTime(lr.at);
+    const kb = $('replyKind');
+    if(lr.kind && lr.kind !== 'reply'){ kb.hidden = false; kb.textContent = lr.kind.toUpperCase(); } else { kb.hidden = true; }
+  }
+  if(d.last_barge_in_at && d.last_barge_in_at !== seenBargeAt){
+    seenBargeAt = d.last_barge_in_at;
+    bargeFlashUntil = Date.now() + 1500;
+  }
+}
+
+function renderTools(d){
+  const tools = d.tools || {};
+  const ul = $('toolFeed'); ul.innerHTML = '';
+  const recent = tools.recent || [];
+  const active = tools.active || null;
+  if(!recent.length && !active){ ul.innerHTML = '<li class="empty">no tool calls yet</li>'; return; }
+  if(active){
+    const li = document.createElement('li'); li.className = 'started';
+    li.innerHTML = '<span class="spin"></span><code></code><span class="tl">running</span>';
+    li.querySelector('code').textContent = active;
+    ul.appendChild(li);
+  }
+  recent.slice().reverse().forEach(e => {
+    const li = document.createElement('li');
+    li.className = e.phase === 'tool_started' ? 'started' : (e.ok ? 'ok' : 'err');
+    li.innerHTML = '<code></code><span class="tl"></span><span class="tt"></span>';
+    li.querySelector('code').textContent = e.name;
+    li.querySelector('.tl').textContent = e.phase === 'tool_started' ? 'started' : (e.ok ? 'ok' : 'error');
+    li.querySelector('.tt').textContent = fmtTime(e.at);
+    ul.appendChild(li);
+  });
+}
+
+let terminalLines = ['[BOOT] waiting for ME3 status...'];
+let terminalState = null, terminalTranscriptAt = null, terminalReplyAt = null;
+const terminalSeenKeys = new Set();
+function addTerminal(line, key=''){
+  if(key && terminalSeenKeys.has(key)) return;
+  if(key) terminalSeenKeys.add(key);
+  terminalLines.push(line);
+  if(terminalLines.length > 120) terminalLines = terminalLines.slice(-120);
+  const el = $('terminalView');
+  if(el){ el.textContent = terminalLines.join('\n'); el.scrollTop = el.scrollHeight; }
+}
+function renderTerminal(d){
+  if(d.state !== terminalState){
+    terminalState = d.state;
+    addTerminal('[' + fmtTime(new Date().toISOString()) + '] [STATE] ' + String(d.state || '-').toUpperCase() + ' - ' + (d.state_reason || ''));
+  }
+  const lt = d.last_transcript || {};
+  if(lt.at && lt.at !== terminalTranscriptAt){
+    terminalTranscriptAt = lt.at;
+    addTerminal('[' + fmtTime(lt.at) + '] [ASR] ' + (lt.text || '-'));
+  }
+  const lr = d.last_reply || {};
+  if(lr.at && lr.at !== terminalReplyAt){
+    terminalReplyAt = lr.at;
+    addTerminal('[' + fmtTime(lr.at) + '] [TTS ' + String(lr.kind || 'reply').toUpperCase() + '] ' + (lr.text || '-'));
+  }
+  const tools = (d.tools || {}).recent || [];
+  tools.forEach(e => {
+    const key = String(e.at || '') + '|' + String(e.phase || '') + '|' + String(e.name || '');
+    addTerminal('[' + fmtTime(e.at) + '] [TOOL] ' + (e.phase || 'event') + ' ' + (e.name || '-') + (e.ok == null ? '' : (e.ok ? ' OK' : ' ERROR')), key);
+  });
+  if((d.tools || {}).active){
+    addTerminal('[' + fmtTime(new Date().toISOString()) + '] [TOOL] running ' + d.tools.active, 'active|' + d.tools.active);
+  }
+  if(d.models && d.state === 'speaking'){
+    const m = d.models, at = (d.last_reply || {}).at || '';
+    addTerminal('[TTS] ' + (m.tts_backend || '-') + ' / ' + (m.tts_model || '-') + ' / voice=' + (m.tts_voice || '-'), 'tts|' + at + '|' + (m.tts_voice || ''));
+  }
+  const el = $('terminalView');
+  if(el){ el.textContent = terminalLines.join('\n'); el.scrollTop = el.scrollHeight; }
+}
+
+function renderLatency(d){
+  const lat = (d.stats && d.stats.latency) || {};
+  const rows = $('latency').querySelectorAll('.lat-val');
+  const order = ['asr_ms','llm_ms','tts_ms','e2e_ms'];
+  rows.forEach((el, i) => {
+    const v = lat[order[i]];
+    el.textContent = v ? (v.last + ' / ' + v.median + ' / ' + v.p95 + ' ms') : '-';
+  });
+}
+
+function kvRow(k, v){ const div = document.createElement('div'); const a = document.createElement('span'); a.className='k'; a.textContent = k; const b = document.createElement('span'); b.className='v'; b.textContent = v; div.appendChild(a); div.appendChild(b); return div; }
+
+function renderRuntime(d){
+  const box = $('runtime'); box.innerHTML = '';
+  box.appendChild(kvRow('brain', d.brain || '-'));
+  const label = d.variant === 'qwen_instruct' ? 'ME3 QWEN INSTRUCT' : 'ME3 FASTER-WHISPER + PIPER';
+  const pill = $('variantPill');
+  pill.textContent = label;
+  pill.className = 'variant-pill ' + (d.variant === 'qwen_instruct' ? 'qwen' : 'own');
+  box.appendChild(kvRow('variant', label));
+  const m = d.models || {};
+  if(m.asr_model) box.appendChild(kvRow('ASR model', m.asr_model + (m.asr_ms != null ? '  (' + m.asr_ms + ' ms load)' : '')));
+  if(m.vad_ms != null) box.appendChild(kvRow('VAD load', m.vad_ms + ' ms'));
+  if(m.tts_backend) box.appendChild(kvRow('TTS backend', m.tts_backend));
+  if(m.tts_model) box.appendChild(kvRow('TTS model', m.tts_model));
+  if(m.tts_voice) box.appendChild(kvRow('TTS voice', m.tts_voice + (m.tts_hz ? ' @ ' + m.tts_hz + ' Hz' : '') + (m.tts_ms != null ? '  (' + m.tts_ms + ' ms load)' : '')));
+  if(box.children.length === 2) box.appendChild(kvRow('models', 'not loaded yet'));
+}
+
+function renderRelease(d){
+  const box = $('release'); box.innerHTML = '';
+  const rel = d.release || {};
+  const r = rel.release || {};
+  box.appendChild(kvRow('release', r.release_id || '-'));
+  const a = rel.acceptance || {};
+  if(a.status) box.appendChild(kvRow('acceptance', a.status + (a.checks_total ? '  ' + a.checks_passed + '/' + a.checks_total + ' checks' : '') + (a.created_utc ? '  ' + a.created_utc.slice(0,10) : '')));
+  const pi = rel.pi || {};
+  if(pi.status) box.appendChild(kvRow('pi', pi.status));
+  if(r.note) box.appendChild(kvRow('note', r.note));
+}
+
+function applyState(d){
+  if(prevState !== d.state){ stateSince = Date.now(); prevState = d.state; }
+  renderState(d); renderTools(d); renderTerminal(d); renderLatency(d); renderRuntime(d); renderRelease(d);
+}
+
+function fillAudioDevices(d){
+  if(!d || !d.available) return;
+  const inputs = $('piInputList'); inputs.innerHTML = '';
+  (d.inputs || []).forEach(x => { const o = document.createElement('option'); o.value = String(x.id); o.label = '[' + x.id + '] ' + x.name; inputs.appendChild(o); });
+  if(d.selected_input != null) $('piInputSelect').value = String(d.selected_input);
+  const out = $('piOutputSelect'); const old = out.value; out.innerHTML = '<option value="browser">This browser / connected PC speaker</option>';
+  (d.outputs || []).forEach(x => { const o = document.createElement('option'); o.value = String(x.id); o.textContent = '[' + x.id + '] ' + x.name; out.appendChild(o); });
+  if(d.selected_output != null) out.value = String(d.selected_output);
+  if(old && [...out.options].some(o => o.value === old)) out.value = old;
+  const ba = d.browser_audio || {};
+  $('audioStatus').textContent = (ba.clients ? 'Browser speaker connected. ' : 'Browser speaker not connected. ') + 'One active browser audio client is allowed; stale tabs are replaced. Pi input/output selection is applied by restarting only the audio loop.';
+}
+
+async function loadAudioDevices(){
+  try { const r = await fetch('/api/audio/devices', {cache:'no-store'}); if(r.ok) fillAudioDevices(await r.json()); } catch(e) {}
+  if(navigator.mediaDevices && navigator.mediaDevices.enumerateDevices){
+    try {
+      const ds = await navigator.mediaDevices.enumerateDevices();
+      const s = $('browserSinkSelect'); s.innerHTML = '<option value="default">Browser default speaker</option>';
+      ds.filter(x => x.kind === 'audiooutput').forEach(x => { const o=document.createElement('option'); o.value=x.deviceId; o.textContent=x.label || 'Browser speaker'; s.appendChild(o); });
+    } catch(e) {}
+  }
+}
+
+async function applyAudio(){
+  const input = $('piInputSelect').value.trim() || 'auto';
+  const output = $('piOutputSelect').value || 'browser';
+  try {
+    const r = await fetch('/api/audio/select', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({input, output})});
+    const d = await r.json();
+    if(!r.ok || d.ok === false) throw new Error(d.message || d.error || 'audio selection failed');
+    fillAudioDevices(d); $('audioStatus').textContent = 'Audio route applied; the Pi voice loop is restarting.';
+  } catch(e) { $('audioStatus').textContent = 'Audio selection unavailable: ' + e.message; }
+}
+
+async function connectBrowserAudio(){
+  try {
+    const Ctx = window.AudioContext || window.webkitAudioContext; if(!Ctx) throw new Error('Web Audio is unavailable');
+    audioContext = audioContext || new Ctx(); await audioContext.resume();
+    const sink = $('browserSinkSelect').value;
+    if(sink !== 'default' && audioContext.setSinkId) await audioContext.setSinkId(sink);
+    if(audioSocket) audioSocket.close();
+    const p = Number(location.port || (location.protocol === 'https:' ? 443 : 80));
+    const audioPort = p === 8126 ? 8127 : (p === 8090 ? 8091 : p + 1);
+    const scheme = location.protocol === 'https:' ? 'wss' : 'ws';
+    audioSocket = new WebSocket(scheme + '://' + location.hostname + ':' + audioPort + '/audio');
+    audioSocket.binaryType = 'arraybuffer';
+    audioSocket.onopen = () => { $('audioStatus').textContent = 'Browser speaker connected; TTS will play here.'; };
+    audioSocket.onclose = () => { $('audioStatus').textContent = 'Browser speaker disconnected.'; };
+    audioSocket.onerror = () => { $('audioStatus').textContent = 'Could not connect to Pi audio stream; check port ' + audioPort + '.'; };
+    audioSocket.onmessage = ev => {
+      if(typeof ev.data === 'string'){ try { if(JSON.parse(ev.data).event === 'clear'){ audioNodes.splice(0).forEach(n => { try { n.stop(); } catch(e){} }); audioNextTime = audioContext.currentTime; } } catch(e){} return; }
+      const pcm = new Int16Array(ev.data), f = audioContext.createBuffer(1, pcm.length, 16000), ch = f.getChannelData(0);
+      for(let i=0;i<pcm.length;i++) ch[i] = pcm[i] / 32768;
+      const src = audioContext.createBufferSource(); src.buffer=f; src.connect(audioContext.destination);
+      audioNodes.push(src); src.onended = () => { audioNodes = audioNodes.filter(n => n !== src); };
+      audioNextTime = Math.max(audioNextTime, audioContext.currentTime + .02); src.start(audioNextTime); audioNextTime += f.duration;
+    };
+  } catch(e) { $('audioStatus').textContent = 'Browser audio unavailable: ' + e.message; }
+}
+$('applyAudio').addEventListener('click', applyAudio);
+$('connectAudio').addEventListener('click', connectBrowserAudio);
+$('browserSinkSelect').addEventListener('change', () => { if(audioSocket && audioSocket.readyState === WebSocket.OPEN) connectBrowserAudio(); });
+loadAudioDevices();
+setInterval(loadAudioDevices, 2500);
+
+function poll(){
+  apiState()
+    .then(d => { online = true; last = d; applyState(d); })
+    .catch(() => { online = false; });
+  const dot = $('statusDot');
+  dot.classList.toggle('active', online && last && last.loop);
+  $('offlineBanner').hidden = online;
+  $('orbHint').textContent = (online && last && last.loop)
+    ? 'protected playback - say "stop processing", "skip", or "steer"'
+    : (online ? 'web server connected - the Pi voice loop is stopped; check the microphone route' : 'status server offline - check the Pi service or SSH tunnel');
+}
+setInterval(poll, 350);
+poll();
+
+const canvas = $('orbCanvas'), ctx = canvas.getContext('2d');
+function drawOrb(){
+  const target = (last && HUES[last.state] != null) ? HUES[last.state] : 220;
+  orbHue += (target - orbHue) * 0.08;
+  const rawRms = (last && online && last.loop && last.vad) ? last.vad.rms : 0;
+  const normRms = Math.min(1, rawRms / 3000);
+  smoothRms += (normRms - smoothRms) * 0.25;
+  const rms = smoothRms;
+  orbPhase += 0.03 + rms * 0.4;
+  const cx = 140, cy = 140;
+  const baseRadius = 75 + rms * 120;
+  ctx.clearRect(0, 0, 280, 280);
+  const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, baseRadius * 1.4);
+  g.addColorStop(0, 'hsla(' + orbHue + ',90%,65%,.85)');
+  g.addColorStop(0.55, 'hsla(' + (orbHue + 20) + ',80%,45%,.45)');
+  g.addColorStop(1, 'hsla(' + (orbHue + 20) + ',80%,45%,0)');
+  ctx.fillStyle = g;
+  ctx.beginPath(); ctx.arc(cx, cy, baseRadius * 1.4, 0, Math.PI * 2); ctx.fill();
+  for(let layer = 0; layer < 3; layer++){
+    ctx.beginPath();
+    for(let i = 0; i <= 120; i++){
+      const a = (i / 120) * Math.PI * 2;
+      const r = (baseRadius - layer * 12)
+        + Math.sin(a * 4 + orbPhase + layer) * (6 + rms * 35)
+        + Math.cos(a * 2 - orbPhase) * (4 + rms * 20);
+      const x = cx + r * Math.cos(a), y = cy + r * Math.sin(a);
+      if(i) ctx.lineTo(x, y); else ctx.moveTo(x, y);
+    }
+    ctx.closePath();
+    ctx.strokeStyle = 'hsla(' + orbHue + ',85%,62%,' + (0.5 - layer * 0.12) + ')';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  }
+  if(Date.now() < bargeFlashUntil){
+    const k = (bargeFlashUntil - Date.now()) / 1500;
+    ctx.beginPath(); ctx.arc(cx, cy, 134, 0, Math.PI * 2);
+    ctx.strokeStyle = 'hsla(0,90%,60%,' + (0.9 * k).toFixed(3) + ')';
+    ctx.lineWidth = 5; ctx.stroke();
+  }
+  requestAnimationFrame(drawOrb);
+}
+requestAnimationFrame(drawOrb);
+</script>
+</body>
+</html>

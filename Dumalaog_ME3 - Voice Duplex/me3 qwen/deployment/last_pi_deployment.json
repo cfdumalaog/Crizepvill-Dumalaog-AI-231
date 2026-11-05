@@ -1,0 +1,9 @@
+{
+  "status": "deployed",
+  "at": "2026-11-05T10:38:30Z",
+  "release_id": "me3-20261105-103801-e915d56e",
+  "host": "192.168.254.105",
+  "path": "/home/dalmacio/Desktop/dandan-qwen",
+  "zip_sha256": "4a4811e02c90126eccaebfa624fd9e149c67cccadcfdb2e2a9b528ba6ed60368",
+  "reason": null
+}

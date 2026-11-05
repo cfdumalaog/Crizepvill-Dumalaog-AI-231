@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#09111f">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <title>ME3 Local Agent Console</title>
+  <style>
+    :root { color-scheme: dark; --bg:#09111f; --panel:#101d31; --panel2:#13253d;
+      --line:#263c5b; --text:#eef6ff; --muted:#9db1ca; --cyan:#64e6f5;
+      --green:#6ee7a7; --amber:#ffd17b; --red:#ff8d8d; }
+    * { box-sizing:border-box; }
+    body { margin:0; min-height:100vh; color:var(--text); font:15px/1.5 "Plus Jakarta Sans",Inter,ui-sans-serif,system-ui,sans-serif;
+      background:radial-gradient(circle at 80% -10%,#21446b 0,transparent 35%),var(--bg); }
+    main { width:min(1240px,calc(100% - 32px)); margin:auto; padding:30px 0 54px; }
+    header { display:flex; gap:20px; align-items:flex-end; justify-content:space-between; flex-wrap:wrap; margin-bottom:22px; }
+    .eyebrow { color:var(--cyan); text-transform:uppercase; letter-spacing:.16em; font-size:.72rem; font-weight:800; }
+    h1 { margin:8px 0 5px; font-size:clamp(2rem,5vw,3.8rem); letter-spacing:-.055em; line-height:1; }
+    .lead { margin:0; max-width:690px; color:var(--muted); font-size:1.02rem; }
+    .pill { border:1px solid #2e765c; color:var(--green); background:#0d2a29; border-radius:999px; padding:9px 13px; font-weight:800; }
+    .topnav { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+    .navlink { border:1px solid var(--line); color:var(--cyan); background:#102b36;
+      border-radius:999px; padding:8px 13px; font-weight:800; font-size:.85rem; text-decoration:none; }
+    .navlink:hover { border-color:var(--cyan); transform:translateY(-1px); }
+    .layout { display:grid; grid-template-columns:minmax(0,1.45fr) minmax(280px,.75fr); gap:16px; }
+    .card { border:1px solid var(--line); border-radius:18px; background:#0f1a2cdd; box-shadow:0 16px 50px #02071166; }
+    .chat { min-height:620px; display:flex; flex-direction:column; overflow:hidden; }
+    .chat-top,.side-top { padding:16px 18px; border-bottom:1px solid var(--line); display:flex; gap:12px; justify-content:space-between; align-items:center; }
+    .chat-top strong { font-size:1.05rem; }
+    .mode { display:flex; gap:7px; align-items:center; color:var(--muted); font-size:.84rem; }
+    select,textarea,button { font:inherit; }
+    select { color:var(--text); background:var(--panel2); border:1px solid var(--line); border-radius:9px; padding:7px 9px; }
+    #messages { flex:1; min-height:380px; max-height:610px; overflow:auto; padding:18px; }
+    .msg { max-width:88%; padding:12px 14px; border-radius:15px; margin:0 0 13px; white-space:pre-wrap; overflow-wrap:anywhere; }
+    .msg.user { margin-left:auto; background:#1d4266; border:1px solid #2f6b99; }
+    .msg.assistant { background:#14263d; border:1px solid #294568; }
+    .msg small { display:block; color:#9bb2ca; font-size:.72rem; margin-bottom:5px; }
+    .composer { padding:14px; border-top:1px solid var(--line); background:#0b1728; }
+    textarea { width:100%; min-height:74px; resize:vertical; color:var(--text); background:#0a1424; border:1px solid var(--line); border-radius:12px; padding:12px; outline:none; }
+    textarea:focus { border-color:var(--cyan); box-shadow:0 0 0 3px #64e6f522; }
+    .actions { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-top:9px; }
+    button { cursor:pointer; border:1px solid #3e638a; border-radius:9px; color:var(--text); background:#173250; padding:9px 13px; }
+    button:hover { border-color:var(--cyan); transform:translateY(-1px); }
+    button.primary { color:#07131e; background:var(--cyan); border-color:var(--cyan); font-weight:800; }
+    button.subtle { color:var(--muted); background:transparent; }
+    button:disabled { opacity:.55; cursor:wait; transform:none; }
+    label.check { color:var(--muted); font-size:.83rem; display:flex; gap:6px; align-items:center; }
+    .voice-status { color:var(--amber); border:1px solid #735d2e; background:#211d14; border-radius:999px; padding:8px 11px; font-size:.8rem; }
+    .voice-status.live { color:var(--green); border-color:#2e765c; background:#0d2a29; }
+    .voice-status.warn { color:var(--amber); }
+    .thinking-toolbar { display:flex; gap:10px; align-items:center; flex-wrap:wrap; padding:10px 18px; border-bottom:1px solid var(--line); background:#0c192a; }
+    .thinking-badge { border:1px solid var(--line); border-radius:999px; padding:5px 9px; color:var(--muted); font-size:.75rem; }
+    .thinking-badge.running { color:var(--cyan); border-color:#2c7180; background:#102b36; }
+    .thinking-badge.done { color:var(--green); border-color:#2e765c; background:#0d2a29; }
+    .thinking-badge.error { color:var(--red); border-color:#7b3c4c; background:#321a25; }
+    .thinking-panel { padding:12px 18px; border-bottom:1px solid var(--line); background:#0b1728; }
+    .thinking-panel h2 { margin:0 0 7px; font-size:.92rem; }
+    .thinking-current { color:var(--cyan); font-size:.84rem; margin-bottom:8px; }
+    #thinkingLog { margin:0; padding-left:20px; max-height:180px; overflow:auto; color:var(--muted); font-size:.78rem; }
+    #thinkingLog li { padding:3px 0; }
+    #thinkingLog li b { color:var(--text); font-weight:600; }
+    .thinking-disclosure { color:#7890ad; font-size:.72rem; margin-top:8px; }
+    [hidden] { display:none!important; }
+    .side { display:flex; flex-direction:column; gap:16px; }
+    .section { padding:16px 18px; }
+    .section h2 { margin:0 0 11px; font-size:1rem; }
+    .status-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+    .status-item { border:1px solid var(--line); border-radius:12px; padding:10px; background:#0e1a2b; }
+    .status-item b { display:block; font-size:.88rem; }
+    .status-item span { color:var(--muted); font-size:.77rem; }
+    .ok { color:var(--green)!important; } .warn { color:var(--amber)!important; } .bad { color:var(--red)!important; }
+    .chips { display:flex; gap:7px; flex-wrap:wrap; }
+    .chips button { font-size:.82rem; padding:7px 9px; background:#13263e; }
+    #events { margin:0; padding:0; list-style:none; max-height:230px; overflow:auto; }
+    #events li { border-bottom:1px solid #1b2d47; padding:7px 0; color:var(--muted); font-size:.8rem; }
+    #events code { color:var(--cyan); }
+    .notice { border-left:3px solid var(--amber); color:var(--muted); padding:10px 12px; background:#211d14; border-radius:0 10px 10px 0; font-size:.84rem; }
+    footer { color:#7890ad; font-size:.78rem; margin-top:16px; }
+    @media(max-width:850px){ .layout{grid-template-columns:1fr;} .chat{min-height:560px;} }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <div><div class="eyebrow">AI 231 · workstation evaluation</div><h1>ME3 Local Agent Console</h1>
+      <p class="lead">This is the secondary diagnostic console for the same Qwen or GPT-5.6 Luna + MCP tool brain used by ME3. The primary interface is the automatic full-duplex voice loop: launch <code>Start-ME3.bat</code> to listen, execute, speak, and interrupt without a Send button.</p></div>
+    <div class="topnav">
+      <a class="navlink" href="http://127.0.0.1:8126/" target="_blank">Assistant · live voice</a>
+      <a class="navlink" href="http://127.0.0.1:8126/roadmap" target="_blank">Roadmap</a>
+      <span class="pill">● localhost-only safety mode</span>
+    </div>
+  </header>
+  <div class="layout">
+    <section class="card chat">
+      <div class="chat-top"><strong>Conversation</strong><div class="mode"><span>Brain</span><select id="mode"><option value="auto">Auto</option><option value="qwen">Qwen + tools</option><option value="luna">GPT-5.6 Luna + tools</option><option value="stub">Offline stub</option></select></div></div>
+      <div class="thinking-toolbar"><label class="check"><input id="showThinking" type="checkbox" checked> Show task progress (not model reasoning)</label><span id="thinkingBadge" class="thinking-badge">Idle</span></div>
+      <section id="thinkingPanel" class="thinking-panel">
+        <h2>Thinking &amp; task progress</h2>
+        <div id="currentTask" class="thinking-current">No active task.</div>
+        <ol id="thinkingLog"><li>ME3 will show concise reasoning stages and tool progress here.</li></ol>
+        <div class="thinking-disclosure">This is a safe task summary, not private chain-of-thought. It shows what phase ME3 is in and which bounded tool it is running.</div>
+      </section>
+      <div id="messages"><div class="msg assistant"><small>ME3</small>Ready. Try a system check, ask me to inspect the project, or ask me to build a small web app under <code>agent_workspace</code>.</div></div>
+      <div class="composer"><textarea id="input" placeholder="Ask ME3 to check the system, build a web app, or summarize the local status..."></textarea>
+        <div class="actions"><button id="send" class="primary">Send diagnostic task</button><span id="voiceStatus" class="voice-status">Auto-listener starting…</span><button id="clear" class="subtle">Clear</button><span class="check">Browser speech synthesis disabled; use the ME3 PCM speaker stream.</span></div>
+      </div>
+    </section>
+    <aside class="side">
+      <section class="card"><div class="side-top"><strong>Voice loop (authoritative)</strong><span id="loopBadge" class="thinking-badge">offline</span></div><div class="section" id="loopBody"><div class="status-grid"><div class="status-item"><b>waiting…</b><span>polling 127.0.0.1:8126</span></div></div></div></section>
+      <section class="card"><div class="side-top"><strong>Live readiness</strong><button id="refresh" class="subtle">Refresh</button></div><div class="section"><div id="status" class="status-grid"><div class="status-item"><b>Loading…</b><span>checking local service</span></div></div></div></section>
+      <section class="card"><div class="section"><h2>Safe diagnostic tasks</h2><div class="chips"><button data-prompt="Use system_info and summarize the host.">System status</button><button data-prompt="Check channel_health and explain what is unavailable. Do not send anything.">Channel readiness</button><button data-prompt="Build a small todo web app under agent_workspace/ui_todo, then verify the files and report what you did.">Build a web app</button><button data-prompt="List the top-level ME3 project files and summarize the local test surface.">Inspect project</button></div></div></section>
+      <section class="card"><div class="section"><h2>Tool events</h2><ul id="events"><li>No tool calls yet.</li></ul></div></section>
+      <div class="notice">Voice mode starts automatically when the page opens after the browser grants microphone permission. There is no microphone button. This browser listener is a convenience client; the authoritative ME3 VAD → Whisper → Qwen/tools → TTS full-duplex path runs from <code>Start-ME3.bat</code> and does not require this page.</div>
+    </aside>
+  </div>
+  <footer>ME3 local UI · project tools are bounded by the same allowlist · external channels hard-disabled · use <code>scripts/Start-ME3-UI.ps1</code> to launch</footer>
+</main>
+<script>
+  const $ = (id) => document.getElementById(id);
+  const history = [];
+  const messages = $('messages');
+  function addMessage(role, text, meta='') { const el=document.createElement('div'); el.className='msg '+role; el.innerHTML='<small>'+(role==='user'?'You':'ME3')+(meta?' · '+meta:'')+'</small>'+escapeHtml(text); messages.appendChild(el); messages.scrollTop=messages.scrollHeight; }
+  function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+  function setEvents(events) { const list=$('events'); list.innerHTML=''; if(!events || !events.length){ list.innerHTML='<li>No tool calls in this turn.</li>'; return; } events.forEach(e=>{ const li=document.createElement('li'); const result=e.kind==='finish'?(e.ok?'✓ completed':'✕ returned an error'):'started'; li.innerHTML='<code>'+escapeHtml(e.name)+'</code> · '+result; list.appendChild(li); }); }
+  function setThinking(snapshot={}) {
+    const status=snapshot.status||'idle';
+    const badge=$('thinkingBadge');
+    const label=status==='running'?'Thinking':status==='queued'?'Queued':status==='completed'?'Done':status==='error'?'Error':'Idle';
+    badge.textContent=label+(snapshot.mode?' · '+snapshot.mode:'');
+    badge.className='thinking-badge '+(status==='running'||status==='queued'?'running':status==='completed'?'done':status==='error'?'error':'');
+    $('currentTask').textContent=snapshot.current_task||'No active task.';
+    const list=$('thinkingLog'); list.innerHTML='';
+    const entries=snapshot.thinking||[];
+    if(!entries.length){ list.innerHTML='<li>No thinking activity yet.</li>'; return; }
+    entries.forEach(item=>{ const li=document.createElement('li'); const b=document.createElement('b'); b.textContent=(item.stage||'progress')+' · '; li.appendChild(b); li.appendChild(document.createTextNode(item.task||'')); if(item.elapsed_ms!=null) li.appendChild(document.createTextNode(' ('+item.elapsed_ms+' ms)')); list.appendChild(li); });
+    list.scrollTop=list.scrollHeight;
+  }
+  try { $('showThinking').checked=localStorage.getItem('me3.showThinking')!=='0'; } catch(e) {}
+  $('thinkingPanel').hidden=!$('showThinking').checked;
+  $('showThinking').onchange=()=>{ $('thinkingPanel').hidden=!$('showThinking').checked; try { localStorage.setItem('me3.showThinking',$('showThinking').checked?'1':'0'); } catch(e) {} };
+  function statusItem(label, value, cls='') { return '<div class="status-item"><b class="'+cls+'">'+escapeHtml(label)+'</b><span>'+escapeHtml(value)+'</span></div>'; }
+  async function health(){ try { const r=await fetch('/api/health'); const d=await r.json(); const q=d.qwen||{}; const l=d.luna||{}; const a=d.audio_models||{}; const c=d.channels?.channels||{}; if(d.default_mode && d.default_mode!=='auto') $('mode').value=d.default_mode; $('status').innerHTML=statusItem('Audio variant',d.audio_variant||'current','ok')+statusItem('Qwen ASR',a.asr_engine&&a.asr_model?(a.asr_engine+' · '+a.asr_model):'not set')+statusItem('Qwen TTS',a.tts_engine&&a.tts?(a.tts_engine+' · '+a.tts):'not set')+statusItem('Qwen audio key',a.shared_key_configured?'configured':'not configured',a.shared_key_configured?'ok':'warn')+statusItem('Qwen key',q.configured?'configured':'not configured',q.configured?'ok':'warn')+statusItem('Qwen model',q.model||'not set')+statusItem('Luna key',l.configured?'configured':'not configured',l.configured?'ok':'warn')+statusItem('Luna model',l.model||'not set')+statusItem('Tool surface',String(d.tools||0)+' tools','ok')+statusItem('Twilio call',c.call?.configured?'configured':'unavailable',c.call?.configured?'warn':'warn')+statusItem('Twilio SMS',c.sms?.configured?'configured':'unavailable',c.sms?.configured?'warn':'warn')+statusItem('Resend email',c.email?.configured?'configured':'unavailable',c.email?.configured?'warn':'warn'); } catch(e){ $('status').innerHTML=statusItem('Local UI','offline','bad'); } }
+  async function pollJob(jobId){ for(let attempt=0;attempt<1800;attempt++){ const r=await fetch('/api/chat/status?job_id='+encodeURIComponent(jobId)); const d=await r.json(); if(!r.ok||!d.ok) throw new Error(d.message||d.error||'status request failed'); setThinking(d); if(d.status==='completed'||d.status==='error') return d; await new Promise(resolve=>setTimeout(resolve,350)); } throw new Error('thinking status timed out'); }
+  if('speechSynthesis' in window) speechSynthesis.cancel();
+  async function runTurn(text,metaMode){ if(!text||$('send').disabled)return; const mode=$('mode').value; addMessage('user',text,metaMode||mode); history.push({role:'user',content:text}); $('send').disabled=true; $('send').textContent='Thinking…'; setThinking({status:'queued',mode,current_task:'Queued task',thinking:[]}); try { const r=await fetch('/api/chat/start',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:text,mode,history})}); const started=await r.json(); if(!r.ok||!started.ok) throw new Error(started.message||started.error||'request failed'); const d=await pollJob(started.job_id); if(d.status!=='completed') throw new Error(d.error||'task failed'); const meta=(d.mode||mode)+(d.metrics?.elapsed_ms!=null?' · '+d.metrics.elapsed_ms+' ms':''); addMessage('assistant',d.reply,meta); history.push({role:'assistant',content:d.reply}); setEvents(d.events); } catch(e){ setThinking({status:'error',mode,current_task:'Task failed: '+e.message,thinking:[]}); addMessage('assistant','Local request failed: '+e.message,'error'); setEvents([]); } finally { $('send').disabled=false; $('send').textContent='Send diagnostic task'; } }
+  function send(){ const input=$('input'); const text=input.value.trim(); if(!text)return; input.value=''; runTurn(text,$('mode').value); }
+  $('send').onclick=send; $('input').addEventListener('keydown',e=>{if(e.key==='Enter' && (e.ctrlKey||e.metaKey)){e.preventDefault();send();}}); $('clear').onclick=()=>{history.length=0;messages.innerHTML='';setEvents([]);setThinking({status:'idle',current_task:'No active task.',thinking:[]});}; $('refresh').onclick=health; document.querySelectorAll('[data-prompt]').forEach(b=>b.onclick=()=>{$('input').value=b.dataset.prompt;$('input').focus();});
+  let recognition=null, autoListening=false, voiceBooting=false, voiceBuffer='', voiceTimer=null, restartTimer=null;
+  const SpeechRecognition=window.SpeechRecognition||window.webkitSpeechRecognition;
+  function setVoiceStatus(text, cls=''){ const el=$('voiceStatus'); el.textContent=text; el.className='voice-status '+cls; }
+  function scheduleVoiceRestart(){ if(!autoListening || !recognition || restartTimer)return; restartTimer=setTimeout(()=>{ restartTimer=null; try{ recognition.start(); }catch(e){ scheduleVoiceRestart(); } },500); }
+  async function startAutoVoice(){
+    if(!SpeechRecognition){ setVoiceStatus('Browser auto-voice unavailable; use the full-duplex launcher','warn'); return; }
+    if(autoListening || voiceBooting)return;
+    voiceBooting=true;
+    if(navigator.mediaDevices && navigator.mediaDevices.getUserMedia){
+      try{ const stream=await navigator.mediaDevices.getUserMedia({audio:true}); stream.getTracks().forEach(track=>track.stop()); }
+      catch(e){ voiceBooting=false; setVoiceStatus('Microphone permission required; full-duplex launcher remains available','warn'); return; }
+    }
+    voiceBooting=false; autoListening=true; voiceBuffer='';
+    recognition=new SpeechRecognition(); recognition.lang='fil-PH'; recognition.continuous=true; recognition.interimResults=true; recognition.maxAlternatives=1;
+    recognition.onstart=()=>setVoiceStatus('● Always listening','live');
+    recognition.onerror=e=>{ if(e.error==='not-allowed'||e.error==='service-not-allowed'){ autoListening=false; setVoiceStatus('Microphone permission required; full-duplex launcher remains available','warn'); } else { setVoiceStatus('Auto-listener reconnecting…','warn'); scheduleVoiceRestart(); } };
+    recognition.onend=()=>{ if(autoListening){ setVoiceStatus('Auto-listener reconnecting…','warn'); scheduleVoiceRestart(); } };
+    recognition.onresult=e=>{
+      let interim='';
+      for(let i=e.resultIndex;i<e.results.length;i++){ const t=e.results[i][0].transcript.trim(); if(e.results[i].isFinal) voiceBuffer+=(voiceBuffer?' ':'')+t; else interim+=(interim?' ':'')+t; }
+      $('input').value=voiceBuffer+(interim?' '+interim:'');
+      clearTimeout(voiceTimer);
+      if(voiceBuffer.trim()) voiceTimer=setTimeout(()=>{ const utterance=voiceBuffer.trim(); voiceBuffer=''; $('input').value=''; sendText(utterance,'voice-auto'); },850);
+    };
+    try{ recognition.start(); }catch(e){ setVoiceStatus('Auto-listener starting…','warn'); scheduleVoiceRestart(); }
+  }
+  function sendText(text, metaMode){ runTurn(text,metaMode); }
+  if(SpeechRecognition) setTimeout(startAutoVoice,250); else setVoiceStatus('Browser auto-voice unavailable; use the full-duplex launcher','warn');
+  const LOOP_API='http://127.0.0.1:8126/api/state';
+  function renderVoiceLoop(d){
+    const st=$('loopBadge');
+    st.textContent=(d.loop?d.state:'stopped');
+    st.className='thinking-badge '+(d.loop?'running':'');
+    const items=[];
+    items.push(statusItem('Duplex state',d.state,d.loop?'ok':'bad'));
+    const p=d.vad?Math.round(d.vad.probability*100):0;
+    items.push(statusItem('VAD level',p+'%',p>50?'ok':''));
+    if(d.last_transcript && d.last_transcript.text) items.push(statusItem('You said',d.last_transcript.text));
+    if(d.last_reply && d.last_reply.text) items.push(statusItem('ME3 says',d.last_reply.text+(d.last_reply.kind&&d.last_reply.kind!=='reply'?' ('+d.last_reply.kind+')':'')));
+    const s=d.stats||{};
+    items.push(statusItem('Turns',String(s.n_turns||0),'ok'));
+    items.push(statusItem('Barge-ins',String(s.n_barge_in||0),'ok'));
+    items.push(statusItem('Errors',String(s.n_errors||0),(s.n_errors?'bad':'ok')));
+    $('loopBody').innerHTML='<div class="status-grid">'+items.join('')+'</div>';
+  }
+  async function pollVoiceLoop(){
+    try{ const r=await fetch(LOOP_API,{cache:'no-store'}); if(!r.ok) throw new Error('http'); renderVoiceLoop(await r.json()); }
+    catch(e){ $('loopBadge').textContent='offline'; $('loopBadge').className='thinking-badge';
+      if(!$('loopBody').dataset.offline){ $('loopBody').dataset.offline='1'; $('loopBody').innerHTML='<div class="status-grid">'+statusItem('Loop','not running','bad')+statusItem('Hint','launch Start-ME3.bat to open the loop','')+'</div>'; } }
+  }
+  setInterval(pollVoiceLoop,350);
+  pollVoiceLoop();
+  health();
+</script>
+</body>
+</html>

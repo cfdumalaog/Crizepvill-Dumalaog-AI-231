@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Twinkle Twinkle Little Star</title>
+<style>
+  body { font-family: system-ui, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; margin: 0; background: linear-gradient(180deg, #0f172a, #1e293b); color: #e2e8f0; }
+  h1 { font-size: 1.6rem; margin-bottom: 0.5rem; }
+  p { color: #94a3b8; margin-top: 0; }
+  button { font-size: 1.2rem; padding: 0.8rem 2rem; border: none; border-radius: 999px; background: #38bdf8; color: #0f172a; font-weight: 700; cursor: pointer; margin-top: 1.5rem; }
+  button:disabled { opacity: 0.5; cursor: default; }
+  .star { font-size: 3rem; margin-bottom: 1rem; }
+</style>
+</head>
+<body>
+  <div class="star">⭐</div>
+  <h1>Twinkle Twinkle Little Star</h1>
+  <p>Pindutin ang button para mag-play.</p>
+  <button id="playBtn">&#9654; Play</button>
+<script>
+const notes = [
+  ['C4',1],['C4',1],['G4',1],['G4',1],['A4',1],['A4',1],['G4',2],
+  ['F4',1],['F4',1],['E4',1],['E4',1],['D4',1],['D4',1],['C4',2],
+  ['G4',1],['G4',1],['F4',1],['F4',1],['E4',1],['E4',1],['D4',2],
+  ['G4',1],['G4',1],['F4',1],['F4',1],['E4',1],['E4',1],['D4',2],
+  ['C4',1],['C4',1],['G4',1],['G4',1],['A4',1],['A4',1],['G4',2],
+  ['F4',1],['F4',1],['E4',1],['E4',1],['D4',1],['D4',1],['C4',2]
+];
+const freq = {C4:261.63, D4:293.66, E4:329.63, F4:349.23, G4:392.00, A4:440.00};
+const beat = 0.4;
+let ctx = null, playing = false;
+const btn = document.getElementById('playBtn');
+btn.addEventListener('click', () => {
+  if (playing) return;
+  playing = true;
+  btn.textContent = '\u23F3 Playing...';
+  btn.disabled = true;
+  ctx = new (window.AudioContext || window.webkitAudioContext)();
+  let t = ctx.currentTime + 0.1;
+  for (const [n, len] of notes) {
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.type = 'triangle';
+    o.frequency.value = freq[n];
+    const dur = beat * len;
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.4, t + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur * 0.9);
+    o.connect(g).connect(ctx.destination);
+    o.start(t);
+    o.stop(t + dur);
+    t += dur;
+  }
+  setTimeout(() => {
+    playing = false;
+    btn.textContent = '\u25B6 Play';
+    btn.disabled = false;
+    ctx.close();
+  }, (t - ctx.currentTime) * 1000 + 200);
+});
+</script>
+</body>
+</html>

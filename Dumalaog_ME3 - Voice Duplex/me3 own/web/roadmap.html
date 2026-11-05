@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#06090e">
+<title>ME3 Roadmap - What is left to do</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#06090e; --panel:rgba(16,24,38,.7); --line:rgba(255,255,255,.08);
+  --blue:#3b82f6; --green:#10b981; --purple:#8b5cf6; --gold:#f59e0b; --red:#ef4444;
+  --text:#f1f5f9; --muted:#94a3b8;
+}
+*{box-sizing:border-box; margin:0; padding:0;}
+html,body{min-height:100%;}
+body{
+  background:radial-gradient(circle at 50% 0%, #0f1929 0%, #080d14 55%, var(--bg) 100%);
+  color:var(--text); font-family:"Plus Jakarta Sans",ui-sans-serif,system-ui,sans-serif;
+  padding:0 0 40px;
+}
+header{
+  position:sticky; top:0; z-index:5; display:flex; align-items:center; justify-content:space-between;
+  gap:16px; padding:14px 26px; border-bottom:1px solid var(--line);
+  background:rgba(6,9,14,.85); backdrop-filter:blur(10px);
+}
+.brand{display:flex; align-items:center; gap:12px;}
+.dot{width:10px; height:10px; border-radius:50%; background:#475569; transition:all .3s;}
+.dot.active{background:var(--green); box-shadow:0 0 12px 2px rgba(16,185,129,.7);}
+.brand h1{font-size:1.05rem; font-weight:800; letter-spacing:-.02em;}
+.brand .sub{color:var(--muted); font-size:.8rem; font-weight:500;}
+.nav{display:flex; align-items:center; gap:10px;}
+.nav a{
+  color:var(--text); text-decoration:none; font-size:.82rem; font-weight:600;
+  border:1px solid var(--line); background:rgba(255,255,255,.04);
+  padding:7px 13px; border-radius:999px; transition:all .2s;
+}
+.nav a:hover{border-color:var(--blue); background:rgba(59,130,246,.15);}
+main{max-width:1200px; margin:0 auto; padding:20px 26px 0;}
+.section-title{font-size:.8rem; text-transform:uppercase; letter-spacing:.16em; color:var(--muted); font-weight:700; margin:26px 0 12px;}
+.section-title:first-child{margin-top:6px;}
+.strip{display:grid; grid-template-columns:repeat(4,1fr); gap:14px;}
+.strip .card{padding:14px 16px;}
+.card{
+  background:var(--panel); border:1px solid var(--line); border-radius:16px;
+  padding:16px; backdrop-filter:blur(8px);
+}
+.strip .k{font-size:.7rem; text-transform:uppercase; letter-spacing:.12em; color:var(--muted); font-weight:700;}
+.strip .v{font-family:"JetBrains Mono",monospace; font-size:.82rem; margin-top:7px; word-break:break-all;}
+.strip .v small{display:block; color:var(--muted); font-size:.72rem; margin-top:4px; font-family:"Plus Jakarta Sans",sans-serif;}
+.ok{color:var(--green)!important;} .warn{color:var(--gold)!important;} .bad{color:var(--red)!important;}
+.checks{list-style:none; display:grid; grid-template-columns:repeat(2,1fr); gap:10px;}
+.checks li{
+  background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:12px 14px;
+  font-size:.85rem; line-height:1.45; display:flex; gap:10px;
+}
+.checks li .mark{color:var(--green); font-weight:800; flex:0 0 auto;}
+.checks li .when{display:block; color:#64748b; font-size:.72rem; margin-top:5px; font-family:"JetBrains Mono",monospace;}
+.todos{display:grid; grid-template-columns:repeat(2,1fr); gap:14px;}
+.todo{
+  background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:16px;
+  display:flex; flex-direction:column; gap:9px; backdrop-filter:blur(8px);
+}
+.todo h3{font-size:.98rem; font-weight:700; letter-spacing:-.01em;}
+.owner{
+  align-self:flex-start; font-size:.7rem; font-weight:800; letter-spacing:.08em;
+  text-transform:uppercase; padding:4px 11px; border-radius:999px; border:1px solid;
+}
+.owner.you{color:var(--green); border-color:rgba(16,185,129,.5); background:rgba(16,185,129,.1);}
+.owner.operator{color:var(--blue); border-color:rgba(59,130,246,.5); background:rgba(59,130,246,.1);}
+.owner.group{color:var(--purple); border-color:rgba(139,92,246,.5); background:rgba(139,92,246,.1);}
+.owner.admin{color:var(--gold); border-color:rgba(245,158,11,.5); background:rgba(245,158,11,.1);}
+.owner.system{color:var(--red); border-color:rgba(239,68,68,.5); background:rgba(239,68,68,.1);}
+.todo p{color:var(--muted); font-size:.84rem; line-height:1.5;}
+.todo .next{font-size:.82rem; color:var(--text); background:rgba(255,255,255,.04); border:1px solid var(--line); border-radius:10px; padding:9px 11px; margin-top:auto;}
+.todo .next b{color:var(--cyan, #64e6f5); font-size:.72rem; text-transform:uppercase; letter-spacing:.1em; display:block; margin-bottom:4px; color:var(--blue);}
+footer{max-width:1200px; margin:28px auto 0; padding:0 26px; color:#64748b; font-size:.78rem; line-height:1.7;}
+footer code{font-family:"JetBrains Mono",monospace; font-size:.74rem; color:var(--muted);}
+@media(max-width:980px){ .strip{grid-template-columns:repeat(2,1fr);} .checks,.todos{grid-template-columns:1fr;} }</style>
+</head>
+<body>
+<header>
+  <div class="brand">
+    <span class="dot" id="statusDot"></span>
+    <div><h1>ME3 Roadmap</h1><div class="sub">what is left to do - live where it can be</div></div>
+  </div>
+  <div class="nav">
+    <a id="linkAssistant" href="/" target="_blank">Assistant (live voice)</a>
+    <a href="http://127.0.0.1:8124/" target="_blank">Console</a>
+  </div>
+</header>
+<main>
+  <div class="section-title">Live now</div>
+  <div class="strip">
+    <div class="card"><div class="k">Release</div><div class="v" id="lvRelease">-<small id="lvReleaseNote"></small></div></div>
+    <div class="card"><div class="k">Workstation acceptance</div><div class="v" id="lvAccept">-<small id="lvAcceptNote"></small></div></div>
+    <div class="card"><div class="k">Pi promotion</div><div class="v" id="lvPi">-<small id="lvPiNote"></small></div></div>
+    <div class="card"><div class="k">Voice loop</div><div class="v" id="lvLoop">-<small id="lvLoopNote"></small></div></div>
+  </div>
+
+  <div class="section-title">Done &amp; verified (evidence-backed)</div>
+  <ul class="checks">
+    <li><span class="mark">&#10003;</span><div>Workstation acceptance gate passed 8/8 with 54/54 pytest - release <b>me3-20261103-201049-2241d0fc</b> (57 files, ZIP SHA recorded).<span class="when">2026-11-04 - deployment/workstation_acceptance.json</span></div></li>
+    <li><span class="mark">&#10003;</span><div>Live thinking / task-progress panel added to the local console (<code>web/ui.html</code>), safe task summary only.<span class="when">2026-11-04 - web/ui.html</span></div></li>
+    <li><span class="mark">&#10003;</span><div>Version hygiene: 46 historical release pairs + old presentation/build outputs archived; single canonical release in <code>dist/</code>.<span class="when">2026-11-04 - archive/README.md</span></div></li>
+    <li><span class="mark">&#10003;</span><div>Bounded-retry fix in <code>ToolBrain._request()</code> (one retry on ReadTimeout/ConnectionError only) - recovered the 180 s VPN stall in a 487.5 s passing injection eval.<span class="when">2026-10-31 - me3/brain.py</span></div></li>
+    <li><span class="mark">&#10003;</span><div>Injection evals PASS on both audio variants (<code>current</code> 237.6 s, <code>qwen_instruct</code> 281.4 s) with real Qwen tool turns.<span class="when">2026-10-31 - runs/injection_eval/</span></div></li>
+    <li><span class="mark">&#10003;</span><div>First real-Qwen-brain barge-in: <code>barge_in_detected=true</code>, 248.1 s, 6 tools, reply cut mid-playback with a proper barge-in reply.<span class="when">2026-10-31 - runs/injection_eval/20261031-121708</span></div></li>
+    <li><span class="mark">&#10003;</span><div><code>LocalVoiceLoop</code> LISTENING on the real mic (vad 239 ms / asr 1832 ms / tts 1578 ms); ambient discard correct; live barge-in event observed at 19:34.<span class="when">2026-10-31 - runs/local-run-20261031T120651Z.log</span></div></li>
+    <li><span class="mark">&#10003;</span><div>Stereo Mix speaker-feedback guard: 5.82 s captured, 182 echo frames suppressed, zero false VAD/ASR turns.<span class="when">2026-10-31 - workstation audio check</span></div></li>
+    <li><span class="mark">&#10003;</span><div>Live Qwen turns on both local UIs: 8124 <code>current</code> (11.4 s Filipino reply + tool events) and 8125 <code>qwen_instruct</code> (51.3 s tool-loop turn).<span class="when">2026-10-31 - UI logs</span></div></li>
+    <li><span class="mark">&#10003;</span><div>Presenter surface (8123) and Pi-tunnel web (8090) both HTTP 200; voice-built demo app created + served by the agent itself.<span class="when">2026-10-31</span></div></li>
+    <li><span class="mark">&#10003;</span><div>Vocalis-Pi protocol: 5 states, event channels, sanitized harness progress, protocol + integration tests 4/4.<span class="when">me3/vocalis.py + tests</span></div></li>
+    <li><span class="mark">&#10003;</span><div>Docs set: ELI5/deep manual, channel API requirements, ACM paper (5-page two-column PDF), canonical 8-slide deck.<span class="when">docs/</span></div></li>
+  </ul>  <div class="section-title">What is left to do</div>
+  <div class="todos">
+    <div class="todo">
+      <span class="owner you">You</span>
+      <h3>Human spoken turn on the local mic</h3>
+      <p>The full pipeline (mic &rarr; Whisper &rarr; Qwen/tools &rarr; TTS) is verified only with injected audio so far. One real spoken sentence closes the biggest remaining proof gap.</p>
+      <div class="next"><b>Next action</b>Launch <code>Start-ME3.bat</code>, say one Filipino sentence, watch the transcript + tool reply appear in the Assistant UI; expect a BARGE-IN line in the run log if you interrupt.</div>
+    </div>
+    <div class="todo">
+      <span class="owner you">You</span>
+      <h3>Physical-speaker barge-in</h3>
+      <p>Injected barge-in passed; a real speaker + real microphone barge-in (echo guard under live conditions) has not been observed.</p>
+      <div class="next"><b>Next action</b>Ask a long question, let ME3 start speaking, interrupt mid-sentence out loud; confirm playback stops and a fresh turn starts. Headphones are the cleanest fallback.</div>
+    </div>
+    <div class="todo">
+      <span class="owner operator">Operator</span>
+      <h3>Live Luna (GPT-5.6) brain</h3>
+      <p>Provider selection, system prompt and UI mode are all wired; this machine simply has no <code>OPENAI_API_KEY</code> in the protected runtime.</p>
+      <div class="next"><b>Next action</b>Put the key in the user-scope environment (or launcher secret flow) and pick Luna in the console mode selector or <code>--brain luna</code>.</div>
+    </div>
+    <div class="todo">
+      <span class="owner system">System / Operator</span>
+      <h3>Promote the accepted release to the Pi</h3>
+      <p>The workstation-accepted release is <code>pending_sync</code>: the direct hostname does not resolve and the Pi Connect shell is browser-interactive, not CLI SSH. The Pi still runs the older deployed release.</p>
+      <div class="next"><b>Next action</b>Provide a reachable SSH route (or a one-time browser Connect transfer) to <code>/home/dalmacio/Desktop/dandan</code>, then run the Pi preflight.</div>
+    </div>
+    <div class="todo">
+      <span class="owner system">System / Operator</span>
+      <h3>Pi capture device + enable the me3-agent service</h3>
+      <p>Read-only Pi preflight: zero PortAudio input devices, ALSA lists no capture hardware (HDMI playback visible). The service stays disabled until the capture gate is met; VCM owns the Fifine.</p>
+      <div class="next"><b>Next action</b>Attach a working USB capture device on the Pi, re-run the preflight, then enable the unit.</div>
+    </div>
+    <div class="todo">
+      <span class="owner operator">Operator</span>
+      <h3>Genuinely Filipino TTS voice</h3>
+      <p>ElevenLabs adapter sends <code>language_code=fil</code>, but all 21 account voices are English-labelled and Voice Design is 403 on the current plan.</p>
+      <div class="next"><b>Next action</b>Select an approved Voice Library ID or enable paid Voice Design/PVC, then set the operator-selected voice ID in the protected env.</div>
+    </div>
+    <div class="todo">
+      <span class="owner operator">Operator</span>
+      <h3>Live Twilio / Resend channel tests</h3>
+      <p>Adapters and fake-request tests pass; credentials are unconfigured everywhere and the local UI hard-disables outbound channels, so no provider side effect is possible yet.</p>
+      <div class="next"><b>Next action</b>Configure credentials on the Pi, satisfy the consent/webhook gates, then run one bounded live call/SMS/email test.</div>
+    </div>
+    <div class="todo">
+      <span class="owner group">Group</span>
+      <h3>Confirm the benchmark specification</h3>
+      <p>The draft benchmark plan (L1&ndash;T4, variables, stop-latency and response-latency timing equations) still needs group confirmation before the canonical run.</p>
+      <div class="next"><b>Next action</b>Review <code>docs/ME3_SPEC_AND_BENCHMARK_PLAN.md</code> in the group and mark it approved.</div>
+    </div>
+    <div class="todo">
+      <span class="owner group">Group / System</span>
+      <h3>Paper-native FDB v1.5 evidence</h3>
+      <p>Local loopback and stub runs are diagnostic-only. The full-duplex benchmark v1.5 needs a clean Pi capture run to be paper-grade.</p>
+      <div class="next"><b>Next action</b>After Pi promotion + capture device: silence all other audio producers, run <code>scripts/fdb_v15.py</code>, and keep only uncontaminated results.</div>
+    </div>
+    <div class="todo">
+      <span class="owner admin">Admin</span>
+      <h3>HTTPS endpoint for the Qwen services</h3>
+      <p>The current vLLM endpoint is plain HTTP on the protected network. This is a transport-security recommendation, not a defect of ME3.</p>
+      <div class="next"><b>Next action</b>Ask the network admin for an HTTPS endpoint and switch the config base URL.</div>
+    </div>
+    <div class="todo">
+      <span class="owner you">You</span>
+      <h3>Commit / push the working tree</h3>
+      <p>Working-tree refinements (echo guard, live UI panels, docs, this UI work) are in the accepted release but not yet pushed to GitHub <code>main</code>.</p>
+      <div class="next"><b>Next action</b>When you want it public: review <code>git status</code> in <code>AI 231</code> and push <code>main</code>.</div>
+    </div>
+  </div>
+</main>
+<footer>
+  Evidence pointers: <code>deployment/workstation_acceptance.json</code> (gate + release binding) &middot;
+  <code>deployment/last_pi_deployment.json</code> (Pi state) &middot;
+  <code>docs/ME3_NEW_VERSION_TEST_COMPARISON_20261031.md</code> (old-vs-new test comparison) &middot;
+  <code>runs/injection_eval/</code> (injected audio proofs) &middot;
+  <code>docs/ME3_SPEC_AND_BENCHMARK_PLAN.md</code> (draft benchmark). Live values above refresh every 2 s from the running agent at 127.0.0.1:8126; when the agent is off, the static checklist still stands.
+</footer><script>
+'use strict';
+const ON_STATUS_PORT = (location.port === '8126');
+document.getElementById('linkAssistant').href = ON_STATUS_PORT ? '/' : 'http://127.0.0.1:8126/';
+async function apiState(){
+  try {
+    const r = await fetch('/api/state', {cache:'no-store'});
+    if (r.ok) return r.json();
+  } catch (e) { /* static serving - try the live status port */ }
+  const r = await fetch('http://127.0.0.1:8126/api/state', {cache:'no-store'});
+  if (!r.ok) throw new Error('status offline');
+  return r.json();
+}
+
+function fmtUptime(s){ if(s == null) return '-'; if(s < 60) return Math.round(s)+'s'; if(s < 3600) return Math.floor(s/60)+'m '+(s%60|0)+'s'; return Math.floor(s/3600)+'h '+Math.floor((s%3600)/60)+'m'; }
+function setText(id, text, cls){ const el = document.getElementById(id); el.firstChild.nodeValue = text; el.className = 'v ' + (cls || ''); }
+
+function apply(d){
+  const rel = d.release || {};
+  const r = rel.release || {};
+  setText('lvRelease', r.release_id || '-', 'ok');
+  document.getElementById('lvReleaseNote').textContent = r.note || '';
+  const a = rel.acceptance || {};
+  setText('lvAccept', a.status || '-', a.status === 'pass' ? 'ok' : 'warn');
+  document.getElementById('lvAcceptNote').textContent =
+    (a.checks_total ? a.checks_passed + '/' + a.checks_total + ' checks' : '') +
+    (a.created_utc ? '  ' + a.created_utc.slice(0,10) : '');
+  const pi = rel.pi || {};
+  setText('lvPi', pi.status || '-', pi.status === 'pending_sync' ? 'warn' : 'ok');
+  document.getElementById('lvPiNote').textContent = pi.reason || '';
+  setText('lvLoop', d.loop ? d.state : 'stopped', d.loop ? 'ok' : 'bad');
+  document.getElementById('lvLoopNote').textContent = d.loop
+    ? (d.state_reason || d.state) + (d.uptime_s != null ? '  up ' + fmtUptime(d.uptime_s) : '')
+    : 'agent not running';
+  document.getElementById('statusDot').classList.toggle('active', d.loop);
+}
+function poll(){
+  apiState()
+    .then(apply)
+    .catch(() => {
+      setText('lvLoop', 'offline', 'bad');
+      document.getElementById('lvLoopNote').textContent = 'status endpoint unreachable';
+      document.getElementById('statusDot').classList.remove('active');
+    });
+}
+setInterval(poll, 2000);
+poll();
+</script>
+</body>
+</html>

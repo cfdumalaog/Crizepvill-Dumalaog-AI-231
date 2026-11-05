@@ -1,0 +1,12 @@
+{
+  "release_id": "me3-20261105-103801-e915d56e",
+  "status": "prepared",
+  "created_utc": "20261105-103801",
+  "source_fingerprint": "e915d56e4aec5a599f8a57e229d76de5e7a84b479010dc0959ccefe4f779f73a",
+  "file_count": 143,
+  "archive": "dist/me3-20261105-103801-e915d56e/me3_voice_duplex",
+  "zip": "dist/me3-20261105-103801-e915d56e.zip",
+  "zip_sha256": "4a4811e02c90126eccaebfa624fd9e149c67cccadcfdb2e2a9b528ba6ed60368",
+  "target": "rpi",
+  "note": "Packaged + integrity-checked locally. NOT yet on the Pi."
+}

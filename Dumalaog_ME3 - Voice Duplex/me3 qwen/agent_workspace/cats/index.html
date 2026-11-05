@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Whisker Web — A Little Cat Website</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="hero">
+    <div class="hero-inner">
+      <h1>🐾 Whisker Web</h1>
+      <p class="tagline">The internet's coziest corner for cats, cat people, and cat-shaped thoughts.</p>
+      <a href="#gallery" class="btn">Meet the Cats</a>
+    </div>
+    <div class="hero-cat" aria-hidden="true">
+      <svg viewBox="0 0 200 200" width="180" height="180">
+        <polygon points="40,70 60,20 85,60" fill="#f5a623"/>
+        <polygon points="160,70 140,20 115,60" fill="#f5a623"/>
+        <circle cx="100" cy="105" r="65" fill="#f5a623"/>
+        <circle cx="78" cy="95" r="8" fill="#333"/>
+        <circle cx="122" cy="95" r="8" fill="#333"/>
+        <polygon points="100,112 92,122 108,122" fill="#e2711d"/>
+        <path d="M100 122 Q100 132 88 132" stroke="#333" stroke-width="3" fill="none" stroke-linecap="round"/>
+        <path d="M100 122 Q100 132 112 132" stroke="#333" stroke-width="3" fill="none" stroke-linecap="round"/>
+        <line x1="20" y1="110" x2="60" y2="115" stroke="#333" stroke-width="2"/>
+        <line x1="20" y1="125" x2="60" y2="122" stroke="#333" stroke-width="2"/>
+        <line x1="180" y1="110" x2="140" y2="115" stroke="#333" stroke-width="2"/>
+        <line x1="180" y1="125" x2="140" y2="122" stroke="#333" stroke-width="2"/>
+      </svg>
+    </div>
+  </header>
+
+  <main>
+    <section id="gallery" class="section">
+      <h2>Gallery of Great Cats</h2>
+      <p class="section-sub">Every cat is a masterpiece. Click one to hear a meow.</p>
+      <div class="grid" id="cat-grid"></div>
+    </section>
+
+    <section class="section alt">
+      <h2>Cat Name Generator</h2>
+      <p class="section-sub">Can't decide? Let fate (and JavaScript) choose.</p>
+      <div class="generator">
+        <button id="generate-btn" class="btn">Generate a Name</button>
+        <p id="generated-name" class="generated-name">Your cat awaits a name…</p>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>Daily Cat Fact</h2>
+      <div class="fact-card">
+        <p id="fact-text"></p>
+        <button id="fact-btn" class="btn small">Another Fact</button>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <p>Made with 🧡 and a healthy fear of lint rollers. No cats were harmed in the making of this website.</p>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>

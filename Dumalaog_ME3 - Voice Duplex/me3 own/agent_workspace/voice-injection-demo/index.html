@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Voice Injection Demo</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="blob blob-1" aria-hidden="true"></div>
+  <div class="blob blob-2" aria-hidden="true"></div>
+  <div class="blob blob-3" aria-hidden="true"></div>
+
+  <main class="card">
+    <h1>🎙️ Voice Injection Demo</h1>
+    <p class="subtitle">Type a phrase and inject it as spoken voice right in your browser.</p>
+
+    <label for="message">Your message</label>
+    <textarea id="message" placeholder="Type something to speak... e.g. 'Kumusta! I am your AI assistant.'">Kumusta! I am your AI assistant.</textarea>
+
+    <label for="voice">Voice</label>
+    <select id="voice"></select>
+
+    <div class="sliders">
+      <div>
+        <label for="pitch">Pitch: <span id="pitchVal">1</span></label>
+        <input type="range" id="pitch" min="0" max="2" step="0.1" value="1" />
+      </div>
+      <div>
+        <label for="rate">Rate: <span id="rateVal">1</span></label>
+        <input type="range" id="rate" min="0.5" max="2" step="0.1" value="1" />
+      </div>
+    </div>
+
+    <button id="injectBtn" class="inject-btn">🚀 Inject Voice</button>
+
+    <div class="meter" aria-hidden="true">
+      <div class="meter-fill" id="meterFill"></div>
+    </div>
+
+    <p class="status" id="status"></p>
+  </main>
+
+  <footer class="foot">Made with 🌈 for the Philippines customer-support pilot</footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
