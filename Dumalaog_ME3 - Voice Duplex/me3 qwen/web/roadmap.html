@@ -101,7 +101,7 @@ footer code{font-family:"JetBrains Mono",monospace; font-size:.74rem; color:var(
 
   <div class="section-title">Done &amp; verified (evidence-backed)</div>
   <ul class="checks">
-    <li><span class="mark">&#10003;</span><div>Current Qwen workstation acceptance passed 10/10 with 80/80 pytest - release <b>me3-20261106-120050-2b068ca2</b> (160 files, ZIP SHA recorded).<span class="when">2026-11-06 - deployment/workstation_acceptance.json</span></div></li>
+    <li><span class="mark">&#10003;</span><div>Current Qwen workstation acceptance passed 10/10 with <b>86/86 pytest</b> - release <b>me3-20261106-215542-4f74be89</b> (ZIP SHA recorded).<span class="when">2026-11-06 - deployment/workstation_acceptance.json</span></div></li>
     <li><span class="mark">&#10003;</span><div>Live thinking / task-progress panel added to the local console (<code>web/ui.html</code>), safe task summary only.<span class="when">2026-11-04 - web/ui.html</span></div></li>
     <li><span class="mark">&#10003;</span><div>Version hygiene: 46 historical release pairs + old presentation/build outputs archived; single canonical release in <code>dist/</code>.<span class="when">2026-11-04 - archive/README.md</span></div></li>
     <li><span class="mark">&#10003;</span><div>Bounded-retry fix in <code>ToolBrain._request()</code> (one retry on ReadTimeout/ConnectionError only) - recovered the 180 s VPN stall in a 487.5 s passing injection eval.<span class="when">2026-10-31 - me3/brain.py</span></div></li>
@@ -112,15 +112,17 @@ footer code{font-family:"JetBrains Mono",monospace; font-size:.74rem; color:var(
     <li><span class="mark">&#10003;</span><div>Historical local Qwen turns and tool-loop evidence are retained as development evidence; the active demo target is now the single Pi-hosted Qwen Instruct service.<span class="when">2026-10-31 evidence; Qwen-only policy 2026-11-06</span></div></li>
     <li><span class="mark">&#10003;</span><div>Presenter surface (8123) and Pi-tunnel web (8090) both HTTP 200; voice-built demo app created + served by the agent itself.<span class="when">2026-10-31</span></div></li>
     <li><span class="mark">&#10003;</span><div>Vocalis-Pi protocol: 5 states, event channels, sanitized harness progress, protocol + integration tests 4/4.<span class="when">me3/vocalis.py + tests</span></div></li>
-    <li><span class="mark">&#10003;</span><div>Qwen Pi promotion and capture readiness: accepted release installed at <code>/home/dalmacio/Desktop/dandan-qwen</code>; <code>me3-agent.service</code> active; protected Qwen text authentication returns HTTP 200; Fifine USB input enumerated; UI/audio ports 8126/8127 healthy. Qwen audio-provider availability remains a separate open gate.<span class="when">2026-11-06 - direct SSH and Pi health/audio checks</span></div></li>
+    <li><span class="mark">&#10003;</span><div>Qwen Pi promotion and direct audio-provider recovery: the accepted release is installed at <code>/home/dalmacio/Desktop/dandan-qwen</code>; <code>me3-agent.service</code> is active; SHARC OpenVPN restores <code>tun0</code> and the DGX route after restart; authenticated Qwen ASR/TTS probes return HTTP 200; direct Qwen ASR returns a non-empty transcript; the injection harness passes with zero errors; UI/audio ports 8126/8127 are healthy.<span class="when">2026-11-07 - direct SSH, VPN restart, model probes, and Pi injection evaluation</span></div></li>
+    <li><span class="mark">&#10003;</span><div>SHARC VPN is secured for the Pi: the profile directory is root-only, profile/auth files are root-owned mode 600, credentials are not cached, and <code>openvpn-client@sharchpc.service</code> is enabled for boot. A client restart restored the route, both Qwen probes, and ME3 health.<span class="when">2026-11-07 - docs/SHARC_VPN_PI_SETUP.md</span></div></li>
+    <li><span class="mark">&#10003;</span><div>Multi-turn voice continuity guard added: a rolling 16-message context is retained, and a short answer to an action-specific clarification is explicitly bound to the pending action instead of being treated as a new greeting. The UI reports conversation turns and pending follow-up state.<span class="when">2026-11-07 - me3/agent.py, me3/brain.py, web/assistant.html, tests</span></div></li>
     <li><span class="mark">&#10003;</span><div>Docs set: ELI5/deep manual, channel API requirements, six-page two-column ACM PDF, system-flow infographic, and presentation deck.<span class="when">docs/</span></div></li>
   </ul>  <div class="section-title">What is left to do</div>
   <div class="todos">
     <div class="todo">
       <span class="owner you">You</span>
       <h3>Human spoken turn on the local mic</h3>
-      <p>The full pipeline (mic &rarr; Whisper &rarr; Qwen/tools &rarr; TTS) is verified only with injected audio so far. One real spoken sentence closes the biggest remaining proof gap.</p>
-      <div class="next"><b>Next action</b>Launch <code>Start-ME3.bat</code>, say one Filipino sentence, watch the transcript + tool reply appear in the Assistant UI; expect a BARGE-IN line in the run log if you interrupt.</div>
+      <p>Direct Qwen ASR and the injected Qwen Instruct turn pass are verified. The remaining evidence gap is one clean human sentence through the Pi Fifine, with the browser speaker connected on this PC.</p>
+      <div class="next"><b>Next action</b>Open the tunneled Pi Assistant, connect the browser speaker, say one Filipino or Taglish sentence, and confirm the transcript and reply appear without an ASR error.</div>
     </div>
     <div class="todo">
       <span class="owner you">You</span>
@@ -130,27 +132,33 @@ footer code{font-family:"JetBrains Mono",monospace; font-size:.74rem; color:var(
     </div>
     <div class="todo">
       <span class="owner operator">Operator</span>
-      <h3>Live Luna (GPT-5.6) brain</h3>
-      <p>Provider selection, system prompt and UI mode are all wired; this machine simply has no <code>OPENAI_API_KEY</code> in the protected runtime.</p>
-      <div class="next"><b>Next action</b>Put the key in the user-scope environment (or launcher secret flow) and pick Luna in the console mode selector or <code>--brain luna</code>.</div>
+      <h3>Optional OpenAI/Luna comparison</h3>
+      <p>OpenAI is not required for the finalized demo: Qwen Instruct is the selected ME3 brain and audio path. The provider seam remains available only if the group later wants a separate comparison.</p>
+      <div class="next"><b>Next action</b>No action for the Qwen demo. If comparison is requested later, provision an OpenAI key through a protected runtime flow and run a separate acceptance check; never paste it into the repo or chat.</div>
     </div>
     <div class="todo">
       <span class="owner system">System / Operator</span>
       <h3>Human spoken transcript from the Pi Fifine</h3>
-      <p>The Pi service, Qwen ASR/TTS authentication, and Fifine capture device are now healthy. A real operator sentence still needs to be observed as a transcript in the Assistant UI; the earlier empty transcript was caused by a missing audio endpoint/tunnel and stale audio API key.</p>
-      <div class="next"><b>Next action</b>Run <code>ssh me3-pi</code>, open the reachable Pi UI on port <code>8126</code>, connect the browser speaker, then say one Filipino or Taglish sentence and confirm the transcript appears.</div>
+      <p>The Pi service, direct Qwen ASR/TTS authentication, and the Fifine capture device are healthy. One clean operator sentence still needs to be observed in the Assistant UI; the earlier empty transcript was a deployment/provider-path failure and has been repaired.</p>
+      <div class="next"><b>Next action</b>Run the saved Pi tunnel, open <code>http://127.0.0.1:8100/</code>, connect the browser speaker, then say one Filipino or Taglish sentence and confirm the transcript appears.</div>
     </div>
     <div class="todo">
       <span class="owner operator">Operator</span>
-      <h3>Genuinely Filipino TTS voice</h3>
-      <p>ElevenLabs adapter sends <code>language_code=fil</code>, but all 21 account voices are English-labelled and Voice Design is 403 on the current plan.</p>
-      <div class="next"><b>Next action</b>Select an approved Voice Library ID or enable paid Voice Design/PVC, then set the operator-selected voice ID in the protected env.</div>
+      <h3>Optional Filipino voice experiment</h3>
+      <p>The presentable Qwen demo is standardized on Qwen3-TTS CustomVoice <code>aiden</code> for replies, backchannels, and announcements. ElevenLabs remains an optional adapter; its credential is not stored in the project and no provider switch has been made.</p>
+      <div class="next"><b>Next action</b>If a Filipino-market ElevenLabs comparison is required, provision the key through the protected Pi environment, select one approved voice, and run a separate voice-consistency check. Keep Qwen <code>aiden</code> as the current demo default until that check passes.</div>
     </div>
     <div class="todo">
       <span class="owner operator">Operator</span>
       <h3>Live Twilio / Resend channel tests</h3>
       <p>Adapters and fake-request tests pass; credentials are unconfigured everywhere and the local UI hard-disables outbound channels, so no provider side effect is possible yet.</p>
       <div class="next"><b>Next action</b>Configure credentials on the Pi, satisfy the consent/webhook gates, then run one bounded live call/SMS/email test.</div>
+    </div>
+    <div class="todo">
+      <span class="owner operator">Operator</span>
+      <h3>Telegram Bot API setup</h3>
+      <p>ME3 uses a Telegram bot, not the operator's personal Telegram login. The adapter and confirmation gate are implemented, but the Pi has no <code>TELEGRAM_BOT_TOKEN</code> or approved numeric Monica chat ID.</p>
+      <div class="next"><b>Next action</b>Create a bot with <code>@BotFather</code>, send it <code>/start</code> from the destination account, retrieve the numeric <code>chat_id</code>, place the protected bot token and <code>ME3_TELEGRAM_CHAT_MONICA_FERNANDEZ</code> on the Pi, restart ME3, then run one confirmed test message.</div>
     </div>
     <div class="todo">
       <span class="owner group">Group</span>
@@ -172,9 +180,9 @@ footer code{font-family:"JetBrains Mono",monospace; font-size:.74rem; color:var(
     </div>
     <div class="todo">
       <span class="owner you">You</span>
-      <h3>Commit / push the working tree</h3>
-      <p>Working-tree refinements (echo guard, live UI panels, docs, this UI work) are in the accepted release but not yet pushed to GitHub <code>main</code>.</p>
-      <div class="next"><b>Next action</b>When you want it public: review <code>git status</code> in <code>AI 231</code> and push <code>main</code>.</div>
+      <h3>Publish this continuity/roadmap revision</h3>
+      <p>Earlier Qwen/VPN work is already published. The multi-turn continuity guard, updated system policy, and this roadmap correction are the remaining local changes in the active Qwen tree.</p>
+      <div class="next"><b>Next action</b>Run the Qwen test suite, verify the Pi runtime, then commit and push only the active Qwen files; unrelated ME2 working-tree changes remain untouched.</div>
     </div>
   </div>
 </main>
@@ -183,7 +191,9 @@ footer code{font-family:"JetBrains Mono",monospace; font-size:.74rem; color:var(
   <code>deployment/last_pi_deployment.json</code> (Pi state) &middot;
   <code>docs/ME3_NEW_VERSION_TEST_COMPARISON_20261031.md</code> (old-vs-new test comparison) &middot;
   <code>runs/injection_eval/</code> (injected audio proofs) &middot;
-  <code>docs/ME3_SPEC_AND_BENCHMARK_PLAN.md</code> (draft benchmark). Live values above refresh every 2 s from this same-origin Pi service; when the agent is off, the static checklist still stands.
+  <code>docs/ME3_SPEC_AND_BENCHMARK_PLAN.md</code> (draft benchmark) &middot;
+  <code>docs/CHANNEL_INTEGRATIONS.md</code> (protected channel setup) &middot;
+  <code>docs/SHARC_VPN_PI_SETUP.md</code> (Pi VPN/autoconnect). Live values above refresh every 2 s from this same-origin Pi service; when the agent is off, the static checklist still stands.
 </footer><script>
 'use strict';
 // This page is served by the same Pi status server as the assistant. Relative

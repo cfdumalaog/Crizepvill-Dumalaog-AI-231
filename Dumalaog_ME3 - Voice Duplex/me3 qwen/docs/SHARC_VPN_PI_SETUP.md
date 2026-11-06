@@ -35,6 +35,10 @@ The two-line OpenVPN login file is installed separately as:
 Both files are owned by `root:root` with mode `600`. The repository must never
 contain either file or a copy of its contents.
 
+The profile also contains `auth-nocache`, which prevents OpenVPN from retaining
+the login credentials after authentication. The credential file is referenced
+by path from the profile rather than placed on an OpenVPN command line.
+
 ## Installation performed on the Pi
 
 The Pi is Debian 13 ARM64. The package was installed with:
@@ -52,6 +56,21 @@ client was enabled:
 sudo systemctl daemon-reload
 sudo systemctl enable --now openvpn-client@sharchpc.service
 ```
+
+`enable` is the important boot-persistence step: systemd creates the
+`multi-user.target` dependency for the named client instance, so the SHARC
+profile is started again after a Pi restart. Verify it with:
+
+```bash
+systemctl is-enabled openvpn-client@sharchpc.service
+systemctl list-dependencies multi-user.target --plain | \
+  grep openvpn-client@sharchpc.service
+```
+
+The named client was restarted after hardening on 2026-11-07 and restored
+`tun0`, the DGX route, authenticated HTTP 200 probes to both Qwen services, and
+ME3 health `loop:true`. This was a service-restart validation rather than a
+full Pi reboot, so no remote session was unnecessarily interrupted.
 
 Do not place credentials on the command line. Supply them through the
 root-only auth file or an equivalent protected secret-management mechanism.

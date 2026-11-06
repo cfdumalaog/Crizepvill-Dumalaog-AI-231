@@ -330,6 +330,8 @@ class LocalVoiceLoop:
         self.audio = audio if audio is not None else FullDuplexAudio(self.cfg)
         self.brain = brain
         self.history: list[dict] = []
+        self._pending_followup: dict[str, str] | None = None
+        self.history_limit = max(8, min(int(agent.get("history_messages", 16)), 32))
         self.stats = TurnStats()
         self.status = status
 
@@ -442,6 +444,50 @@ class LocalVoiceLoop:
     def _normalise_spoken_text(text: str) -> str:
         return " ".join(re.sub(r"[^a-zA-Z0-9À-ž\s'-]", " ",
                                str(text).lower()).split())
+
+    @staticmethod
+    def _is_clarification_reply(reply: str) -> bool:
+        """Detect an action-specific clarification that needs a follow-up."""
+        text = str(reply or "").strip().lower()
+        if "?" not in text:
+            return False
+        question_markers = (
+            "what ", "which ", "who ", "when ", "where ", "how ",
+            "please provide", "please tell me", "let me know",
+        )
+        action_markers = (
+            "send", "message", "sms", "telegram", "email", "call",
+            "remind", "alarm", "timer", "temperature", "thermostat",
+            "music", "website", "web app", "file", "recipient", "channel",
+        )
+        return (any(marker in text for marker in question_markers) and
+                any(marker in text for marker in action_markers))
+
+    def _prepare_brain_input(self, text: str) -> str:
+        """Preserve a pending multi-turn action across a short voice reply."""
+        if not self._pending_followup:
+            return text
+        self._pending_followup = None
+        return (
+            "[FOLLOW-UP TO THE PREVIOUS ASSISTANT QUESTION] The user's next "
+            "utterance is an answer to the missing details for the pending "
+            "action. Continue that same action; do not treat it as a new "
+            "greeting or unrelated request. User's answer: " + text
+        )
+
+    def _update_followup_state(self, reply: str) -> None:
+        """Remember whether the spoken reply asks for action details."""
+        if self._is_clarification_reply(reply):
+            self._pending_followup = {"question": str(reply)[:500]}
+        else:
+            self._pending_followup = None
+        if self.status is not None:
+            self.status.report_models(
+                conversation_turns=sum(
+                    1 for item in self.history if item.get("role") == "user"
+                ),
+                pending_followup=bool(self._pending_followup),
+            )
 
     def _note_transcript_echo_rejected(self, text: str, reason: str) -> None:
         capture = getattr(self.audio, "capture", self.audio)
@@ -653,6 +699,7 @@ class LocalVoiceLoop:
         if self.status is not None:
             self.status.report_transcript(text)
 
+        brain_input = self._prepare_brain_input(text)
         t0 = time.perf_counter()
         if self.ack_wait_s > 0:
             # Long-task path: run the (tool-calling) brain on a worker
@@ -679,7 +726,7 @@ class LocalVoiceLoop:
                 with self._progress_lock:
                     self._progress_holders[ident] = holder
                 try:
-                    holder["reply"] = self.brain.chat(history_snapshot, text)
+                    holder["reply"] = self.brain.chat(history_snapshot, brain_input)
                 except Exception as exc:  # noqa: BLE001 - announce safely later
                     holder["error"] = type(exc).__name__
                     log.exception("background brain task failed")
@@ -710,7 +757,7 @@ class LocalVoiceLoop:
                 raise RuntimeError(f"background brain task failed: {holder['error']}")
             reply = holder.get("reply", "")
         else:
-            reply = self.brain.chat(self.history, text)
+            reply = self.brain.chat(self.history, brain_input)
         llm_ms = (time.perf_counter() - t0) * 1e3
         self.stats.llm_ms.append(llm_ms)
         m = getattr(self.brain, "metrics", None)
@@ -718,7 +765,8 @@ class LocalVoiceLoop:
             self.stats.first_tool_ms.append(m["first_tool_ms"])
         self.history.append({"role": "user", "content": text})
         self.history.append({"role": "assistant", "content": reply})
-        self.history = self.history[-8:]
+        self.history = self.history[-self.history_limit:]
+        self._update_followup_state(reply)
         log.info("reply (%s, %.0f ms): %r", self.brain.name, llm_ms,
                  reply[:120])
         self.orchestrator.on_assistant_text_delta(reply, final=True)
@@ -1013,7 +1061,8 @@ class LocalVoiceLoop:
             reply = "I could not complete that request. Please try again."
         if reply:
             self.history.append({"role": "assistant", "content": reply})
-            self.history = self.history[-8:]
+            self.history = self.history[-self.history_limit:]
+            self._update_followup_state(reply)
             m = getattr(self.brain, "metrics", None)
             if isinstance(m, dict) and m.get("first_tool_ms") is not None:
                 self.stats.first_tool_ms.append(m["first_tool_ms"])

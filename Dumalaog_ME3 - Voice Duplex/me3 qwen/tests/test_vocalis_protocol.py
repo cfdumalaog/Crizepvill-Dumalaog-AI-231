@@ -124,6 +124,24 @@ def test_protected_playback_recognizes_explicit_voice_controls_only():
     assert LocalVoiceLoop._voice_command("please keep explaining") is None
 
 
+def test_action_clarification_is_marked_as_a_followup_but_generic_greeting_is_not():
+    assert LocalVoiceLoop._is_clarification_reply(
+        "What message would you like to send, and via which channel?"
+    )
+    assert not LocalVoiceLoop._is_clarification_reply(
+        "Good morning. How can I help you today?"
+    )
+
+
+def test_followup_input_is_explicitly_bound_to_pending_action():
+    loop = LocalVoiceLoop.__new__(LocalVoiceLoop)
+    loop._pending_followup = {"question": "What message should I send?"}
+    prepared = loop._prepare_brain_input("good morning")
+    assert "FOLLOW-UP TO THE PREVIOUS ASSISTANT QUESTION" in prepared
+    assert "good morning" in prepared
+    assert loop._pending_followup is None
+
+
 def test_default_profile_uses_protected_playback_and_command_control():
     cfg = load_config()
     assert cfg["agent"]["barge_in"] is False

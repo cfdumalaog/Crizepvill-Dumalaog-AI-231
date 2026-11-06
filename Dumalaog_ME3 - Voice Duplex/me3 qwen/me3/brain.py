@@ -84,6 +84,9 @@ class ToolBrain:
         # more rounds, chat() executes this final batch and asks for a safe
         # no-tool summary instead of speaking an internal limit error.
         self.max_tool_steps = max(1, min(int(cfg.get("max_tool_steps", 24)), 32))
+        self.history_messages = max(
+            8, min(int(cfg.get("history_messages", 16)), 32)
+        )
         self.allow_tools = bool(cfg.get("allow_tools", True))
         self.api_key = os.environ.get(self.api_key_env, "")
         self.on_tool = on_tool
@@ -270,7 +273,7 @@ class ToolBrain:
         }
         system = self.cfg.get("system_prompt") or ""
         messages = [{"role": "system", "content": system}]
-        messages.extend(history[-8:])
+        messages.extend(history[-self.history_messages:])
         messages.append({"role": "user", "content": user_text})
 
         for step in range(self.max_tool_steps):

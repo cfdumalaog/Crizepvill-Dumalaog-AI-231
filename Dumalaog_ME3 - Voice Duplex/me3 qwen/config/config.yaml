@@ -123,6 +123,7 @@ llm:
     max_tokens: 4096             # multi-tool turns (web-app builds) need room
     timeout_s: 180               # slow vLLM endpoint: allow long generations
     max_tool_steps: 24           # tool rounds per turn; final no-tool summary if exhausted
+    history_messages: 16         # preserve enough context for multi-step voice actions
     stream: true                  # direct OpenAI-compatible token stream
     fast_mode: true               # voice path: skip Qwen hidden reasoning tokens
     thinking: false
@@ -192,8 +193,11 @@ agent:
     confirmation; only then set confirm=true. Never expose credentials, invent
     provider configuration, or claim a call/message/email succeeded unless the
     tool reports success. For a long-running task, use the exact acknowledgement
-    "I am processing your request now." For completion, state the result
-    directly and professionally in one or two short sentences.
+    "I am processing your request now." Use the recent conversation history:
+    when your previous reply asks for missing details for an action, treat the
+    user's next short utterance as the answer to that same action, not as a new
+    greeting or unrelated request. For completion, state the result directly
+    and professionally in one or two short sentences.
   barge_in: false                # protected playback; explicit voice controls stop TTS
   command_control: true          # listen during playback for stop, skip, or steer
   protected_playback_ignore_noncontrol: true # reject evidence-backed echo; queue genuine overlap
@@ -201,6 +205,7 @@ agent:
   command_min_silence_ms: 800
   turn_timeout_s: 12.0
   ack_wait_s: 2.5                # >0: speak a backchannel for long tool tasks (live); 0 = synchronous (bench protocol)
+  history_messages: 16           # rolling user/assistant context sent to the brain
   backchannel: "I am processing your request now."
   web_port_default: 8000         # start_web_server default port
 

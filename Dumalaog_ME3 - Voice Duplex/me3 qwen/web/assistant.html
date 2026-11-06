@@ -539,6 +539,7 @@ function renderRuntime(d){
   if(m.tts_backend) box.appendChild(kvRow('TTS backend', m.tts_backend));
   if(m.tts_model) box.appendChild(kvRow('TTS model', m.tts_model));
   if(m.tts_voice) box.appendChild(kvRow('TTS voice', m.tts_voice + (m.tts_hz ? ' @ ' + m.tts_hz + ' Hz' : '') + (m.tts_ms != null ? '  (' + m.tts_ms + ' ms load)' : '')));
+  if(m.conversation_turns != null) box.appendChild(kvRow('Conversation context', m.conversation_turns + ' turn(s)' + (m.pending_followup ? ' / follow-up pending' : '')));
   if(box.children.length === 2) box.appendChild(kvRow('models', 'not loaded yet'));
 }
 
