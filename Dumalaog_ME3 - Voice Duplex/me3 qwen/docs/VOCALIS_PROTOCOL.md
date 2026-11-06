@@ -30,11 +30,11 @@ The Qwen path is text-compatible internally because the configured Qwen
 endpoint is a chat-completions model. That does not make ME3 a manual
 voice-to-text application: the user speaks continuously, VAD automatically
 ends the turn, Qwen tools execute without a Send button, and the reply is
-spoken automatically. While audio is playing, new microphone speech triggers
-the default protected-playback path keeps ordinary overlapping speech from
-flushing the current reply. Each overlap transcript is checked against recent
-ME3 speech and frame-level speaker-reference evidence: residual speaker audio
-is rejected, while genuine user speech is queued as the newest prompt.
+spoken automatically. While audio is playing, new microphone speech remains
+observable. The default live path checks each frame against recent ME3 speech
+and the speaker-reference evidence: residual speaker audio is rejected, while
+genuine user speech triggers barge-in, flushes the current reply, and starts a
+new turn.
 Explicit voice commands (`stop processing`, `skip`, or `steer`) stop current
 playback; `stop processing` also suppresses queued announcements. If a long tool request has already been accepted, its worker
 and side effects continue; use the normal task-cancellation tool when actual
@@ -87,23 +87,23 @@ The local loop publishes a final transcript after faster-whisper endpointing.
 Tool arguments and tool results are intentionally excluded from the progress
 event stream because they can contain user data or credentials.
 
-## Protected-playback voice controls
+## Duplex mode voice controls
 
-With the default `barge_in: false` profile, VAD continues to feed a short
-control buffer while TTS is playing. The buffer is ASR-transcribed after a
-short silence and classified before it can become a normal prompt:
+With the default `barge_in: true` profile, VAD continues while TTS is playing.
+Genuine user speech automatically interrupts playback. The short control path
+remains available for explicit stop, skip, and steer commands:
 
 | Spoken command | Effect |
 |---|---|
 | `stop processing` | Stop current playback, clear deferred prompt/announcements, and suppress pending spoken completions. |
 | `skip` | Stop current playback and move to the next safe audio boundary. |
 | `steer` | Stop current playback and prioritize an explicitly queued control/task if one exists. |
-| Any other utterance | Queue it as the newest prompt unless speaker-reference evidence identifies it as echo. |
+| Any other utterance | In automatic mode, interrupt playback and start the new turn; in keyword-only mode, queue it as the newest prompt unless speaker-reference evidence identifies it as echo. |
 
-This command path is intentionally narrow so that talking to another person,
-backchanneling, or ordinary overlap does not accidentally cancel a response.
-The UI's Runtime terminal mirrors the resulting state, ASR, TTS, and sanitized
-tool lifecycle events from `/api/state`; it does not expose hidden reasoning.
+The echo guard prevents talking to another person, backchanneling, or the
+agent's own speaker output from accidentally becoming a user turn. The UI's
+Runtime terminal mirrors the resulting state, ASR, TTS, and sanitized tool
+lifecycle events from `/api/state`; it does not expose hidden reasoning.
 The same endpoint exposes a safe `progress` block and a `background` block.
 The latter contains the live long-turn worker plus bounded project subprocess
 telemetry. If a long turn remains active, the local loop queues at most one

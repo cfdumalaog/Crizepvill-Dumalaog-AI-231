@@ -77,7 +77,7 @@ Write-Host 'ME3 local browser UI'
 Write-Host "URL     : http://127.0.0.1:$Port/"
 Write-Host "Brain   : $Brain (Qwen key $(if ($haveKey) { 'configured' } else { 'not configured' }); Luna key $(if ($haveOpenAIKey) { 'configured' } else { 'not configured' }))"
 Write-Host "Audio   : $Variant (ASR endpoint $(if ($qwenAsrEndpointConfigured) { 'configured' } else { 'not configured' }); TTS endpoint $(if ($qwenTtsEndpointConfigured) { 'configured' } else { 'not configured' }); shared key $(if ($qwenAudioKeyConfigured) { 'configured' } else { 'not configured' }))"
-Write-Host 'Policy  : Twilio calls, SMS, and Resend email hard-disabled in this UI'
+Write-Host 'Policy  : Telegram text and Resend email hard-disabled in this UI'
 Write-Host 'Binding : 127.0.0.1 only'
 Write-Host 'Stop    : Ctrl+C in this window'
 if ($DryRun) { Write-Host '[dry-run] no server started and no browser opened.'; exit 0 }

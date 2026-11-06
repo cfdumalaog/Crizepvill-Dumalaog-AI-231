@@ -46,6 +46,10 @@ class AgentController:
         self.input_device = input_device
         self.output_mode = output_mode
         self.output_device = output_device
+        self.duplex_mode = (
+            "automatic" if bool(cfg.get("agent", {}).get("barge_in", True))
+            else "keyword_only"
+        )
         self.loop: LocalVoiceLoop | None = None
         self.thread: threading.Thread | None = None
         self.lock = threading.RLock()
@@ -78,6 +82,9 @@ class AgentController:
                 loop = LocalVoiceLoop(cfg, brain=self.brain,
                                       device=self.input_device,
                                       status=self.status)
+            # The UI mode is runtime state and survives loop/audio restarts,
+            # but does not rewrite the protected YAML configuration.
+            loop.barge_in = self.duplex_mode == "automatic"
             self.loop = loop
             self.thread = threading.Thread(target=self._run, args=(loop,),
                                            daemon=True, name="me3-agent-loop")
@@ -123,6 +130,46 @@ class AgentController:
             running = bool(self.thread and self.thread.is_alive())
         return {"loop_running": running,
                 "variant": self.cfg.get("runtime_variant", "qwen_instruct")}
+
+    def duplex_mode_info(self) -> dict:
+        with self.lock:
+            mode = self.duplex_mode
+            thread = self.thread
+        return {
+            "ok": True,
+            "mode": mode,
+            "barge_in": mode == "automatic",
+            "loop_running": bool(thread and thread.is_alive()),
+            "description": (
+                "Genuine speech interrupts TTS; echo guard rejects ME3 output."
+                if mode == "automatic" else
+                "Only stop processing, skip, or steer interrupts TTS."
+            ),
+        }
+
+    def set_duplex_mode(self, payload: dict) -> dict:
+        mode = str(payload.get("mode", "")).strip().lower()
+        aliases = {
+            "auto": "automatic",
+            "automatic_barge_in": "automatic",
+            "full_duplex": "automatic",
+            "keyword": "keyword_only",
+            "protected": "keyword_only",
+            "protected_playback": "keyword_only",
+        }
+        mode = aliases.get(mode, mode)
+        if mode not in {"automatic", "keyword_only"}:
+            raise ValueError("mode must be automatic or keyword_only")
+        with self.lock:
+            self.duplex_mode = mode
+            loop = self.loop
+            if loop is not None:
+                loop.barge_in = mode == "automatic"
+                self.status.report_state_reason(
+                    "automatic barge-in enabled" if mode == "automatic"
+                    else "keyword-only protected playback enabled"
+                )
+        return self.duplex_mode_info()
 
     def audio_info(self) -> dict:
         try:
@@ -282,6 +329,8 @@ def main() -> int:
         audio_info=controller.audio_info, audio_select=controller.select,
         restart_agent=controller.restart,
         restart_service=schedule_systemd_restart,
+         duplex_mode_get=controller.duplex_mode_info,
+         duplex_mode_set=controller.set_duplex_mode,
         demo_light_get=me2_commands.simulated_light_state,
         demo_light_control=lambda payload: me2_commands.control_lights(**payload),
     )

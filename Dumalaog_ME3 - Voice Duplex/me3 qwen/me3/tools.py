@@ -490,8 +490,6 @@ _FUNCTIONS = {
     "call_contact": me2_commands.call_contact,
     "send_message": me2_commands.send_message,
     "channel_health": channels.channel_health,
-    "send_sms": channels.send_sms,
-    "make_call": channels.make_call,
     "send_email": channels.send_email,
     "send_telegram_message": channels.send_telegram_message,
 }
@@ -621,39 +619,20 @@ def tool_definitions() -> list[dict]:
             "reminder_id": {"type": "string"},
         }, ("reminder_id",)),
         spec("call_contact", (
-            "Call a named or E.164 contact through the reviewed Twilio flow. "
-            "Ask for explicit confirmation before confirm=true."), {
+            "Report that ordinary voice calls are not available through the "
+            "Telegram Bot API. Do not claim that a call was placed."), {
             "contact": {"type": "string"}, "confirm": {"type": "boolean", "default": False},
         }, ("contact",)),
         spec("send_message", (
-            "Send SMS or Telegram text to a named/number contact. Ask for "
-            "explicit confirmation before confirm=true."), {
+            "Send Telegram text to a named contact or numeric chat ID. Ask "
+            "for explicit confirmation before confirm=true."), {
             "contact": {"type": "string"}, "body": {"type": "string"},
-            "channel": {"type": "string", "enum": ["sms", "telegram"], "default": "sms"},
+            "channel": {"type": "string", "enum": ["telegram"], "default": "telegram"},
             "confirm": {"type": "boolean", "default": False},
         }, ("contact", "body")),
         spec("channel_health", (
-            "Report safe configuration status for call, SMS, and email. "
+            "Report safe configuration status for Telegram text and optional email. "
             "This does not contact providers or send anything."), {}),
-        spec("send_sms", (
-            "Send one SMS through Twilio. Ask the user for explicit confirmation "
-            "before setting confirm=true; this has an external side effect. "
-            "Use E.164 phone numbers."), {
-            "to": {"type": "string"},
-            "body": {"type": "string"},
-            "confirm": {"type": "boolean", "default": False},
-            "from_number": {"type": "string"},
-            "messaging_service_sid": {"type": "string"},
-        }, ("to", "body")),
-        spec("make_call", (
-            "Start one outbound Twilio call through the reviewed HTTPS call-flow "
-            "webhook. Ask the user for explicit confirmation before setting "
-            "confirm=true; this has an external side effect."), {
-            "to": {"type": "string"},
-            "confirm": {"type": "boolean", "default": False},
-            "twiml_url": {"type": "string"},
-            "from_number": {"type": "string"},
-        }, ("to",)),
         spec("send_email", (
             "Send a transactional email through Resend. Ask the user for "
             "explicit confirmation before setting confirm=true; this has an "
@@ -667,7 +646,7 @@ def tool_definitions() -> list[dict]:
         spec("send_telegram_message", (
             "Send a Telegram Bot API text message. Ask for explicit confirmation "
             "before setting confirm=true. Telegram Bot API voice calls are not "
-            "available; use make_call for a reviewed Twilio phone call."), {
+            "available."), {
             "chat_id": {"type": "string"},
             "text": {"type": "string"},
             "confirm": {"type": "boolean", "default": False},

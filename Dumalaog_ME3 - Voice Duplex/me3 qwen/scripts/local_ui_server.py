@@ -25,7 +25,7 @@ from urllib.parse import parse_qs, urlparse
 PROJECT = Path(__file__).resolve().parents[1]
 WEB_ROOT = PROJECT / "web"
 LOG = logging.getLogger("me3.local_ui")
-EXTERNAL_TOOLS = {"send_sms", "make_call", "send_email"}
+EXTERNAL_TOOLS = {"send_telegram_message", "send_email"}
 JOBS: dict[str, dict] = {}
 JOBS_LOCK = threading.Lock()
 JOB_EXECUTOR = ThreadPoolExecutor(max_workers=4, thread_name_prefix="me3-ui-job")
@@ -50,7 +50,7 @@ def local_dispatch(name: str, arguments: dict):
         return {
             "ok": False,
             "error": "external_channels_disabled_in_local_ui",
-            "provider": "twilio" if name in {"send_sms", "make_call"} else "resend",
+            "provider": "telegram" if name == "send_telegram_message" else "resend",
             "network_called": False,
         }
     return dispatch(name, arguments)

@@ -24,9 +24,10 @@ ME3 now has a Philippines-market runtime profile:
 - The current runtime does not auto-switch providers; it keeps one fixed voice
   for replies, backchannels, and completion announcements.
 - The first external-channel layer is implemented: explicit-confirmation
-  tools can start an outbound Twilio call, send Twilio SMS, and send a Resend
-  transactional email. Provider account, webhook, consent, and production
-  gates are documented in `docs/CHANNEL_INTEGRATIONS.md`.
+  tools can send Telegram Bot API text and, optionally, a Resend transactional
+  email. A bot token, approved chat mapping, consent, and production gates are
+  documented in `docs/CHANNEL_INTEGRATIONS.md`. Phone calls and SMS are
+  intentionally out of scope.
 - The voice agent is positioned as a first-line support pilot with explicit
   human escalation, not as an unconditional replacement for a call center.
 
@@ -86,8 +87,9 @@ The checked-in profile is in `config/config.yaml`:
 market:
   region: PH
   locale: fil-PH
-  default_language: fil
-  supported_languages: [fil, en]
+  # English is the spoken default; Filipino/Taglish are mirrored when used.
+  default_language: en
+  supported_languages: [en, fil]
   code_switching: true
 
 tts:

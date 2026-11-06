@@ -12,19 +12,20 @@ MCP servers and VAD are ours.
 
 Double-click `launchers\Start-ME3.bat`. It starts the full-duplex voice loop
 in a console window using the shared workspace `.venv` — the mic stays live
-while the agent speaks. Playback is protected by default: overlap that matches
-the speaker reference is rejected as echo, while genuine user speech is
-buffered as the newest prompt; explicit voice controls (`stop processing`,
-`skip`, or `steer`) control the active response. `Ctrl+C` or
+while the agent speaks. The live Qwen profile uses automatic echo-protected
+barge-in: overlap that matches the speaker reference is rejected as echo,
+while genuine user speech stops the current TTS and starts the next turn;
+explicit voice controls (`stop processing`, `skip`, or `steer`) remain
+available. `Ctrl+C` or
 closing the window stops it. See [launchers/README.md](launchers/README.md).
 
 This is the primary ME3 interaction. There is no Send button: the loop listens
 continuously, Silero VAD detects the start and end of a turn, Whisper transcribes
 the captured utterance internally, Qwen or GPT-5.6 Luna may execute tools automatically, and
 the reply is spoken. New speech while ME3 is speaking is captured continuously;
-the newest ordinary prompt waits for a safe audio boundary, while explicit
-ordinary overlap is either rejected as speaker echo or queued as a genuine
-user prompt; explicit voice controls stop or redirect playback immediately.
+the echo guard rejects the agent's own output, while genuine overlap triggers
+barge-in, flushes the current audio, and enters the new turn. Explicit voice
+controls stop or redirect playback immediately.
 The browser UI below is
 a secondary text and diagnostic console for inspection; it is not the
 definition of the voice agent.
@@ -53,17 +54,17 @@ both ASR paths fail, the profile reports a bounded provider error rather than
 silently claiming that audio succeeded. Fallback transcripts are functional
 demo evidence, not Qwen2-Audio benchmark evidence.
 
-### Protected playback and the runtime terminal
+### Full-duplex playback and the runtime terminal
 
-The default live profile uses `barge_in: false` and `command_control: true`.
-This is deliberate: the microphone remains open while TTS speaks, but an
-ordinary overlapping sentence does not cut off a response. ME3 transcribes it
-on the control path and retains only the newest pending prompt for the next
-safe audio boundary. Say **stop processing** to stop playback and suppress
-queued announcements, **skip** to skip the current audio, or **steer** to stop
-the current audio and prioritize the newest captured prompt. Accepted long
-tool tasks cannot be force-killed from the audio thread; their side effects
-continue unless the normal task-cancellation tool is used.
+The default live profile uses `barge_in: true` and `command_control: true`.
+The microphone remains open while TTS speaks. Echo-protected VAD distinguishes
+the agent's own output from genuine user speech; genuine overlap stops the
+current TTS, flushes the playback queue, and starts the new turn. Say
+**stop processing** to stop playback and suppress queued announcements,
+**skip** to skip the current audio, or **steer** to stop the current audio and
+prioritize the newest captured prompt. Accepted long tool tasks cannot be
+force-killed from the audio thread; their side effects continue unless the
+normal task-cancellation tool is used.
 
 The live `web/assistant.html` page includes a **Runtime terminal** panel. It
 shows timestamped, sanitized operational events: state transitions, ASR/TTS
@@ -83,13 +84,14 @@ most once per minute while the task remains active, then announces the final
 result at a safe playback boundary.
 
 For the Pi microphone-to-laptop-speaker arrangement, the echo guard keeps the
-exact browser PCM reference and also fits a bounded multi-tap acoustic path to
-cover speaker delay, room reflections, and USB-clock drift. A speaker-only
-frame is gated when the residual collapses; unmatched user speech is retained
-for the protected `stop processing`, `skip`, and `steer` control path. The
-guard exposes only counters and correlation metrics through
-`/api/audio/devices`; it does not claim a human acoustic acceptance test until
-one is run in the actual room.
+exact browser PCM reference, retimes it using a browser render-start
+acknowledgement, and fits a bounded multi-tap acoustic path to cover speaker
+delay, room reflections, and USB-clock drift. A speaker-only frame is gated
+when the residual collapses; unmatched user speech is retained for the
+protected `stop processing`, `skip`, and `steer` control path. The guard
+exposes only counters and correlation metrics through `/api/audio/devices`; it
+does not claim a human acoustic acceptance test until one is run in the actual
+room.
 
 ```powershell
 # Qwen Instruct ASR/TTS path; launcher auto-reads the protected handoff file
@@ -396,10 +398,9 @@ is running, **Show task progress (not model reasoning)** displays the current ta
 progress stages such as model inference, tool planning, tool execution, and
 completion. It does not expose private chain-of-thought or credentials. The UI
 also shows model timing, tool identities, channel readiness, and safe errors.
-The authoritative physical
-audio path remains `Start-ME3.bat`; calls, SMS, and email are hard-disabled in
-this console, so the unavailable Twilio account is not a blocker for local model
-evaluation.
+The authoritative physical audio path remains `Start-ME3.bat`; Telegram text
+and optional email remain confirmation-gated, while phone calls and SMS are not
+part of the active project. No phone-provider account is required.
 
 ## Functional Requirements Checklist
 | # | Requirement | Status | Where |
@@ -421,11 +422,10 @@ evaluation.
 | FR15 | Local quick launch like ME2 | ✅ built | `launchers/Start-ME3.bat` + `scripts/Start-Local-ME3.ps1` |
 | FR16 | Agentic tool calling (build real artifacts from voice) | ✅ verified | `me3/brain.py` provider-neutral Qwen/Luna tool loop + `me3/tools.py` (project, web, task, ME2-parity, and channel tools) + `me3/task_runner.py` |
 | FR17 | Optional ElevenLabs adapter | ✅ implemented, inactive in the single-voice demo path | `me3/elevenlabs_tts.py`; active profiles stay on one fixed voice |
-| FR18 | Outbound voice-call integration | ✅ implemented, credential-gated | `me3/channels.py` (`make_call`) + Twilio Calls API; requires reviewed HTTPS TwiML/media bridge |
-| FR19 | SMS/text integration | ✅ implemented, credential-gated | `me3/channels.py` (`send_sms`) + Twilio Messages API |
-| FR20 | Transactional email integration | ✅ implemented, credential-gated | `me3/channels.py` (`send_email`) + Resend Send Email API |
-| FR21 | Telegram text integration | ✅ implemented, credential-gated | `me3/channels.py` (`send_telegram_message`) + Telegram Bot API `sendMessage` |
-| FR22 | Optional Qwen Instruct audio variant | ✅ live ASR/TTS + shared tool loop verified over VPN | `me3/qwen_audio.py`, `--variant qwen_instruct`, `scripts/compare_audio_variants.py` |
+| FR18 | Telegram text integration | ✅ implemented, credential-gated | `me3/channels.py` (`send_telegram_message`) + Telegram Bot API `sendMessage` |
+| FR19 | Optional transactional email integration | ✅ implemented, credential-gated | `me3/channels.py` (`send_email`) + Resend Send Email API |
+| FR20 | Telephone calls / SMS | ⛔ intentionally out of scope | Telegram Bot API text is the supported communication path; ordinary voice calls and SMS are not enabled |
+| FR21 | Optional Qwen Instruct audio variant | ✅ live ASR/TTS + shared tool loop verified over VPN | `me3/qwen_audio.py`, `--variant qwen_instruct`, `scripts/compare_audio_variants.py` |
 
 ## Tool brain (agentic capabilities)
 
@@ -454,11 +454,11 @@ Available tools include file ops (`list_files`, `read_file`, `write_file`,
 (`start_web_server`, `stop_web_server`, `web_servers`), research
 (`fetch_url`, `web_search`), system (`system_info`, `git_status`), and
 timers (`set_timer`, `list_timers`, `cancel_timer`). The channel tools are
-`channel_health`, `send_sms`, `make_call`, `send_email`, and
-`send_telegram_message`; all external side-effect tools require explicit
-confirmation and protected provider configuration. Telegram Bot API text is
-supported; ordinary Telegram voice-call initiation is not exposed by the Bot
-API, so phone calls remain a Twilio capability.
+`channel_health`, `send_telegram_message`, and the optional `send_email`; all
+external side-effect tools require explicit confirmation and protected provider
+configuration. Telegram Bot API text is supported. Ordinary Telegram
+voice-call initiation is not exposed by the Bot API, so ME3 reports voice calls
+as unsupported instead of routing them through another provider.
 
 The ME2 command families are retained through explicit model-selected tools:
 `play_music`, `media_control`, `get_weather`, `control_lights`,
@@ -514,28 +514,27 @@ total. The full injected Qwen voice/tool turn passed with zero errors and
 called five shared tools. The comparison harness records no credentials,
 transcripts, endpoints, or audio bytes.
 
-## Call, text, and email integrations
+## Telegram text and optional email integrations
 
-ME3 includes shared direct-provider and MCP tools for outbound Twilio calls,
-Twilio SMS, Telegram text, and Resend transactional email. They are deliberately
-credential-gated and confirmation-gated: the agent must identify the target
-and content, receive explicit confirmation, and only then pass `confirm=true`.
-The tools never return credential material or provider response bodies. The
-complete account/API/webhook checklist is in
+ME3 uses Telegram Bot API text as its active outbound communication channel.
+The optional Resend email adapter remains separate. Both are deliberately
+credential-gated and confirmation-gated: the agent must identify the target and
+content, receive explicit confirmation, and only then pass `confirm=true`. The
+tools never return credential material or provider response bodies. The
+Telegram setup checklist is in
 [`docs/CHANNEL_INTEGRATIONS.md`](docs/CHANNEL_INTEGRATIONS.md).
 
 Current implementation status is “adapter tested, live side effect not yet
 placed.” `channel_health` is network-free and reports only configured/missing
-environment names. An outbound call starts a Twilio call using a reviewed
-HTTPS TwiML URL; conversational inbound/outbound call-center behavior still
-requires the operator's media-stream bridge, transfer workflow, consent,
-recording policy, and CRM/identity integrations.
+environment names. The active Telegram adapter sends one Bot API
+`sendMessage` request after confirmation. Ordinary Telegram voice calls are
+not available through the Bot API; a future voice-call feature would require a
+separately reviewed MTProto/TDLib user-account bridge.
 
 Telegram uses the Bot API `sendMessage` method and requires
 `TELEGRAM_BOT_TOKEN`; the operator must provide the approved `chat_id` and
-confirm the message. The Bot API cannot place an ordinary Telegram voice call;
-use Twilio for phone calls or separately review a user-authenticated
-MTProto/TDLib bridge.
+confirm the message. No phone-provider account, phone number, or SMS provider
+is required by the active project.
 
 ### Class benchmark protocol update
 
@@ -588,8 +587,12 @@ user speech can interrupt the agent. Headphones or a separated
 speaker/microphone are still recommended for the cleanest physical test; this
 software guard is not a substitute for hardware acoustic echo cancellation on
 a Raspberry Pi. Browser-speaker output now registers its PCM with the same
-capture-side echo guard, so the agent's own browser TTS is removed before VAD
-and ASR instead of becoming a false new turn.
+capture-side echo guard. The browser sends a render-start acknowledgement
+after scheduling the first Web Audio buffer, so the Pi retimes the reference
+to the laptop's actual render schedule before correlation. This is the key
+distributed-device step: a Pi send timestamp alone cannot describe when the
+laptop speaker actually emitted the sound. The agent's own browser TTS is
+therefore removed before VAD and ASR instead of becoming a false new turn.
 
 If the UI still shows the old **browser voice echo** checkbox, that tab loaded
 an earlier build and can add a second operating-system voice (often a female

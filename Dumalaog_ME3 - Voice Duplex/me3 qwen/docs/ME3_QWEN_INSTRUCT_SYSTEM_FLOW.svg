@@ -223,7 +223,7 @@
     <text x="50" y="1046" class="body">• Create/edit project files and websites; run bounded Python/commands and tests</text>
     <text x="50" y="1071" class="body">• Fetch/research web pages; start local web servers; inspect system and Git state</text>
     <text x="50" y="1096" class="body">• Set/list/cancel timers; use ME2-compatible actions; report progress safely in the UI</text>
-    <text x="50" y="1121" class="body">• Prepare Twilio calls/SMS and Resend email behind credentials, confirmation, and HTTPS webhook gates</text>
+    <text x="50" y="1121" class="body">• Prepare Telegram Bot API text and optional email behind protected credentials and confirmation gates</text>
     <text x="50" y="1152" class="small">Gmail/Google Meet note: the browser account is authenticated for the operator, but a dedicated ME3 Gmail/Meet connector is not yet wired.</text>
     <text x="50" y="1170" class="small">Any future send/join action must remain explicit and confirmation-gated; browser sign-in alone is not tool authorization.</text>
   </g>

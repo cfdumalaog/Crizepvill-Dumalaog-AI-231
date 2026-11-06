@@ -165,7 +165,7 @@ header{
 <header>
   <div class="brand">
     <span class="dot" id="statusDot"></span>
-    <div><div class="title-line"><h1>ME3 Voice Duplex</h1><span class="variant-pill qwen" id="variantPill">ME3 QWEN INSTRUCT</span></div><div class="sub">live assistant - full duplex, protected playback + voice controls</div></div>
+    <div><div class="title-line"><h1>ME3 Voice Duplex</h1><span class="variant-pill qwen" id="variantPill">ME3 QWEN INSTRUCT</span></div><div class="sub">live assistant - full duplex, echo-protected automatic barge-in</div></div>
   </div>
   <div class="nav">
     <a id="linkConsole" href="/#runtime-terminal">Runtime terminal</a>
@@ -210,6 +210,9 @@ header{
         <label>Browser speaker<select id="browserSinkSelect"><option value="default">Browser default speaker</option></select></label>
         <button id="applyAudio" type="button">Apply Pi audio routing</button>
         <button id="connectAudio" type="button">Connect browser speaker</button>
+        <label>Duplex mode<select id="duplexMode"><option value="automatic">Automatic barge-in (default)</option><option value="keyword_only">Keyword-only protected playback</option></select></label>
+        <button id="applyDuplexMode" type="button">Apply duplex mode</button>
+        <div class="audio-note" id="duplexModeStatus">Automatic mode: genuine speech interrupts; ME3 echo is rejected.</div>
         <div class="restart-row"><button id="restartMe3" type="button">Restart ME3 loop</button><span class="audio-note" id="restartStatus">Audio-loop reset only; the UI and browser speaker stay online.</span></div>
         <div class="restart-row service"><button id="restartService" type="button">Restart ME3 service</button><span class="audio-note" id="serviceRestartStatus">Pi only: restarts the canonical systemd service and briefly reloads the UI.</span></div>
         <div class="audio-note" id="audioStatus">Pi audio controls appear when the LAN server is running. Browser output needs one click because browsers block autoplay.</div>
@@ -229,8 +232,8 @@ header{
   </section>
   <section class="col center">
     <canvas id="orbCanvas" width="280" height="280"></canvas>
-    <div class="orb-hint" id="orbHint">protected playback - say "stop processing", "skip", or "steer"</div>
-    <div class="echo-toggle">PCM speaker route is authoritative. Browser speech synthesis is disabled so every response uses the selected ME3 voice only.</div>
+    <div class="orb-hint" id="orbHint">full duplex - speak naturally to interrupt</div>
+    <div class="echo-toggle">PCM speaker route is authoritative. Browser speech synthesis is disabled so every response uses the selected ME3 voice only. Echo-protected natural speech interrupts playback; say "stop processing", "skip", or "steer" for explicit control.</div>
   </section>
   <section class="col right">
     <div class="card">
@@ -270,7 +273,7 @@ header{
         <h3>Accomplished</h3>
         <ul class="readiness-list">
           <li>Continuous Silero VAD voice loop with automatic ASR, inference, tools, and TTS</li>
-          <li>Protected speaking with explicit voice controls, echo guard, Pi Fifine input, and browser/PC speaker routing</li>
+          <li>Full-duplex speaking with automatic echo-protected barge-in, explicit voice controls, Pi Fifine input, and browser/PC speaker routing</li>
           <li>Qwen ASR primary with cached multilingual faster-whisper fallback when the DGX ASR listener is unavailable</li>
           <li>One fixed voice per profile for replies, backchannels, and completion notices</li>
           <li>Bounded MCP tools for files, commands, websites/web servers, timers, Git, and system tasks</li>
@@ -283,14 +286,14 @@ header{
         <ul class="readiness-list">
           <li>One operator test with the physical Fifine mic, long task, backchannel, completion, and barge-in</li>
           <li>Paper-native full-duplex overlap benchmark with the required clean labels and dataset</li>
-          <li>Production call/SMS/email configuration, public HTTPS webhooks, and policy review</li>
+          <li>Telegram Bot API token/chat-ID provisioning and one confirmed live text test</li>
         </ul>
       </div>
       <div class="readiness-group provide">
         <h3>Provide when moving to production</h3>
         <ul class="readiness-list">
           <li>Keep the Qwen VPN/API endpoint and protected key available for the Qwen profile</li>
-          <li>Twilio and Resend credentials, caller/sender identity, consent, disclosure, retention, and handoff policy</li>
+          <li>Telegram bot identity, approved chat mapping, consent, disclosure, retention, and handoff policy</li>
           <li>Run only one profile at a time on the shared Fifine microphone during the presentation</li>
         </ul>
       </div>
@@ -319,6 +322,7 @@ let smoothRms = 0, orbHue = 220, orbPhase = 0;
 let bargeFlashUntil = 0, seenBargeAt = null;
 let prevState = null, stateSince = 0, seenTranscriptAt = null, seenReplyAt = null;
 let audioSocket = null, audioContext = null, audioNextTime = 0, audioNodes = [], pendingMusicUrl = '';
+let currentPlaybackId = null, renderAckSent = false;
 let lightState = null;
 
 setInterval(() => { $('clock').textContent = new Date().toLocaleTimeString('en-PH', {hour12:false}); }, 1000);
@@ -570,7 +574,8 @@ function fillAudioDevices(d){
   if(d.selected_output != null) out.value = String(d.selected_output);
   if(old && [...out.options].some(o => o.value === old)) out.value = old;
   const ba = d.browser_audio || {};
-  $('audioStatus').textContent = (ba.clients ? 'Browser speaker connected. ' : 'Browser speaker not connected. ') + 'One active browser audio client is allowed; stale tabs are replaced. Pi input/output selection is applied by restarting only the audio loop.';
+  const sync = ba.render_ack_count ? (' Echo reference synced ' + ba.render_ack_count + ' time' + (ba.render_ack_count === 1 ? '' : 's') + '.') : '';
+  $('audioStatus').textContent = (ba.clients ? 'Browser speaker connected. ' : 'Browser speaker not connected. ') + 'One active browser audio client is allowed; stale tabs are replaced.' + sync + ' Pi input/output selection is applied by restarting only the audio loop.';
 }
 
 async function loadAudioDevices(){
@@ -617,6 +622,10 @@ async function connectBrowserAudio(){
           if(event.event === 'clear'){
             audioNodes.splice(0).forEach(n => { try { n.stop(); } catch(e){} });
             audioNextTime = audioContext.currentTime;
+            currentPlaybackId = null; renderAckSent = false;
+          } else if(event.event === 'playback_start') {
+            currentPlaybackId = event.playback_id || null;
+            renderAckSent = false;
           } else if(event.event === 'music_action') {
             pendingMusicUrl = event.url || '';
             $('musicProvider').textContent = (event.provider || 'Music') + ' handoff';
@@ -631,13 +640,40 @@ async function connectBrowserAudio(){
       for(let i=0;i<pcm.length;i++) ch[i] = pcm[i] / 32768;
       const src = audioContext.createBufferSource(); src.buffer=f; src.connect(audioContext.destination);
       audioNodes.push(src); src.onended = () => { audioNodes = audioNodes.filter(n => n !== src); };
-      audioNextTime = Math.max(audioNextTime, audioContext.currentTime + .02); src.start(audioNextTime); audioNextTime += f.duration;
+      const scheduledStart = Math.max(audioNextTime, audioContext.currentTime + .02);
+      src.start(scheduledStart); audioNextTime = scheduledStart + f.duration;
+      if(currentPlaybackId && !renderAckSent && audioSocket.readyState === WebSocket.OPEN){
+        renderAckSent = true;
+        audioSocket.send(JSON.stringify({event:'render_started', playback_id:currentPlaybackId,
+          delay_ms:Math.max(0, (scheduledStart - audioContext.currentTime) * 1000),
+          base_latency_ms:((audioContext.baseLatency || 0) * 1000)}));
+      }
     };
   } catch(e) { $('audioStatus').textContent = 'Browser audio unavailable: ' + e.message; }
 }
 $('applyAudio').addEventListener('click', applyAudio);
 $('connectAudio').addEventListener('click', connectBrowserAudio);
 $('browserSinkSelect').addEventListener('change', () => { if(audioSocket && audioSocket.readyState === WebSocket.OPEN) connectBrowserAudio(); });
+async function loadDuplexMode(){
+  try {
+    const r = await fetch(STATUS_BASE + '/api/duplex-mode', {cache:'no-store'});
+    if(!r.ok) throw new Error('mode endpoint offline');
+    const d = await r.json();
+    if(d.mode) $('duplexMode').value = d.mode;
+    $('duplexModeStatus').textContent = d.description || (d.barge_in ? 'Automatic barge-in enabled.' : 'Keyword-only protected playback enabled.');
+  } catch(e) { $('duplexModeStatus').textContent = 'Duplex mode unavailable: ' + e.message; }
+}
+$('applyDuplexMode').addEventListener('click', async () => {
+  const button = $('applyDuplexMode'), label = $('duplexModeStatus');
+  button.disabled = true;
+  try {
+    const r = await fetch(STATUS_BASE + '/api/duplex-mode', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({mode:$('duplexMode').value})});
+    const d = await r.json();
+    if(!r.ok || !d.ok) throw new Error(d.message || d.error || 'mode update failed');
+    label.textContent = d.description || 'Duplex mode applied.';
+  } catch(e) { label.textContent = 'Duplex mode update failed: ' + e.message; }
+  finally { button.disabled = false; }
+});
 $('restartMe3').addEventListener('click', async () => {
   const button = $('restartMe3'), label = $('restartStatus');
   button.disabled = true; label.textContent = 'Restarting the Qwen voice loop…';
@@ -672,6 +708,8 @@ $('openMusic').addEventListener('click', () => {
 });
 loadAudioDevices();
 setInterval(loadAudioDevices, 2500);
+loadDuplexMode();
+setInterval(loadDuplexMode, 5000);
 loadDemoLight();
 setInterval(loadDemoLight, 1000);
 
@@ -683,7 +721,7 @@ function poll(){
   dot.classList.toggle('active', online && last && last.loop);
   $('offlineBanner').hidden = online;
   $('orbHint').textContent = (online && last && last.loop)
-    ? 'protected playback - say "stop processing", "skip", or "steer"'
+    ? 'full duplex - speak naturally to interrupt; say "stop processing" for explicit control'
     : (online ? 'web server connected - the Pi voice loop is stopped; check the microphone route' : 'status server offline - check the Pi service or SSH tunnel');
 }
 setInterval(poll, 350);

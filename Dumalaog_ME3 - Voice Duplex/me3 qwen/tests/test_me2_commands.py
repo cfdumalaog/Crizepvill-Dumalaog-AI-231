@@ -91,6 +91,6 @@ def test_alarm_and_reminder_lifecycle():
 def test_named_calls_and_messages_require_protected_contact_mapping(monkeypatch):
     monkeypatch.delenv("ME3_CONTACT_MOM", raising=False)
     monkeypatch.delenv("ME3_TELEGRAM_CHAT_MOM", raising=False)
-    assert me2_commands.call_contact("mom")["error"] == "contact_not_configured"
-    assert me2_commands.send_message("mom", "hello")["error"] == "contact_not_configured"
+    assert me2_commands.call_contact("mom")["error"] == "voice_calls_unsupported_in_telegram_bot_api_mode"
+    assert me2_commands.send_message("mom", "hello")["error"] == "telegram_contact_not_configured"
     assert me2_commands.send_message("mom", "hello", channel="telegram")["error"] == "telegram_contact_not_configured"

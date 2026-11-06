@@ -177,6 +177,36 @@ def test_status_server_can_dispatch_service_restart_callback():
         server.stop()
 
 
+def test_status_server_dispatches_duplex_mode_callbacks():
+    st = LoopStatus()
+    state = {"mode": "automatic"}
+
+    def get_mode():
+        return {"ok": True, **state, "barge_in": state["mode"] == "automatic"}
+
+    def set_mode(payload):
+        state["mode"] = payload["mode"]
+        return get_mode()
+
+    server = StatusServer(
+        st, html_dir=PROJECT / "web", get_state=lambda: "idle",
+        get_stats=lambda: _fake_stats(), port=0,
+        duplex_mode_get=get_mode, duplex_mode_set=set_mode,
+    )
+    assert server.start() is True
+    try:
+        base = f"http://127.0.0.1:{server.port}"
+        with urllib.request.urlopen(base + "/api/duplex-mode", timeout=5) as r:
+            assert json.loads(r.read())["mode"] == "automatic"
+        request = urllib.request.Request(
+            base + "/api/duplex-mode", data=b'{"mode":"keyword_only"}',
+            headers={"Content-Type": "application/json"}, method="POST")
+        with urllib.request.urlopen(request, timeout=5) as r:
+            assert json.loads(r.read())["mode"] == "keyword_only"
+    finally:
+        server.stop()
+
+
 def test_status_server_dispatches_simulated_light_endpoint():
     st = LoopStatus()
     state = {"on": False, "brightness": 100, "color": "warm white"}

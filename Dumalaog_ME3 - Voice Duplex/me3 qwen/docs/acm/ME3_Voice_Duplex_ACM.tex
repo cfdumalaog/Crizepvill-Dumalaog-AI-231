@@ -103,8 +103,9 @@ The contributions of this work are:
 \item a provider-neutral OpenAI-compatible tool loop that can create and verify
 a static web application through voice or text;
 \item one bounded registry shared by direct Qwen calls and MCP wrappers;
-\item confirmation-gated Twilio call/SMS and Resend email adapters with a
-safe provider-response boundary;
+\item a confirmation-gated Telegram Bot API text adapter with a safe
+provider-response boundary, while ordinary phone calls and SMS remain out of
+scope;
 \item background task supervision so builds do not block the microphone;
 \item a reproducible local-dev, package, deploy, and evidence workflow for the
 Raspberry Pi target, including a LAN browser-speaker transport and a vendored
@@ -122,8 +123,8 @@ deployment path are not duplicated across scripts.
 
 The current engineering scope includes interruptible spoken conversation,
 remote Qwen inference, project-local coding tools, public web lookup, timers,
-system information, the existing ME2 bridge, and credential-gated outbound
-call, SMS, and email actions. It does not claim unrestricted
+system information, the existing ME2 bridge, and credential-gated Telegram
+text and optional email actions. It does not claim unrestricted
 Onit equivalence. An always-listening device needs a narrower default action
 surface than an interactive coding IDE. Capabilities that would add external
 side effects, credential use, repository rewrites, or arbitrary shell access
@@ -285,9 +286,9 @@ Tool & Purpose \\
 \texttt{system\_info} & Return non-secret host information. \\
 \texttt{fetch\_url/web\_search} & Read public HTTP(S) resources. \\
 \texttt{git\_status} & Inspect repository status without mutation. \\
-\texttt{channel\_health} & Report safe call, SMS, and email configuration. \\
-\texttt{send\_sms/make\_call/send\_email} & Confirmation-gated external
-communication through Twilio and Resend. \\
+\texttt{channel\_health} & Report safe Telegram and optional email configuration. \\
+\texttt{send\_telegram\_message/send\_email} & Confirmation-gated external
+communication through Telegram Bot API and optional Resend. \\
 \bottomrule
 \end{tabularx}
 \end{table}
@@ -307,14 +308,14 @@ demonstration web app while keeping higher-risk operations explicit.
 
 The external communication tools use the same registry and are stricter than
 the local project tools. \texttt{channel\_health} is network-free. Each
-\texttt{send\_sms}, \texttt{make\_call}, and \texttt{send\_email} request first
+\texttt{send\_telegram\_message} or optional \texttt{send\_email} request first
 validates its target and returns a confirmation-required status unless the
 operator has explicitly confirmed the side effect. The adapters then send one
 bounded REST request and return only a status, channel, and safe provider ID;
-provider response bodies and authorization headers are discarded. Twilio call
-initiation additionally requires a reviewed public HTTPS TwiML URL. A complete
-call-center bridge, inbound webhooks, identity/CRM actions, consent, recording,
-and human transfer remain outside this adapter boundary.
+provider response bodies and authorization headers are discarded. Ordinary
+Telegram voice calls are not available through the Bot API. Inbound webhooks,
+identity/CRM actions, consent, recording, and human transfer remain outside
+this adapter boundary.
 
 \section{Web-App Capability}
 
@@ -379,14 +380,14 @@ python scripts/run_me3_module.py me3.agent --brain remote --text \\
   "Use system_info and summarize the host."
 \end{lstlisting}
 
-The active Qwen test suite passed 79 tests in the current checkout. The
+The active Qwen test suite passed 84 tests in the current checkout. The
 tool-focused tests cover OpenAI-compatible schemas, blocked shell patterns,
 background task completion, and a mocked multi-step Qwen response. The
 ElevenLabs tests additionally cover split-byte PCM reassembly, genuinely odd
 total PCM rejection, timeout retry, and chunked-encoding retry without
-credential disclosure. The channel tests cover confirmation gating, E.164
-validation, Twilio request construction, HTTPS call-webhook enforcement,
-Resend request construction, and safe metadata. Python compilation also passed.
+credential disclosure. The channel tests cover confirmation gating, Telegram
+chat-id validation, Bot API request construction, Resend request construction,
+and safe metadata. Python compilation also passed.
 The Vocalis tests cover state transitions, JSON-RPC harness dispatch,
 barge-in TTS-control ordering, and LocalVoiceLoop tool-progress bridging.
 One current injection-only fixture run also completed with one turn and zero
@@ -429,12 +430,15 @@ shared tool identities. \\
 ElevenLabs renderer & Verified locally: provider-live 16-kHz PCM playback
 through the default speaker; not a native-Filipino voice-quality result. \\
 Qwen endpoint & Authenticated model discovery and a streamed text probe pass
-from the deployed Pi; a clean human spoken turn remains a separate gate. \\
-External channels & Twilio/Resend adapters and fake-request tests pass; no
-live call, SMS, or email side effect has been placed. \\
+from the deployed Pi; the operator has also confirmed a human Pi Fifine turn
+with a browser-speaker reply. Automatic physical-speaker barge-in remains a
+separate gate. \\
+External channels & Telegram/Resend adapters and fake-request tests pass; no
+live Telegram message or email side effect has been placed, and phone calls/SMS
+are out of scope. \\
 Pi hardware & The latest Pi process loaded the Fifine capture path and reported
-a nonzero startup signal; a clean human spoken turn and speaker observation
-remain open. \\
+a nonzero startup signal; the operator-confirmed human spoken turn is complete;
+automatic physical barge-in and echo behavior remain open. \\
 Paper-native FDB v1.5 & Incomplete: no clean 499-utterance overlap artifact
 or paper-grade result is claimed. \\
 \bottomrule
@@ -502,10 +506,10 @@ turn-state transition must preserve the interrupted user's utterance. Echo
 control, microphone placement, and ALSA device selection remain physical Pi
 concerns. A successful Windows loopback does not prove those conditions.
 
-Future work should add a Pi-local live self-test, a reviewed HTTPS
-call/media-stream bridge, inbound webhook signature verification, secure
-credential provisioning and rotation, operator-owned Twilio/Resend tests, a
-reviewed web-app preview server with explicit approval, and the full v1.5
+Future work should add a Pi-local live self-test, Telegram inbound webhook
+signature verification, secure credential provisioning and rotation, an
+operator-owned Telegram/Resend test, a reviewed web-app preview server with
+explicit approval, automatic physical-speaker barge-in/echo evaluation, and the full v1.5
 overlap capture/evaluation. Additional Onit-like capabilities should be
 introduced as typed, auditable functions rather than by removing the voice
 safety boundary.
@@ -521,13 +525,13 @@ local speech services under project ownership, and records the distinction
 between local verification, prepared release, Pi deployment, and benchmark
 evidence. The ElevenLabs adapter was provider-tested locally but is not part of
 the active single-voice runtime. The final Qwen workstation acceptance passes
-79 tests and the injection lane passes one clean fixture run. The Pi
+84 tests and the injection lane passes one clean fixture run. The Pi
 browser-speaker path and vendored benchmark adapter pass local protocol checks,
 including a small simulated 10-trial run. The Qwen Instruct audio profile is
 provider-live over the restored VPN route: its matched run passes both ASR and
 TTS, and the full injected voice/tool turn passes with zero errors. The next
-decisive checks are a clean physical Pi microphone/speaker turn,
-operator-owned live channel tests, and a clean captured v1.5 overlap
+decisive checks are automatic physical Pi speaker barge-in, operator-owned
+live channel tests, and a clean captured v1.5 overlap
 evaluation.
 
 \begin{thebibliography}{9}
@@ -569,11 +573,6 @@ Qwen Team. ``Qwen2-Audio-7B-Instruct.'' Official model card, 2024.
 \bibitem{vllmtts}
 vLLM Project. ``Qwen3-TTS online serving.'' Official vLLM-Omni recipe, 2026.
 \href{https://github.com/vllm/vllm-omni/blob/main/recipes/Qwen/Qwen3-TTS.md}{vLLM-Omni recipe}.
-
-\bibitem{twilio}
-Twilio. ``Call resource'' and ``Message resource.'' Official Voice and
-Messaging API documentation, 2026.
-\href{https://www.twilio.com/docs/voice/api/call-resource}{Twilio Voice API}.
 
 \bibitem{resend}
 Resend. ``Send Email.'' Official API reference, 2026.

@@ -335,7 +335,7 @@ def build() -> Path:
     panel(c, 630, 37, 282, 96, "CHALLENGES & REFERENCES", [
         "Pi audio: restore Fifine ALSA capture; run a human overlap/echo check.",
         "Benchmark: run commit 57eaddb; attach stage marks and latency chart.",
-        "Telegram text is implemented; voice calls need Twilio or reviewed MTProto/TDLib.",
+        "Telegram text is implemented; ordinary voice calls need a separately reviewed MTProto/TDLib bridge.",
         "Refs: MCP, Pipecat, Qwen vLLM, upstream fd-benchmark, ME3 repo/logs.",
     ])
     footer(c, 2)

@@ -377,6 +377,26 @@ class FullDuplexAudio:
             self._echo_release_until = time.perf_counter() + \
                 self.echo_tail_ms / 1000.0
 
+    def mark_external_playback_started(self, started_at: float | None = None) -> None:
+        """Retimestamp an externally rendered playback reference.
+
+        For a Pi microphone and a laptop/browser speaker, the reference is
+        created before the PCM crosses the network. The browser sends a render
+        acknowledgement after scheduling its first buffer; aligning the
+        reference to that event prevents the echo search from comparing the
+        microphone frame with the wrong part of the TTS waveform.
+        """
+        with self._play_lock:
+            if self._play_ref is None:
+                return
+            started = float(started_at if started_at is not None
+                            else time.perf_counter())
+            self._play_started_at = started
+            self._playing = True
+            self._echo_release_until = started + (
+                len(self._play_ref) / max(1, self.sr)) + \
+                self.echo_tail_ms / 1000.0
+
     def _adaptive_echo_cancel(self, pcm: np.ndarray,
                               reference_start: int) -> np.ndarray | None:
         """Fit a short room/speaker impulse response and remove it.

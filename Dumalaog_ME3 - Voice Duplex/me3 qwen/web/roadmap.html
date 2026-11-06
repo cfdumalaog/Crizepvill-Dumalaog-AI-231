@@ -101,7 +101,7 @@ footer code{font-family:"JetBrains Mono",monospace; font-size:.74rem; color:var(
 
   <div class="section-title">Done &amp; verified (evidence-backed)</div>
   <ul class="checks">
-    <li><span class="mark">&#10003;</span><div>Current Qwen workstation acceptance passed 10/10 with <b>86/86 pytest</b> - release <b>me3-20261106-215542-4f74be89</b> (ZIP SHA recorded).<span class="when">2026-11-06 - deployment/workstation_acceptance.json</span></div></li>
+    <li><span class="mark">&#10003;</span><div>Current Qwen workstation acceptance passed 10/10 with <b>84/84 pytest</b>. The authoritative release identifier and Pi promotion state are shown in the live strip above.<span class="when">2026-11-07 - deployment/workstation_acceptance.json</span></div></li>
     <li><span class="mark">&#10003;</span><div>Live thinking / task-progress panel added to the local console (<code>web/ui.html</code>), safe task summary only.<span class="when">2026-11-04 - web/ui.html</span></div></li>
     <li><span class="mark">&#10003;</span><div>Version hygiene: 46 historical release pairs + old presentation/build outputs archived; single canonical release in <code>dist/</code>.<span class="when">2026-11-04 - archive/README.md</span></div></li>
     <li><span class="mark">&#10003;</span><div>Bounded-retry fix in <code>ToolBrain._request()</code> (one retry on ReadTimeout/ConnectionError only) - recovered the 180 s VPN stall in a 487.5 s passing injection eval.<span class="when">2026-10-31 - me3/brain.py</span></div></li>
@@ -115,20 +115,15 @@ footer code{font-family:"JetBrains Mono",monospace; font-size:.74rem; color:var(
     <li><span class="mark">&#10003;</span><div>Qwen Pi promotion and direct audio-provider recovery: the accepted release is installed at <code>/home/dalmacio/Desktop/dandan-qwen</code>; <code>me3-agent.service</code> is active; SHARC OpenVPN restores <code>tun0</code> and the DGX route after restart; authenticated Qwen ASR/TTS probes return HTTP 200; direct Qwen ASR returns a non-empty transcript; the injection harness passes with zero errors; UI/audio ports 8126/8127 are healthy.<span class="when">2026-11-07 - direct SSH, VPN restart, model probes, and Pi injection evaluation</span></div></li>
     <li><span class="mark">&#10003;</span><div>SHARC VPN is secured for the Pi: the profile directory is root-only, profile/auth files are root-owned mode 600, credentials are not cached, and <code>openvpn-client@sharchpc.service</code> is enabled for boot. A client restart restored the route, both Qwen probes, and ME3 health.<span class="when">2026-11-07 - docs/SHARC_VPN_PI_SETUP.md</span></div></li>
     <li><span class="mark">&#10003;</span><div>Multi-turn voice continuity guard added: a rolling 16-message context is retained, and a short answer to an action-specific clarification is explicitly bound to the pending action instead of being treated as a new greeting. The UI reports conversation turns and pending follow-up state.<span class="when">2026-11-07 - me3/agent.py, me3/brain.py, web/assistant.html, tests</span></div></li>
+    <li><span class="mark">&#10003;</span><div>Operator-confirmed human spoken turn: Pi Fifine speech reaches Qwen ASR, the Qwen tool brain replies, and Qwen3-TTS plays through the connected browser speaker without an ASR error. This is separate from the physical-speaker automatic barge-in gate.<span class="when">2026-11-07 - operator confirmation; live Pi state reports completed turns and no ASR error</span></div></li>
     <li><span class="mark">&#10003;</span><div>Docs set: ELI5/deep manual, channel API requirements, six-page two-column ACM PDF, system-flow infographic, and presentation deck.<span class="when">docs/</span></div></li>
   </ul>  <div class="section-title">What is left to do</div>
   <div class="todos">
     <div class="todo">
       <span class="owner you">You</span>
-      <h3>Human spoken turn on the local mic</h3>
-      <p>Direct Qwen ASR and the injected Qwen Instruct turn pass are verified. The remaining evidence gap is one clean human sentence through the Pi Fifine, with the browser speaker connected on this PC.</p>
-      <div class="next"><b>Next action</b>Open the tunneled Pi Assistant, connect the browser speaker, say one Filipino or Taglish sentence, and confirm the transcript and reply appear without an ASR error.</div>
-    </div>
-    <div class="todo">
-      <span class="owner you">You</span>
-      <h3>Physical-speaker barge-in</h3>
-      <p>Injected barge-in passed; a real speaker + real microphone barge-in (echo guard under live conditions) has not been observed.</p>
-      <div class="next"><b>Next action</b>Ask a long question, let ME3 start speaking, interrupt mid-sentence out loud; confirm playback stops and a fresh turn starts. Headphones are the cleanest fallback.</div>
+      <h3>Physical-speaker automatic barge-in</h3>
+      <p>The operator-confirmed human spoken turn is complete. What remains is the stronger natural-interruption test: speaking over Pi/browser playback should stop or fade the current response without requiring a control phrase, while the echo guard rejects the agent's own voice.</p>
+      <div class="next"><b>Next action</b>Ask a long question, let ME3 start speaking, interrupt mid-sentence out loud without saying a control phrase; confirm playback stops, the new transcript is accepted, and the latest turn starts. Keep <code>stop processing</code>, <code>skip</code>, and <code>steer</code> as guaranteed controls.</div>
     </div>
     <div class="todo">
       <span class="owner operator">Operator</span>
@@ -137,22 +132,10 @@ footer code{font-family:"JetBrains Mono",monospace; font-size:.74rem; color:var(
       <div class="next"><b>Next action</b>No action for the Qwen demo. If comparison is requested later, provision an OpenAI key through a protected runtime flow and run a separate acceptance check; never paste it into the repo or chat.</div>
     </div>
     <div class="todo">
-      <span class="owner system">System / Operator</span>
-      <h3>Human spoken transcript from the Pi Fifine</h3>
-      <p>The Pi service, direct Qwen ASR/TTS authentication, and the Fifine capture device are healthy. One clean operator sentence still needs to be observed in the Assistant UI; the earlier empty transcript was a deployment/provider-path failure and has been repaired.</p>
-      <div class="next"><b>Next action</b>Run the saved Pi tunnel, open <code>http://127.0.0.1:8100/</code>, connect the browser speaker, then say one Filipino or Taglish sentence and confirm the transcript appears.</div>
-    </div>
-    <div class="todo">
       <span class="owner operator">Operator</span>
       <h3>Optional Filipino voice experiment</h3>
       <p>The presentable Qwen demo is standardized on Qwen3-TTS CustomVoice <code>aiden</code> for replies, backchannels, and announcements. ElevenLabs remains an optional adapter; its credential is not stored in the project and no provider switch has been made.</p>
       <div class="next"><b>Next action</b>If a Filipino-market ElevenLabs comparison is required, provision the key through the protected Pi environment, select one approved voice, and run a separate voice-consistency check. Keep Qwen <code>aiden</code> as the current demo default until that check passes.</div>
-    </div>
-    <div class="todo">
-      <span class="owner operator">Operator</span>
-      <h3>Live Twilio / Resend channel tests</h3>
-      <p>Adapters and fake-request tests pass; credentials are unconfigured everywhere and the local UI hard-disables outbound channels, so no provider side effect is possible yet.</p>
-      <div class="next"><b>Next action</b>Configure credentials on the Pi, satisfy the consent/webhook gates, then run one bounded live call/SMS/email test.</div>
     </div>
     <div class="todo">
       <span class="owner operator">Operator</span>

@@ -357,6 +357,22 @@ class _StatusHandler(BaseHTTPRequestHandler):
             self._send(200, json.dumps(payload).encode("utf-8"),
                        "application/json; charset=utf-8")
             return
+        if path == "/api/duplex-mode":
+            callback = getattr(self.server, "duplex_mode_get", None)
+            if callback is None:
+                self._send(404, b"duplex mode is not enabled",
+                           "text/plain; charset=utf-8")
+                return
+            try:
+                payload = callback()
+                self._send(200, json.dumps(payload).encode("utf-8"),
+                           "application/json; charset=utf-8")
+            except Exception as exc:  # noqa: BLE001 - keep status UI reachable
+                self._send(500, json.dumps({
+                    "ok": False, "error": type(exc).__name__,
+                    "message": str(exc)[:300],
+                }).encode("utf-8"), "application/json; charset=utf-8")
+            return
         if path == "/api/state":
             refresher = getattr(self.server, "release_refresher", None)
             if refresher is not None:
@@ -440,6 +456,29 @@ class _StatusHandler(BaseHTTPRequestHandler):
                     "message": str(exc)[:300],
                 }).encode("utf-8"), "application/json; charset=utf-8")
             return
+        if path == "/api/duplex-mode":
+            callback = getattr(self.server, "duplex_mode_set", None)
+            if callback is None:
+                self._send(403, b"duplex mode is not enabled",
+                           "text/plain; charset=utf-8")
+                return
+            try:
+                length = int(self.headers.get("Content-Length", "0"))
+                if length <= 0 or length > 10000:
+                    raise ValueError("invalid JSON body")
+                payload = json.loads(self.rfile.read(length).decode("utf-8"))
+                if not isinstance(payload, dict):
+                    raise ValueError("mode must be a JSON object")
+                result = callback(payload)
+                code = 200 if result.get("ok", True) else 400
+                self._send(code, json.dumps(result).encode("utf-8"),
+                           "application/json; charset=utf-8")
+            except Exception as exc:  # noqa: BLE001 - bounded UI error
+                self._send(400, json.dumps({
+                    "ok": False, "error": type(exc).__name__,
+                    "message": str(exc)[:300],
+                }).encode("utf-8"), "application/json; charset=utf-8")
+            return
         if path != "/api/audio/select":
             self._send(404, b"not found", "text/plain; charset=utf-8")
             return
@@ -470,7 +509,8 @@ class StatusServer:
                  project: Path | None = None, host: str = "127.0.0.1",
                  audio_info=None, audio_select=None, restart_agent=None,
                  restart_service=None, demo_light_get=None,
-                 demo_light_control=None):
+                 demo_light_control=None, duplex_mode_get=None,
+                 duplex_mode_set=None):
         self.status = status
         self.html_dir = Path(html_dir)
         self.get_state = get_state
@@ -484,6 +524,8 @@ class StatusServer:
         self.restart_service = restart_service
         self.demo_light_get = demo_light_get
         self.demo_light_control = demo_light_control
+        self.duplex_mode_get = duplex_mode_get
+        self.duplex_mode_set = duplex_mode_set
         self._httpd: ThreadingHTTPServer | None = None
         self._thread: threading.Thread | None = None
 
@@ -507,6 +549,8 @@ class StatusServer:
         self._httpd.restart_service = self.restart_service
         self._httpd.demo_light_get = self.demo_light_get
         self._httpd.demo_light_control = self.demo_light_control
+        self._httpd.duplex_mode_get = self.duplex_mode_get
+        self._httpd.duplex_mode_set = self.duplex_mode_set
         self._httpd.release_refresher = (
             ReleaseInfoRefresher(self.project) if self.project is not None
             else None)

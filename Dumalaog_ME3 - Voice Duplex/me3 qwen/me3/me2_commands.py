@@ -357,37 +357,29 @@ def complete_reminder(reminder_id: str) -> dict:
 
 
 def call_contact(contact: str, confirm: bool = False) -> dict:
-    """Resolve a contact from a number or ME3_CONTACT_<NAME> and call via Twilio."""
+    """Report that ordinary voice calls are not available in Telegram-only mode."""
     raw = str(contact or "").strip()
     if not raw:
         return {"ok": False, "error": "contact is required"}
-    if re.fullmatch(r"\+?[0-9][0-9 .()-]{6,}", raw):
-        number = raw
-    else:
-        key = "ME3_CONTACT_" + re.sub(r"[^A-Za-z0-9]+", "_", raw).strip("_").upper()
-        number = os.getenv(key, "")
-    if not number:
-        return {"ok": False, "error": "contact_not_configured", "contact": raw,
-                "note": "Set a protected ME3_CONTACT_<NAME> E.164 mapping."}
-    return channels.make_call(number, confirm=confirm)
+    return {"ok": False, "error": "voice_calls_unsupported_in_telegram_bot_api_mode",
+            "contact": raw, "network_called": False,
+            "note": "Telegram Bot API text is supported; ordinary voice calls require a separately reviewed MTProto/TDLib bridge."}
 
 
-def send_message(contact: str, body: str, channel: str = "sms",
+def send_message(contact: str, body: str, channel: str = "telegram",
                  confirm: bool = False) -> dict:
-    """Send SMS or Telegram text using a protected contact mapping."""
-    channel = str(channel or "sms").strip().lower()
+    """Send Telegram text using a protected contact mapping."""
+    channel = str(channel or "telegram").strip().lower()
     raw = str(contact or "").strip()
     body = str(body or "").strip()
     if not raw or not body:
         return {"ok": False, "error": "contact and body are required"}
     slug = re.sub(r"[^A-Za-z0-9]+", "_", raw).strip("_").upper()
-    if channel == "telegram":
-        chat_id = raw if re.fullmatch(r"-?\d+", raw) else os.getenv("ME3_TELEGRAM_CHAT_" + slug, "")
-        if not chat_id:
-            return {"ok": False, "error": "telegram_contact_not_configured", "contact": raw}
-        return channels.send_telegram_message(chat_id, body, confirm=confirm)
-    number = raw if re.fullmatch(r"\+?[0-9][0-9 .()-]{6,}", raw) else os.getenv("ME3_CONTACT_" + slug, "")
-    if not number:
-        return {"ok": False, "error": "contact_not_configured", "contact": raw}
-    return channels.send_sms(number, body, confirm=confirm)
+    if channel != "telegram":
+        return {"ok": False, "error": "telegram_only_channel", "channel": channel,
+                "network_called": False}
+    chat_id = raw if re.fullmatch(r"-?\d+", raw) else os.getenv("ME3_TELEGRAM_CHAT_" + slug, "")
+    if not chat_id:
+        return {"ok": False, "error": "telegram_contact_not_configured", "contact": raw}
+    return channels.send_telegram_message(chat_id, body, confirm=confirm)
 

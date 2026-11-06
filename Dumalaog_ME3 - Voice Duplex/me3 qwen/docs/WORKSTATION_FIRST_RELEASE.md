@@ -81,7 +81,7 @@ bundle:
 ```
 
 The transfer installs the exact hashed archive. It does not copy the Windows
-`.env`, Qwen credentials, ElevenLabs credentials, Twilio credentials, Resend
+`.env`, Qwen credentials, ElevenLabs credentials, Telegram credentials, Resend
 credentials, local run logs, model caches, or unrelated course files.
 
 ## Pi acceptance after promotion
@@ -112,8 +112,8 @@ apps, and fake-request channel tests.
 
 It does not by itself prove:
 
-- a live Twilio call, SMS, or Resend email;
-- a production HTTPS Twilio media-stream bridge;
+- a live Telegram message or Resend email;
+- a production Telegram webhook/MTProto voice bridge;
 - a Filipino ElevenLabs voice until the approved voice ID is tested;
 - Raspberry Pi microphone or speaker operation;
 - a paper-native 499-trial overlap result.

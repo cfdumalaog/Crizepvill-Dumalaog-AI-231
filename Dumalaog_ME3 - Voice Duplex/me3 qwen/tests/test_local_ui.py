@@ -4,15 +4,15 @@ from scripts.local_ui_server import _safe_history, local_dispatch
 
 
 def test_local_ui_blocks_external_channel_side_effects():
-    result = local_dispatch("send_sms", {
-        "to": "+639171234567",
-        "body": "local test",
+    result = local_dispatch("send_telegram_message", {
+        "chat_id": "12345",
+        "text": "local test",
         "confirm": True,
     })
     assert result == {
         "ok": False,
         "error": "external_channels_disabled_in_local_ui",
-        "provider": "twilio",
+        "provider": "telegram",
         "network_called": False,
     }
 

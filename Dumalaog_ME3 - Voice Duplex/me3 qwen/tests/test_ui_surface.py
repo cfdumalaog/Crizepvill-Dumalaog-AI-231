@@ -22,3 +22,11 @@ def test_browser_surface_has_toggleable_live_thinking_task_panel():
     assert "/api/chat/start" in html
     assert "/api/chat/status?job_id=" in html
     assert "private chain-of-thought" in html
+
+
+def test_browser_surface_exposes_duplex_mode_toggle():
+    html = (PROJECT / "web" / "assistant.html").read_text(encoding="utf-8")
+    assert 'id="duplexMode"' in html
+    assert 'value="automatic"' in html
+    assert 'value="keyword_only"' in html
+    assert "/api/duplex-mode" in html

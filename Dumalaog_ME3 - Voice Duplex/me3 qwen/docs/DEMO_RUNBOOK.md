@@ -128,7 +128,7 @@ the SSH connection. Press `Ctrl+C` to close the tunnel. Neither launcher
 publishes ME3 to the public Internet.
 
 For the interactive workstation UI, which exercises the same ToolBrain without
-opening physical audio or contacting Twilio/Resend, run:
+opening physical audio or contacting Telegram/Resend, run:
 
 ```powershell
 # localhost-only UI; choose Qwen + tools, GPT-5.6 Luna + tools, Auto, or Offline stub in the page
@@ -203,7 +203,7 @@ It captures from the Pi and plays TTS through the Windows workstation speakers.
 - ElevenLabs Filipino voice: the adapter is not active in the demo profile;
   use the fixed Piper or Qwen3-TTS profile voice shown in the UI.
 - Call/SMS/email tools: run `channel_health` for a network-free configuration
-  check. Do not set `confirm=true` in a classroom demo; live Twilio/Resend
+  check. Do not set `confirm=true` in a classroom demo; live Telegram/Resend
   tests require an operator-owned destination and an explicit out-of-band
   approval. See `docs/CHANNEL_INTEGRATIONS.md` for the required APIs and the
   remaining TwiML/media-stream, consent, and human-handoff gates.

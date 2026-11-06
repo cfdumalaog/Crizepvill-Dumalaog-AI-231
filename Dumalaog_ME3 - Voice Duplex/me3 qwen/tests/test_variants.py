@@ -49,8 +49,10 @@ def test_spoken_tone_is_formal_and_professional(monkeypatch):
     monkeypatch.delenv("ME3_VARIANT", raising=False)
     load_config.cache_clear()
     cfg = load_config()
+    assert cfg["market"]["default_language"] == "en"
     assert cfg["agent"]["backchannel"] == "I am processing your request now."
     prompt = cfg["agent"]["system_prompt"].lower()
+    assert "reply in english by default" in prompt
     assert "formal, professional customer-service tone" in prompt
     assert "do not flirt" in prompt
     assert "pet names" in prompt

@@ -283,29 +283,8 @@ def project_git_status() -> dict:
 
 @mcp.tool()
 def channel_health() -> dict:
-    """Report safe call, SMS, and email configuration without network calls."""
+    """Report safe Telegram and optional email configuration without network calls."""
     return project_tools.channels.channel_health()
-
-
-@mcp.tool()
-def send_sms(to: str, body: str, confirm: bool = False,
-             from_number: str = "", messaging_service_sid: str = "") -> dict:
-    """Send one Twilio SMS only after explicit confirmation."""
-    return project_tools.channels.send_sms(
-        to, body, confirm=confirm,
-        from_number=from_number or None,
-        messaging_service_sid=messaging_service_sid or None,
-    )
-
-
-@mcp.tool()
-def make_call(to: str, confirm: bool = False, twiml_url: str = "",
-              from_number: str = "") -> dict:
-    """Start one Twilio call through a reviewed HTTPS call-flow webhook."""
-    return project_tools.channels.make_call(
-        to, confirm=confirm, twiml_url=twiml_url or None,
-        from_number=from_number or None,
-    )
 
 
 @mcp.tool()
@@ -402,14 +381,14 @@ def complete_reminder(reminder_id: str) -> dict:
 
 @mcp.tool()
 def call_contact(contact: str, confirm: bool = False) -> dict:
-    """Call a named or E.164 contact through the reviewed Twilio flow."""
+    """Report that ordinary voice calls are unavailable in Telegram-only mode."""
     return project_tools.me2_commands.call_contact(contact, confirm)
 
 
 @mcp.tool()
-def send_message(contact: str, body: str, channel: str = "sms",
+def send_message(contact: str, body: str, channel: str = "telegram",
                  confirm: bool = False) -> dict:
-    """Send SMS or Telegram text using a protected contact mapping."""
+    """Send Telegram text using a protected contact mapping."""
     return project_tools.me2_commands.send_message(contact, body, channel, confirm)
 
 
@@ -423,7 +402,7 @@ def health() -> dict:
                       "search_project_text", "run_project_command", "start_project_task",
                       "project_task_status", "project_task_output", "cancel_project_task",
                       "fetch_public_url", "search_public_web", "project_git_status",
-                      "channel_health", "send_sms", "make_call", "send_email",
+                      "channel_health", "send_email",
                       "send_telegram_message", "play_music", "media_control", "music_state",
                       "get_weather", "control_lights", "set_thermostat", "set_alarm",
                       "list_alarms", "cancel_alarm", "create_reminder", "list_reminders",

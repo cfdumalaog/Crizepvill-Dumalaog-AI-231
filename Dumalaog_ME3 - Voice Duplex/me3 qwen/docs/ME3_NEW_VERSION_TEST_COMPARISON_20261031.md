@@ -39,7 +39,7 @@ fix from Section 6), `me3/config.py`, `me3/mcp_asr.py`
 (multilingual Whisper), `me3/mcp_tts.py`, `me3/bench_driver.py`,
 `scripts/injection_eval.py`, `scripts/workstation_acceptance.py`,
 `config/config.yaml` (new `variants.qwen_instruct` block), `install.sh`
-(preserves protected Qwen/Twilio/Resend env vars across upgrades),
+(preserves protected Qwen/Telegram/Resend env vars across upgrades),
 `web/index.html`, `README.md`, and seven docs updates.
 
 **Identical (30):** benchmark/scoring modules, channels, tools, dataset docs,

@@ -5,7 +5,7 @@ from collections import deque
 
 import numpy as np
 
-from me3.agent import LocalVoiceLoop
+from me3.agent import LocalVoiceLoop, TurnStats
 from me3.audio_io import InjectedDuplexAudio
 from me3.config import load_config
 from me3.vocalis import EventChannel, TTSAction, TurnState, VocalisOrchestrator
@@ -142,11 +142,37 @@ def test_followup_input_is_explicitly_bound_to_pending_action():
     assert loop._pending_followup is None
 
 
-def test_default_profile_uses_protected_playback_and_command_control():
+def test_default_profile_uses_full_duplex_barge_in_and_command_control():
     cfg = load_config()
-    assert cfg["agent"]["barge_in"] is False
+    assert cfg["audio"]["full_duplex"] is True
+    assert cfg["agent"]["barge_in"] is True
     assert cfg["agent"]["command_control"] is True
     assert cfg["agent"]["protected_playback_ignore_noncontrol"] is True
+
+
+def test_automatic_barge_in_stops_tts_and_starts_new_turn():
+    loop = LocalVoiceLoop.__new__(LocalVoiceLoop)
+    events = []
+    loop.state = "speaking"
+    loop.vad_thr = 0.5
+    loop.barge_in = True
+    loop.command_control = True
+    loop._control_uttr = []
+    loop.stats = TurnStats()
+    loop.status = None
+    loop.orchestrator = type("Orchestrator", (), {
+        "on_user_vad": lambda _self, speech, **_kwargs: events.append(speech),
+    })()
+    loop.audio = type("Audio", (), {
+        "stop_playback": lambda _self: events.append("stop"),
+    })()
+    loop._preserve_pending = lambda: events.append("preserve")
+    loop._start_turn = lambda _t: events.append("start")
+
+    loop._on_vad_frame(0.9, np.zeros(480, dtype=np.int16))
+
+    assert loop.stats.n_barge_in == 1
+    assert events == [True, "stop", "preserve", "start"]
 
 
 def test_recent_me3_output_is_recognized_as_echo():

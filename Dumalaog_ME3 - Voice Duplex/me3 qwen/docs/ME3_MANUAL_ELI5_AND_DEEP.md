@@ -49,11 +49,11 @@ That is why a web-app request can produce a real directory and real files.
 In a half-duplex assistant, the speaker may be disabled while the assistant is
 talking. In ME3, the microphone remains open during playback. Ordinary speech
 that overlaps a response is compared with the speaker reference: residual
-output is rejected, while a genuine user utterance is buffered and processed
-after the current answer. A short control path recognizes `stop processing`,
-`skip`, and `steer`; those commands can stop the current audio without a
-browser button. This is protected full-duplex playback rather than automatic
-barge-in.
+output is rejected, while a genuine user utterance triggers automatic barge-in,
+stops the current answer, and starts the new turn. A short control path also
+recognizes `stop processing`, `skip`, and `steer`; those commands can stop or
+redirect the current audio without a browser button. This is full-duplex
+turn-taking with an echo guard, not half-duplex request/response operation.
 
 The live browser UI includes a Runtime terminal. It is an operator-facing
 window into safe processing events: state changes, ASR/TTS lifecycle, tool
@@ -232,13 +232,11 @@ The direct Qwen registry contains these project-local capabilities:
 | `set_thermostat` | Sets a validated Celsius target | “Set the temperature to 24 degrees.” |
 | `set_alarm` | Creates a next-occurrence alarm | “Set an alarm for 7 AM.” |
 | `create_reminder` | Creates a delayed or timed reminder | “Remind me in ten minutes.” |
-| `call_contact` | Resolves a protected contact and requests a call | “Call mom.” |
-| `send_message` | Sends confirmed SMS or Telegram text | “Message mom on Telegram.” |
+| `call_contact` | Reports that ordinary voice calls are unsupported in Telegram Bot API mode | “Call mom.” |
+| `send_message` | Sends confirmed Telegram text | “Message mom on Telegram.” |
 
-| `channel_health` | Reports safe call/SMS/email configuration status | "Are the communication channels configured?" |
-| `send_sms` | Sends one confirmed Twilio SMS | "Text the customer this update." |
-| `make_call` | Starts one confirmed outbound Twilio call | "Call the customer and use the support flow." |
-| `send_email` | Sends one confirmed Resend email | "Email the customer the appointment details." |
+| `channel_health` | Reports safe Telegram and optional email configuration status | "Are the communication channels configured?" |
+| `send_email` | Sends one confirmed optional Resend email | "Email the customer the appointment details." |
 
 The same registry is exposed through the owned tasks MCP server with explicit
 MCP names such as `write_project_file`, `run_project_command`,
@@ -266,18 +264,19 @@ microphone placeholder, status area, and tool-activity log.
 
 ### ELI5: calls, texts, and emails
 
-ME3 now has three communication helpers, but they behave like a locked
-outbox. `channel_health` checks whether the operator configured a provider; it
-does not send anything. For a text, call, or email, ME3 must say who will
-receive it and what it will contain, then wait for the user's clear yes. Only
-then can Qwen call the matching tool with `confirm=true`.
+ME3 now has Telegram text and optional email communication helpers, but they
+behave like a locked outbox. `channel_health` checks whether the operator
+configured a provider; it does not send anything. For a Telegram text or email,
+ME3 must say who will receive it and what it will contain, then wait for the
+user's clear yes. Only then can Qwen call the matching tool with `confirm=true`.
 
-Twilio handles the phone call and SMS. Resend handles transactional email. A
-call starts through a reviewed HTTPS TwiML URL. That URL is the call-flow
-instruction that Twilio fetches; a real call-center conversation additionally
-needs an approved media-stream bridge, customer consent, AI disclosure,
+Telegram handles the active text message through its Bot API. Resend handles
+transactional email only if separately enabled. Ordinary voice calls and SMS
+are not active project capabilities. The Telegram Bot API cannot initiate an
+ordinary voice call; a future call-center voice feature would require a
+separately reviewed MTProto/TDLib bridge, customer consent, AI disclosure,
 recording policy, human transfer, and CRM/identity integrations. The full
-provider checklist and required environment names are in
+Telegram checklist and required environment names are in
 `docs/CHANNEL_INTEGRATIONS.md`.
 
 ## How to run it on Windows
@@ -435,11 +434,13 @@ digital loopback devices because those devices contain system output rather
 than independent user speech. The engineering benchmark disables the guard in
 its private configuration so its raw stimulus measurements remain valid.
 
-For the Pi-to-laptop-speaker path, the guard additionally fits a bounded
-multi-tap room response around the best reference match. It gates a frame only
-when the cleaned residual falls below a configured fraction of the input, so
-speaker delay, reflections, and USB-clock drift are handled without deleting
-unmatched user speech. `/api/audio/devices` exposes only safe enabled/active,
+For the Pi-to-laptop-speaker path, the browser sends a render-start
+acknowledgement after it schedules the first Web Audio buffer. The Pi retimes
+the PCM reference to that render schedule, then fits a bounded multi-tap room
+response around the best reference match. It gates a frame only when the
+cleaned residual falls below a configured fraction of the input, so speaker
+delay, reflections, and USB-clock drift are handled without deleting unmatched
+user speech. `/api/audio/devices` exposes only safe enabled/active,
 cancelled-frame, and correlation counters. A real-room human acceptance test
 is still a separate evidence gate.
 
@@ -476,8 +477,10 @@ minimum speech and silence durations.
 Before a frame reaches VAD, the audio transport checks whether ME3 is
 speaking. For a physical microphone it searches a delay window against the
 playback reference, estimates the correlated speaker component, and removes
-it. A highly correlated frame is hard-gated; a lower-correlation frame keeps
-the residual so a user can barge in. For `Stereo Mix` or another recognized
+it. In the browser-speaker route, the reference origin is corrected by the
+browser render acknowledgement before this search. A highly correlated frame
+is hard-gated; a lower-correlation frame keeps the residual so a user can
+barge in. For `Stereo Mix` or another recognized
 digital loopback device, ME3 hard-mutes frames during playback because the
 device is a copy of the system output. This prevents the agent's own response
 from being transcribed as a new turn while preserving the live microphone
@@ -599,7 +602,7 @@ side-effect boundary is stricter:
 
 1. `channel_health` returns only configured/not-configured state and required
    environment names; it performs no network request.
-2. `send_sms`, `make_call`, and `send_email` validate the target locally.
+2. `send_telegram_message` and `send_email` validate the target locally.
 3. Without `confirm=true`, each returns `confirmation_required` and
    `network_called=false`.
 4. With confirmation, the adapter sends one bounded REST request and returns
@@ -607,9 +610,9 @@ side-effect boundary is stricter:
 5. Provider response bodies and headers are discarded, because they can
    contain account details or customer data.
 
-Phone targets must be E.164. Calls require a reviewed HTTPS webhook; email is
-plain-text and bounded to ten recipients in the first implementation. The
-adapters are shared by direct Qwen calls and the `me3-tasks` MCP wrappers, so
+Telegram chat IDs are numeric or approved channel usernames; email is plain-
+text and bounded to ten recipients in the first implementation. The adapters
+are shared by direct Qwen calls and the `me3-tasks` MCP wrappers, so
 adding a second harness does not create a second permission policy.
 
 ### 4. File and command safety
@@ -646,12 +649,14 @@ and answer a later “is it finished?” request from the stored status.
 
 ### 6. TTS and barge-in
 
-After Qwen returns final text, the selected Piper or ElevenLabs backend
-produces PCM audio. ME3 resamples that audio to the configured device rate and
-starts non-blocking playback. VAD
-continues to run. Speech detected during `speaking` stops playback and starts a
-new turn. This is the practical duplex behavior; a future Pi deployment still
-needs a physical audio check and echo-control tuning.
+After Qwen returns final text, the selected Qwen3-TTS backend produces PCM
+audio. ME3 resamples that audio to the configured device rate and starts
+non-blocking playback. VAD continues during playback. In automatic mode, the
+echo guard rejects the agent's own output and genuine unmatched user speech
+triggers barge-in: playback stops, the queue is flushed, and the captured
+utterance becomes the next turn. In keyword-only mode, only `stop processing`,
+`skip`, and `steer` interrupt; ordinary speech is retained for the next safe
+boundary. The UI toggle selects the mode at runtime.
 
 ## MCP servers and ownership
 
@@ -703,10 +708,11 @@ engineering five-scenario latency driver remain separate.
    study.
 5. A complete 499-trial v1.5 overlap run, judge transcripts, and before/after
    prosodic analysis remain future benchmark work.
-6. Inbound call/SMS/email webhooks, provider signature verification,
+6. Inbound Telegram webhook handling, provider signature verification,
    idempotency, queueing, CRM/identity actions, and human transfer remain
    production integration work. The outbound adapters are ready for
-   operator-owned tests, not an unsupervised customer rollout.
+   operator-owned tests, not an unsupervised customer rollout. Ordinary
+   Telegram voice calls and SMS are outside the active project scope.
 
 ## Quick troubleshooting
 

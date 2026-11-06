@@ -78,3 +78,27 @@ def test_browser_output_registers_speaker_reference_for_echo_guard():
     audio.stop_playback(silent=True)
     assert audio.capture._playing is False
     audio.close()
+
+
+def test_browser_render_ack_retimes_external_echo_reference():
+    cfg = {
+        "audio": {
+            "sample_rate": 16000,
+            "frame_ms": 30,
+            "echo_guard": {"enabled": True, "tail_ms": 250},
+        },
+    }
+    hub = _ConnectedHub()
+    audio = BrowserOutputAudio(cfg, hub)
+    speaker = np.ones(16000, dtype=np.int16) * 1200
+    audio.play(speaker)
+    before = time.perf_counter()
+    audio._on_browser_render_started({
+        "playback_id": audio._playback_id,
+        "delay_ms": 90,
+    })
+    after = time.perf_counter()
+    assert audio._browser_render_syncs == 1
+    assert audio._last_browser_render_delay_ms == 90.0
+    assert before + 0.07 <= audio.capture._play_started_at <= after + 0.11
+    audio.close()

@@ -6,7 +6,7 @@ Double-click these Windows launchers from File Explorer:
 |---|---|---|
 | `Start-ME3.bat` | **Primary full-duplex voice agent** | No Send button: the mic stays live, VAD endpoints turns, Qwen or GPT-5.6 Luna tools execute automatically, TTS speaks, and new speech barges in. `Ctrl+C` stops it. |
 | `Start-ME3-Qwen-Instruct.bat` | Qwen Instruct audio variant | Selects Qwen2-Audio ASR and Qwen3-TTS while keeping the same text ToolBrain, tools, and barge-in path. Reads the protected handoff in memory. |
-| `Start-ME3-UI.bat` | Interactive local agent console | Opens `http://127.0.0.1:8124/`; Qwen + tools, GPT-5.6 Luna + tools, or offline stub, tool events, and hard-disabled Twilio/Resend side effects. |
+| `Start-ME3-UI.bat` | Interactive local agent console | Opens `http://127.0.0.1:8124/`; Qwen + tools, GPT-5.6 Luna + tools, or offline stub, tool events, and hard-disabled Telegram/Resend side effects. |
 | `Start-ME3-Web.bat` | Local browser preview | Serves the tracked `web\` presenter surface on `http://127.0.0.1:8123/` and reports LAN URLs. Pass `-Path agent_workspace\voice_webapp` for a generated app. |
 | `Start-ME3-Pi-Web.bat` | ME2-style Pi browser tunnel | Starts the Pi static preview when available, forwards it to `http://127.0.0.1:8090/`, and opens the browser. `Ctrl+C` closes the tunnel. |
 | `Start-ME3-Pi-Qwen.bat` | **Named Qwen Instruct Pi launcher** | Connects to the canonical systemd service at `/home/dalmacio/Desktop/dandan-qwen` on Pi ports 8126/8127 and opens the workstation tunnel at `http://127.0.0.1:8100/`; it does not start a duplicate listener. |
@@ -72,7 +72,7 @@ The page includes starter prompts for system status, channel readiness, project
 inspection, and real web-app creation. Its browser listener starts automatically
 after microphone permission and submits detected utterances without a voice
 button; the authoritative ME3 VAD -> Whisper -> brain -> TTS path remains the
-full-duplex launcher and injection evaluator. Calls, SMS, and email are
+full-duplex launcher and injection evaluator. Telegram and email are
 hard-disabled in this local UI even if provider credentials exist.
 
 While a request is running, the page exposes a `Show task progress (not model reasoning)` toggle.

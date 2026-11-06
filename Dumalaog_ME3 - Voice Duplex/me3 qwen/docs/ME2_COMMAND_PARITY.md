@@ -17,7 +17,7 @@ available to the direct ToolBrain and the owned `me3-tasks` MCP server.
 | Thermostat | `set_thermostat` | Celsius validation and local demo state | Home Assistant climate entity or vendor API |
 | Media controls | `media_control` | Pause, stop, skip, play, volume up/down/set | Browser/player adapter for physical playback |
 | Reminders and lists | `create_reminder`, `list_reminders`, `complete_reminder` | Reminder lifecycle and delay/time parsing | Platform notification scheduler for delivery |
-| Calls and messaging | `call_contact`, `send_message`, `make_call`, `send_sms`, `send_telegram_message` | Confirmation-gated Twilio SMS/call and Telegram text paths | Protected contact mappings, provider credentials, HTTPS call flow; Telegram Bot API does not initiate ordinary voice calls |
+| Calls and messaging | `call_contact`, `send_message`, `send_telegram_message` | Telegram Bot API text with confirmation; ordinary voice calls reported unsupported | Protected bot token and approved numeric chat-ID mapping; Telegram Bot API does not initiate ordinary voice calls |
 
 ## Safety and demo boundary
 

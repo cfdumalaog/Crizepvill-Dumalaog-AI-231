@@ -17,6 +17,7 @@ import json
 import logging
 import threading
 import time
+import uuid
 
 import numpy as np
 
@@ -41,6 +42,19 @@ class BrowserAudioHub:
         self.sent_frames = 0
         self.sent_samples = 0
         self.dropped_frames = 0
+        self._render_start_callback = None
+        self.render_ack_count = 0
+        self.last_render_delay_ms: float | None = None
+
+    def set_render_start_callback(self, callback) -> None:
+        """Register a callback for browser-confirmed render timing.
+
+        The callback receives the JSON ``render_started`` event sent by the
+        browser immediately after it schedules the first PCM buffer.  This is
+        needed for the distributed Pi-microphone/laptop-speaker route: sending
+        time is not the same as acoustic render time.
+        """
+        self._render_start_callback = callback
 
     def start(self) -> None:
         if self._server is not None:
@@ -81,14 +95,31 @@ class BrowserAudioHub:
             for message in conn:
                 if isinstance(message, str):
                     try:
-                        event = json.loads(message).get("event")
+                        parsed = json.loads(message)
+                        event_data = parsed if isinstance(parsed, dict) else {}
+                        event = event_data.get("event")
                     except (TypeError, ValueError):
+                        event_data = {}
                         event = None
                     if event == "ping":
                         try:
                             conn.send(json.dumps({"event": "pong"}))
                         except Exception:  # noqa: BLE001
                             pass
+                    elif event == "render_started":
+                        self.render_ack_count += 1
+                        try:
+                            self.last_render_delay_ms = round(
+                                float(event_data.get("delay_ms", 0.0) or 0.0), 1)
+                        except (TypeError, ValueError):
+                            self.last_render_delay_ms = None
+                        callback = self._render_start_callback
+                        if callback is not None:
+                            try:
+                                callback(event_data)
+                            except Exception:  # noqa: BLE001
+                                log.debug("browser render acknowledgement failed",
+                                          exc_info=True)
         except Exception:  # noqa: BLE001 - browser closes are normal
             pass
         finally:
@@ -99,7 +130,7 @@ class BrowserAudioHub:
         with self._lock:
             return bool(self._clients)
 
-    def publish(self, pcm: np.ndarray) -> None:
+    def publish(self, pcm: np.ndarray, playback_id: str | None = None) -> None:
         payload = np.asarray(pcm, dtype=np.int16).ravel().astype("<i2", copy=False).tobytes()
         if not payload:
             return
@@ -116,6 +147,13 @@ class BrowserAudioHub:
         with self._send_lock:
             for conn in clients:
                 try:
+                    if playback_id:
+                        conn.send(json.dumps({
+                            "event": "playback_start",
+                            "playback_id": str(playback_id),
+                            "sample_rate": 16000,
+                            "samples": int(np.asarray(pcm).size),
+                        }, separators=(",", ":")))
                     for start in range(0, len(payload), chunk_samples * 2):
                         conn.send(payload[start:start + chunk_samples * 2])
                 except Exception:  # noqa: BLE001
@@ -171,6 +209,8 @@ class BrowserAudioHub:
             "dropped_frames": self.dropped_frames,
             "client_policy": "single_active_client",
             "chunk_samples": 480,
+            "render_ack_count": self.render_ack_count,
+            "last_render_delay_ms": self.last_render_delay_ms,
         }
 
     def stop(self) -> None:
@@ -200,6 +240,12 @@ class BrowserOutputAudio:
         self._play_until = 0.0
         self._lock = threading.Lock()
         self._echo_reference_active = False
+        self._playback_id: str | None = None
+        self._browser_render_syncs = 0
+        self._last_browser_render_delay_ms: float | None = None
+        setter = getattr(self.hub, "set_render_start_callback", None)
+        if callable(setter):
+            setter(self._on_browser_render_started)
         self.output_events: list[dict] = []
 
     def start_capture(self):
@@ -217,10 +263,12 @@ class BrowserOutputAudio:
         x = np.asarray(pcm, dtype=np.int16).ravel()
         self.stop_playback(silent=True)
         started = time.perf_counter()
+        playback_id = uuid.uuid4().hex[:16]
         duration = float(len(x) / self.sr) if self.sr else 0.0
         with self._lock:
             self._playing = True
             self._play_until = started + duration
+            self._playback_id = playback_id
             self.output_events.append({
                 "started_abs": started,
                 "samples": int(x.size),
@@ -244,10 +292,36 @@ class BrowserOutputAudio:
         # the echo guard. The hub sends small frames and keeps one client only,
         # preventing stale tabs and keepalive timeouts from creating an
         # untracked acoustic source.
-        self.hub.publish(x)
+        try:
+            self.hub.publish(x, playback_id=playback_id)
+        except TypeError:
+            # Keep small test doubles and older external hubs source-compatible.
+            self.hub.publish(x)
         if blocking:
             while not self.playback_done():
                 time.sleep(0.02)
+
+    def _on_browser_render_started(self, event: dict) -> None:
+        """Retimestamp the echo reference to the browser's scheduled render.
+
+        ``delay_ms`` is measured in the browser from receipt of the first PCM
+        chunk to the Web Audio ``AudioBufferSourceNode.start`` time.  The
+        acknowledgement reaches the Pi after that scheduling decision, so the
+        Pi uses the acknowledgement time plus the reported delay as the
+        reference origin.  The normal acoustic delay search then covers the
+        remaining network and room variation.
+        """
+        playback_id = str(event.get("playback_id", ""))
+        delay_ms = float(event.get("delay_ms", 0.0) or 0.0)
+        with self._lock:
+            if playback_id and playback_id != self._playback_id:
+                return
+            if not self._echo_reference_active:
+                return
+        self.capture.mark_external_playback_started(
+            time.perf_counter() + max(0.0, delay_ms) / 1000.0)
+        self._browser_render_syncs += 1
+        self._last_browser_render_delay_ms = round(delay_ms, 1)
 
     def playback_done(self) -> bool:
         clear_reference = False
