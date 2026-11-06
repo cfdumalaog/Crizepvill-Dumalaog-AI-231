@@ -65,6 +65,11 @@ class ToolBrain:
         self.name = cfg.get("name") or f"{self.provider}-tools"
         self.api_key_env = cfg.get("api_key_env", "")
         self.temperature = cfg.get("temperature")
+        # Qwen3 exposes a provider-specific switch for the hidden reasoning
+        # channel.  Voice turns must stay in fast mode: reasoning tokens add
+        # latency and are never appropriate for the spoken response.
+        self.fast_mode = bool(cfg.get("fast_mode", False))
+        self.thinking = cfg.get("thinking")
         # Hidden reasoning is deliberately disabled for the functional voice
         # path. The UI may show safe phase summaries, never chain-of-thought.
         self.stream = bool(cfg.get("stream", False))
@@ -106,6 +111,11 @@ class ToolBrain:
             body["temperature"] = self.temperature
         if self.stream:
             body["stream"] = True
+        if self.provider == "qwen" and (self.fast_mode or self.thinking is False):
+            # vLLM's OpenAI-compatible Qwen3 template consumes this field.
+            # Do not send OpenAI's reasoning_effort field to Qwen; it is not a
+            # portable OpenAI-compatible parameter and may be rejected.
+            body["chat_template_kwargs"] = {"enable_thinking": False}
         if self.max_completion_tokens is not None:
             body["max_completion_tokens"] = int(self.max_completion_tokens)
         elif self.max_tokens is not None:

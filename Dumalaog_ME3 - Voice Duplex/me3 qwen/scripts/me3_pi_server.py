@@ -130,6 +130,13 @@ class AgentController:
                 selected_input = self.input_device
                 selected_output = ("browser" if self.output_mode == "browser"
                                    else self.output_device)
+                loop = self.loop
+            echo_guard = {}
+            capture = getattr(getattr(loop, "audio", None), "capture", None)
+            if capture is None:
+                capture = getattr(loop, "audio", None)
+            if callable(getattr(capture, "echo_snapshot", None)):
+                echo_guard = capture.echo_snapshot()
             return {
                 "ok": True,
                 "available": True,
@@ -143,11 +150,12 @@ class AgentController:
                     "sample_rate": 16000,
                 },
                 "browser_audio": self.hub.snapshot(),
+                "echo_guard": echo_guard,
             }
         except Exception as exc:  # noqa: BLE001 - UI can still show the error
             return {"ok": False, "available": False,
                     "error": type(exc).__name__, "message": str(exc)[:300],
-                    "browser_audio": self.hub.snapshot()}
+                    "browser_audio": self.hub.snapshot(), "echo_guard": {}}
 
 
 def build_brain(cfg: dict, selection: str):

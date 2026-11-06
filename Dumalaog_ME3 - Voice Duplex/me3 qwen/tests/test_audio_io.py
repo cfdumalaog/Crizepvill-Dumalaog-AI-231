@@ -43,6 +43,7 @@ def test_speaker_reference_is_removed_before_vad():
     cleaned = audio._remove_speaker_echo(frame)
 
     assert audio._echo_cancelled_frames == 1
+    assert audio._last_echo_suspect is True
     assert float(np.sqrt(np.mean(cleaned.astype(np.float32) ** 2))) < 100.0
     audio.close()
 
@@ -60,6 +61,45 @@ def test_unmatched_user_speech_survives_echo_cancellation():
     cleaned_rms = float(np.sqrt(np.mean(cleaned.astype(np.float32) ** 2)))
     assert audio._echo_cancelled_frames == 1
     assert cleaned_rms > user_rms * 0.75
+    audio.close()
+
+
+def test_acoustic_multitap_echo_is_gated_but_unmatched_speech_is_not():
+    cfg = {
+        "audio": {
+            "sample_rate": 16000,
+            "frame_ms": 30,
+            "echo_guard": {
+                "enabled": True,
+                "delay_ms": 80,
+                "search_ms": 250,
+                "search_step_ms": 5,
+                "correlation_threshold": 0.20,
+                "hard_gate_correlation": 0.99,
+                "acoustic_hard_gate_correlation": 0.35,
+                "acoustic_residual_ratio": 0.55,
+                "adaptive_taps_ms": [-60, -30, -15, 0, 15, 30, 60],
+                "digital_loopback_hard_mute": True,
+                "min_reference_rms": 20,
+                "tail_ms": 250,
+            },
+        },
+    }
+    audio = FullDuplexAudio(cfg)
+    rng = np.random.default_rng(231)
+    reference = rng.normal(0, 9000, 16000).clip(-32768, 32767).astype(np.int16)
+    with audio._play_lock:
+        audio._play_ref = reference
+        audio._play_started_at = time.perf_counter() - 0.08
+        audio._playing = True
+        audio._echo_release_until = time.perf_counter() + 0.25
+    acoustic = (
+        0.70 * reference[:480].astype(np.float32) +
+        0.25 * reference[16:496].astype(np.float32) +
+        0.12 * reference[48:528].astype(np.float32)
+    ).astype(np.int16)
+    cleaned = audio._remove_speaker_echo(acoustic)
+    assert np.sqrt(np.mean(cleaned.astype(np.float32) ** 2)) < 1000
     audio.close()
 
 

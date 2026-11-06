@@ -62,6 +62,7 @@ INCLUDE = [
     "scripts/me3_fdbench_agent.py",
     "scripts/check_variants.py",
     "scripts/run_fdbench.py",
+    "scripts/loopback_selftest.py",
     "scripts/run_me3_module.py",
     "scripts/me3_pi_server.py",
     "scripts/workstation_acceptance.py",

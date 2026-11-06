@@ -50,7 +50,8 @@ error rather than presenting an unverified live claim.
 The microphone remains open. Speak normally, stop speaking, and ME3 automatically
 endpoints the turn, runs ASR, sends the transcript internally to Qwen, executes
 approved tools when needed, and speaks the result. While it is speaking,
-ordinary speech remains buffered and the current TTS is protected. Say
+overlap that matches the speaker reference is rejected as possible echo, while
+genuine user speech is buffered and processed after the current TTS. Say
 `stop processing` to stop playback, `skip` to skip it, or `steer` to prioritize
 the newest captured prompt. The live Pi browser page also exposes a Runtime
 terminal with sanitized state, ASR, TTS, and tool lifecycle events. The browser

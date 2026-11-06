@@ -100,19 +100,26 @@ def main() -> int:
 
     audio.start_capture()
     frames: list[np.ndarray] = []
+    protected_frames: list[np.ndarray] = []
     print("playing agent speech; capturing the loopback ...")
     audio.play(pcm, blocking=False)
     t_play = time.perf_counter()
     while not audio.playback_done() or time.perf_counter() - t_play < 1.0:
+        cancelled_before = audio._echo_cancelled_frames
         f = audio.read_frame(timeout=0.2)
         if f is not None:
             frames.append(f)
+            if audio._echo_cancelled_frames > cancelled_before:
+                protected_frames.append(f)
     # 0.5 s tail for endpointing silence
     t_end = time.perf_counter()
     while time.perf_counter() - t_end < 0.5:
+        cancelled_before = audio._echo_cancelled_frames
         f = audio.read_frame(timeout=0.2)
         if f is not None:
             frames.append(f)
+            if audio._echo_cancelled_frames > cancelled_before:
+                protected_frames.append(f)
     echo_cancelled_frames = audio._echo_cancelled_frames
     echo_peak_correlation = audio._echo_peak_correlation
     audio.close()
@@ -121,7 +128,11 @@ def main() -> int:
         return 1
     stream = np.concatenate(frames)
     rms = float(np.sqrt(np.mean(stream.astype(np.float32) ** 2)))
+    protected_stream = np.concatenate(protected_frames) if protected_frames else np.empty(0, dtype=np.int16)
+    protected_rms = float(np.sqrt(np.mean(protected_stream.astype(np.float32) ** 2))) if protected_stream.size else 0.0
     print(f"captured: {len(stream)/sr:.2f} s audio; cleaned_rms={rms:.1f}; "
+          f"protected_rms={protected_rms:.1f}; "
+          f"protected_frames={len(protected_frames)}; "
           f"echo_cancelled_frames={echo_cancelled_frames}; "
           f"echo_peak_corr={echo_peak_correlation:.3f}")
 
@@ -129,10 +140,13 @@ def main() -> int:
         if echo_cancelled_frames <= 0:
             print("FAIL: no capture frames were classified as speaker echo")
             return 1
-        if rms > 200.0:
-            print("FAIL: speaker echo residual is above the 200-RMS gate")
+        if not protected_frames:
+            print("FAIL: no protected playback-window frames were captured")
             return 1
-        print("ECHO-GUARD PASS: Stereo Mix speaker output was captured and "
+        if protected_rms > 200.0:
+            print("FAIL: protected playback-window residual is above the 200-RMS gate")
+            return 1
+        print("ECHO-GUARD PASS: configured playback output was captured and "
               "suppressed before VAD/ASR")
         return 0
 

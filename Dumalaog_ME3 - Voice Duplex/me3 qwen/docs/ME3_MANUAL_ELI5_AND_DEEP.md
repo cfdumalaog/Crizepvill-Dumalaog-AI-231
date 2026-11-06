@@ -48,16 +48,24 @@ That is why a web-app request can produce a real directory and real files.
 
 In a half-duplex assistant, the speaker may be disabled while the assistant is
 talking. In ME3, the microphone remains open during playback. Ordinary speech
-that overlaps a response is buffered as the newest prompt, so a conversational
-pause does not accidentally cut off the answer. A short control path recognizes
-`stop processing`, `skip`, and `steer`; those commands can stop the current
-audio without a browser button. This is protected full-duplex playback rather
-than automatic barge-in.
+that overlaps a response is compared with the speaker reference: residual
+output is rejected, while a genuine user utterance is buffered and processed
+after the current answer. A short control path recognizes `stop processing`,
+`skip`, and `steer`; those commands can stop the current audio without a
+browser button. This is protected full-duplex playback rather than automatic
+barge-in.
 
 The live browser UI includes a Runtime terminal. It is an operator-facing
 window into safe processing events: state changes, ASR/TTS lifecycle, tool
 names/status, timing, and model/voice labels. It deliberately omits hidden
 chain-of-thought, credentials, tool arguments, and raw tool results.
+
+The adjacent Background processes panel answers the practical question “what
+is it doing right now?” It shows the accepted voice turn, elapsed time,
+current safe phase, heartbeat count, and bounded project subprocesses with PID
+and redacted output tails. A long turn receives one formal spoken progress
+update per minute at a safe audio boundary. This is a status summary, not a
+display of private model chain-of-thought.
 
 ### What “no training required” means
 
@@ -98,6 +106,23 @@ also manage the LLM and speech-to-text configuration. Using them would be an
 alternative architecture, not simply a voice switch for Qwen. The exact
 configuration and acceptance gate are documented in
 docs/ELEVENLABS_INTEGRATION.md.
+
+### Qwen fast mode and long-task visibility
+
+The Qwen Instruct text brain is configured for direct streaming with
+`fast_mode: true` and `thinking: false`. The OpenAI-compatible request carries
+`chat_template_kwargs: {enable_thinking: false}`. This disables Qwen's hidden
+reasoning-token generation on the voice path; the UI still shows only safe
+phase labels such as “planning,” “running tool,” and “preparing the final
+response.”
+
+If the immediate model acknowledgement window expires, ME3 keeps the brain
+call on a worker thread and enters `awaiting`. Every loop poll publishes the
+worker's elapsed time and current phase. Project subprocesses started through
+`start_background_task` are read from their bounded log tails and exposed as
+redacted PID/status rows. At most once each 60 seconds, a formal heartbeat is
+queued and spoken when the current audio boundary is safe; task completion is
+then announced separately.
 
 ### ME2-style Pi web access and remote speaker
 
@@ -396,6 +421,14 @@ and correlation search for a real microphone; it uses a strict mute only for
 digital loopback devices because those devices contain system output rather
 than independent user speech. The engineering benchmark disables the guard in
 its private configuration so its raw stimulus measurements remain valid.
+
+For the Pi-to-laptop-speaker path, the guard additionally fits a bounded
+multi-tap room response around the best reference match. It gates a frame only
+when the cleaned residual falls below a configured fraction of the input, so
+speaker delay, reflections, and USB-clock drift are handled without deleting
+unmatched user speech. `/api/audio/devices` exposes only safe enabled/active,
+cancelled-frame, and correlation counters. A real-room human acceptance test
+is still a separate evidence gate.
 
 ### Split-device local acceptance: Pi microphone, workstation speakers
 

@@ -55,7 +55,7 @@ class FullDuplexAudio:
         self.frame_n = int(self.sr * self.frame_ms / 1000)
         self.in_dev_cfg = a.get("input_device")
         self.out_dev_cfg = a.get("output_device")
-        self._q: "queue.Queue[np.ndarray]" = queue.Queue(maxsize=200)
+        self._q: "queue.Queue[tuple[np.ndarray, bool]]" = queue.Queue(maxsize=200)
         self._sd = None
         self._stream = None
         self._play_stream = None
@@ -70,6 +70,13 @@ class FullDuplexAudio:
         self.echo_search_step_ms = float(echo.get("search_step_ms", 10.0))
         self.echo_corr_threshold = float(echo.get("correlation_threshold", 0.45))
         self.echo_hard_gate_corr = float(echo.get("hard_gate_correlation", 0.75))
+        self.echo_acoustic_hard_gate_corr = float(
+            echo.get("acoustic_hard_gate_correlation", 0.35))
+        self.echo_acoustic_residual_ratio = float(
+            echo.get("acoustic_residual_ratio", 0.55))
+        self.echo_adaptive_taps_ms = tuple(
+            float(x) for x in echo.get(
+                "adaptive_taps_ms", (-60, -30, -15, 0, 15, 30, 60)))
         self.echo_min_reference_rms = float(echo.get("min_reference_rms", 180.0))
         self.echo_tail_ms = float(echo.get("tail_ms", 250.0))
         self.echo_digital_loopback_hard_mute = bool(
@@ -79,6 +86,9 @@ class FullDuplexAudio:
         self._play_ref: np.ndarray | None = None  # pipeline-rate playback reference
         self._echo_release_until = 0.0
         self._echo_cancelled_frames = 0
+        self._echo_transcript_rejected = 0
+        self._echo_suspect_frames = 0
+        self._last_echo_suspect = False
         self._echo_last_correlation = 0.0
         self._echo_peak_correlation = 0.0
         self._digital_loopback = False
@@ -291,6 +301,39 @@ class FullDuplexAudio:
             self._echo_release_until = time.perf_counter() + \
                 self.echo_tail_ms / 1000.0
 
+    def _adaptive_echo_cancel(self, pcm: np.ndarray,
+                              reference_start: int) -> np.ndarray | None:
+        """Fit a short room/speaker impulse response and remove it.
+
+        A single gain subtraction works for Stereo Mix but is too weak for a
+        laptop speaker heard by a remote Pi microphone: the room adds delayed
+        reflections and frequency shaping. This small regularized least-
+        squares fit is bounded to a handful of taps so it remains safe in the
+        PortAudio callback while cancelling that acoustic path.
+        """
+        offsets = [int(ms * self.sr / 1000.0)
+                   for ms in self.echo_adaptive_taps_ms]
+        if len(offsets) < 2:
+            return None
+        matrix = np.stack([
+            self._reference_slice(reference_start + offset, len(pcm))
+            for offset in offsets
+        ], axis=1).astype(np.float32, copy=False)
+        if matrix.size == 0 or self._rms(matrix) < self.echo_min_reference_rms:
+            return None
+        x = pcm.astype(np.float32, copy=False)
+        centered_x = x - float(np.mean(x))
+        matrix = matrix - np.mean(matrix, axis=0, keepdims=True)
+        try:
+            gram = matrix.T @ matrix
+            scale = max(float(np.trace(gram)) / max(1, matrix.shape[1]), 1.0)
+            regularizer = np.eye(matrix.shape[1], dtype=np.float32) * (scale * 1e-4)
+            coeff = np.linalg.solve(gram + regularizer, matrix.T @ centered_x)
+            predicted = matrix @ coeff
+            return np.clip(centered_x - predicted, -32768, 32767)
+        except (np.linalg.LinAlgError, ValueError):
+            return None
+
     def _remove_speaker_echo(self, pcm: np.ndarray) -> np.ndarray:
         """Cancel the current speaker reference before VAD/ASR sees a frame.
 
@@ -301,6 +344,7 @@ class FullDuplexAudio:
         voice is not identical to the playback reference and remains in the
         residual. The short tail covers room reflections after playback stops.
         """
+        self._last_echo_suspect = False
         if not self.echo_enabled or pcm.size == 0:
             return pcm
         now = time.perf_counter()
@@ -316,6 +360,8 @@ class FullDuplexAudio:
             # acoustic microphone signal. Muting it during ME3 playback is
             # deterministic and avoids VAD seeing device-transition frames.
             self._echo_cancelled_frames += 1
+            self._echo_suspect_frames += 1
+            self._last_echo_suspect = True
             return np.zeros_like(pcm)
 
         elapsed = now - started
@@ -349,6 +395,7 @@ class FullDuplexAudio:
             refined_corr = self._correlation(x, refined)
             if abs(refined_corr) >= abs(best_corr):
                 best_corr, best_ref = refined_corr, refined
+                best_start = best_start - radius + idx
         self._echo_last_correlation = float(best_corr)
         self._echo_peak_correlation = max(
             self._echo_peak_correlation, abs(float(best_corr)))
@@ -361,6 +408,8 @@ class FullDuplexAudio:
         # speaking over the response can interrupt the agent.
         if abs(best_corr) >= self.echo_hard_gate_corr:
             self._echo_cancelled_frames += 1
+            self._echo_suspect_frames += 1
+            self._last_echo_suspect = True
             return np.zeros_like(pcm)
 
         ref_energy = float(np.dot(best_ref, best_ref))
@@ -368,28 +417,72 @@ class FullDuplexAudio:
             return pcm
         gain = float(np.dot(x, best_ref) / ref_energy)
         gain = float(np.clip(gain, -self.echo_max_gain, self.echo_max_gain))
-        cleaned = x - gain * best_ref
+        single_cleaned = x - gain * best_ref
+        adaptive = self._adaptive_echo_cancel(x, int(best_start))
+        if adaptive is not None and self._rms(adaptive) < self._rms(single_cleaned):
+            cleaned = adaptive
+        else:
+            cleaned = single_cleaned
         self._echo_cancelled_frames += 1
-        # Keep a real user's unmatched speech. Only the correlated playback
-        # component is removed; do not gate the entire frame during speaking.
+        # On the acoustic path, a moderate correlation plus a large residual
+        # drop identifies speaker-only audio. Gate that frame completely so it
+        # cannot retrigger VAD. A genuine barge-in leaves unmatched residual
+        # speech, so it stays audible to ASR.
+        if (abs(best_corr) >= self.echo_acoustic_hard_gate_corr and
+                self._rms(cleaned) <= max(1.0, self._rms(x) *
+                                        self.echo_acoustic_residual_ratio)):
+            self._echo_suspect_frames += 1
+            self._last_echo_suspect = True
+            return np.zeros_like(pcm)
+        # Keep a softer provenance mark for transcript admission. This does
+        # not mute the frame: it only says that most of the surviving energy
+        # still looks like the active speaker reference. A genuine user voice
+        # mixed over TTS normally leaves a large unmatched residual and is
+        # therefore allowed through to the control/ASR path.
+        suspect_ratio = float(self.cfg["audio"].get("echo_guard", {}).get(
+            "transcript_suspect_residual_ratio", 0.80))
+        if (abs(best_corr) >= self.echo_acoustic_hard_gate_corr and
+                self._rms(cleaned) <= max(1.0, self._rms(x) * suspect_ratio)):
+            self._echo_suspect_frames += 1
+            self._last_echo_suspect = True
         return np.clip(cleaned, -32768, 32767).astype(np.int16)
+
+    def echo_snapshot(self) -> dict:
+        """Return bounded echo-guard diagnostics for the LAN UI."""
+        with self._play_lock:
+            active = bool(self._playing or time.perf_counter() < self._echo_release_until)
+        return {
+            "enabled": self.echo_enabled,
+            "active": active,
+            "digital_loopback": self._digital_loopback,
+            "cancelled_frames": int(self._echo_cancelled_frames),
+            "transcript_rejected": int(self._echo_transcript_rejected),
+            "suspect_frames": int(self._echo_suspect_frames),
+            "last_correlation": round(float(self._echo_last_correlation), 3),
+            "peak_correlation": round(float(self._echo_peak_correlation), 3),
+        }
+
+    def note_transcript_echo_rejected(self) -> None:
+        """Count a downstream ASR echo rejection for operator diagnostics."""
+        self._echo_transcript_rejected += 1
 
     def _enqueue_capture(self, pcm: np.ndarray) -> None:
         pcm = np.ascontiguousarray(pcm, dtype=np.int16).ravel()
         pcm = self._remove_speaker_echo(pcm)
+        item = (pcm, bool(self._last_echo_suspect))
         # Non-blocking: a blocked put() stalls the PortAudio callback
         # thread, which starves the output stream too and corrupts the
         # loopback capture after long agent turns (slow remote brain).
         # Drop the oldest frame to stay real-time.
         try:
-            self._q.put_nowait(pcm)
+            self._q.put_nowait(item)
         except queue.Full:
             try:
                 self._q.get_nowait()  # drop oldest
             except queue.Empty:
                 pass
             try:
-                self._q.put_nowait(pcm)
+                self._q.put_nowait(item)
             except queue.Full:
                 pass  # still full: drop this frame
 
@@ -415,8 +508,15 @@ class FullDuplexAudio:
 
     def read_frame(self, timeout: float = 0.5) -> np.ndarray | None:
         try:
-            return self._q.get(timeout=timeout)
+            item = self._q.get(timeout=timeout)
+            if isinstance(item, tuple) and len(item) == 2:
+                frame, suspect = item
+                self._last_echo_suspect = bool(suspect)
+                return frame
+            self._last_echo_suspect = False
+            return item
         except queue.Empty:
+            self._last_echo_suspect = False
             return None
 
     def startup_signal_check(self, seconds: float = 1.5) -> bool:

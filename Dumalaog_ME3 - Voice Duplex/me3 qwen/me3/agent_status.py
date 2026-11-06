@@ -89,6 +89,9 @@ class LoopStatus:
         self.models: dict = {}
         self.tool_events: deque = deque(maxlen=8)
         self._tool_active: str | None = None
+        self.progress_events: deque = deque(maxlen=24)
+        self.current_progress: dict = {}
+        self.background: dict = {"long_tasks": [], "processes": []}
 
     # ---- reporter hooks (called from the loop; keep them cheap) ----------
     def report_started(self, reason: str = "audio capture started") -> None:
@@ -143,6 +146,28 @@ class LoopStatus:
         with self._lock:
             self.models = {k: v for k, v in kwargs.items() if v is not None}
 
+    def report_progress(self, stage: str, detail: str) -> None:
+        """Record a safe phase summary, never hidden model reasoning."""
+        now = time.time()
+        event = {
+            "stage": str(stage)[:80].replace("\n", " "),
+            "detail": str(detail)[:240].replace("\n", " "),
+            "at": now,
+        }
+        with self._lock:
+            self.current_progress = dict(event)
+            self.progress_events.append(event)
+            self.state_reason = event["detail"]
+
+    def report_background(self, *, long_tasks: list[dict] | None = None,
+                          processes: list[dict] | None = None) -> None:
+        """Publish bounded long-task and subprocess telemetry for the UI."""
+        with self._lock:
+            self.background = {
+                "long_tasks": list(long_tasks or [])[:12],
+                "processes": list(processes or [])[:12],
+            }
+
     def set_release_info(self, release_info: dict) -> None:
         with self._lock:
             self.release_info = release_info
@@ -154,6 +179,11 @@ class LoopStatus:
             active = self._tool_active
             recent = [{**dict(e), "at": _iso(e["at"])}
                       for e in self.tool_events]
+            progress = [{**dict(e), "at": _iso(e["at"])}
+                        for e in self.progress_events]
+            current_progress = dict(self.current_progress)
+            if current_progress.get("at") is not None:
+                current_progress["at"] = _iso(current_progress["at"])
             payload = {
                 "ok": True,
                 "loop": self.loop_running,
@@ -187,6 +217,11 @@ class LoopStatus:
                     },
                 },
                 "tools": {"active": active, "recent": recent},
+                "progress": {"current": current_progress, "recent": progress},
+                "background": {
+                    "long_tasks": [dict(x) for x in self.background.get("long_tasks", [])],
+                    "processes": [dict(x) for x in self.background.get("processes", [])],
+                },
                 "models": dict(self.models),
                 "release": dict(self.release_info),
             }

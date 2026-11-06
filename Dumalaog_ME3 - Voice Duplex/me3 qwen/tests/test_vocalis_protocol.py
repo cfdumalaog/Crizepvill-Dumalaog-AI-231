@@ -1,5 +1,10 @@
 from __future__ import annotations
 
+import time
+from collections import deque
+
+import numpy as np
+
 from me3.agent import LocalVoiceLoop
 from me3.audio_io import InjectedDuplexAudio
 from me3.config import load_config
@@ -123,3 +128,56 @@ def test_default_profile_uses_protected_playback_and_command_control():
     cfg = load_config()
     assert cfg["agent"]["barge_in"] is False
     assert cfg["agent"]["command_control"] is True
+    assert cfg["agent"]["protected_playback_ignore_noncontrol"] is True
+
+
+def test_recent_me3_output_is_recognized_as_echo():
+    loop = LocalVoiceLoop.__new__(LocalVoiceLoop)
+    loop._spoken_transcripts = deque(
+        [("i am processing your request now", time.perf_counter() + 10)],
+        maxlen=8,
+    )
+    assert loop._is_recent_spoken_echo("I am processing your request now.")
+
+
+def _protected_loop_for_echo_test(rejected):
+    loop = LocalVoiceLoop.__new__(LocalVoiceLoop)
+    loop.ignore_noncontrol_during_playback = True
+    loop._spoken_transcripts = deque(maxlen=8)
+    loop._transcribe_control_audio = lambda _audio: ("this is speaker echo", 1.0)
+    loop._voice_command = LocalVoiceLoop._voice_command
+    loop.orchestrator = type("Orchestrator", (), {
+        "on_transcript_delta": lambda *_args, **_kwargs: None,
+    })()
+    loop.status = None
+    loop.audio = type("Audio", (), {
+        "capture": type("Capture", (), {
+            "note_transcript_echo_rejected": lambda _self: rejected.append(True),
+        })(),
+    })()
+    loop.stats = type("Stats", (), {"n_control": 0})()
+    loop._deferred_text = None
+    return loop
+
+
+def test_real_overlap_is_queued_during_protected_playback():
+    loop = _protected_loop_for_echo_test([])
+    loop._transcribe_control_audio = lambda _audio: ("build the requested website", 1.0)
+
+    loop._process_protected_utterance(
+        np.zeros(480, dtype=np.int16), 0.0, echo_suspect_frames=0,
+        captured_frames=10)
+
+    assert loop._deferred_text == "build the requested website"
+
+
+def test_echo_overlap_is_rejected_during_protected_playback():
+    rejected = []
+    loop = _protected_loop_for_echo_test(rejected)
+
+    loop._process_protected_utterance(
+        np.zeros(480, dtype=np.int16), 0.0, echo_suspect_frames=8,
+        captured_frames=10)
+
+    assert loop._deferred_text is None
+    assert rejected == [True]

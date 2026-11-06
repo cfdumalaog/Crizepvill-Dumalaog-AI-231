@@ -32,10 +32,11 @@ voice-to-text application: the user speaks continuously, VAD automatically
 ends the turn, Qwen tools execute without a Send button, and the reply is
 spoken automatically. While audio is playing, new microphone speech triggers
 the default protected-playback path keeps ordinary overlapping speech from
-flushing the current reply. The newest ordinary utterance is queued for the
-next safe audio boundary. Explicit voice commands (`stop processing`, `skip`,
-or `steer`) stop current playback; `stop processing` also suppresses queued
-announcements. If a long tool request has already been accepted, its worker
+flushing the current reply. Each overlap transcript is checked against recent
+ME3 speech and frame-level speaker-reference evidence: residual speaker audio
+is rejected, while genuine user speech is queued as the newest prompt.
+Explicit voice commands (`stop processing`, `skip`, or `steer`) stop current
+playback; `stop processing` also suppresses queued announcements. If a long tool request has already been accepted, its worker
 and side effects continue; use the normal task-cancellation tool when actual
 task cancellation is required.
 
@@ -95,14 +96,26 @@ short silence and classified before it can become a normal prompt:
 | Spoken command | Effect |
 |---|---|
 | `stop processing` | Stop current playback, clear deferred prompt/announcements, and suppress pending spoken completions. |
-| `skip` | Stop current playback and continue with the newest buffered prompt if one exists. |
-| `steer` | Stop current playback and prioritize the newest buffered prompt if one exists. |
-| Any other utterance | Retain it as the newest prompt and dispatch it only after the protected audio boundary. |
+| `skip` | Stop current playback and move to the next safe audio boundary. |
+| `steer` | Stop current playback and prioritize an explicitly queued control/task if one exists. |
+| Any other utterance | Queue it as the newest prompt unless speaker-reference evidence identifies it as echo. |
 
 This command path is intentionally narrow so that talking to another person,
 backchanneling, or ordinary overlap does not accidentally cancel a response.
 The UI's Runtime terminal mirrors the resulting state, ASR, TTS, and sanitized
 tool lifecycle events from `/api/state`; it does not expose hidden reasoning.
+The same endpoint exposes a safe `progress` block and a `background` block.
+The latter contains the live long-turn worker plus bounded project subprocess
+telemetry. If a long turn remains active, the local loop queues at most one
+formal spoken heartbeat per minute and only plays it at an idle or
+protected-playback boundary.
+
+The Pi browser-speaker path registers the exact PCM sent to the browser as an
+echo reference. Before VAD, capture searches for a delayed match and fits a
+short multi-tap acoustic path. A correlated frame is muted only when its
+residual collapses; unmatched user speech remains available to control ASR.
+`/api/audio/devices` exposes the guard's enabled/active state, cancelled-frame
+count, and correlation counters for diagnosis.
 
 ## Output channels
 

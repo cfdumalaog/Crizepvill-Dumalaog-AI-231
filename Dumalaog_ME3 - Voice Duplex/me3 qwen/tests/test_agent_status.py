@@ -33,6 +33,11 @@ def test_snapshot_shape_after_simulated_events():
     st.report_barge_in()
     st.report_models(vad_ms=10.0, asr_ms=100.0, asr_model="small",
                      tts_ms=50.0, tts_voice="en_GB-alba-medium", tts_hz=22050)
+    st.report_progress("tool", "Running tool: web_search")
+    st.report_background(
+        long_tasks=[{"status": "running", "stage": "tool", "heartbeat_count": 1}],
+        processes=[{"task_id": "task-test", "status": "running", "pid": 123}],
+    )
 
     snap = st.snapshot("listening", _fake_stats())
     assert snap["ok"] is True
@@ -52,6 +57,10 @@ def test_snapshot_shape_after_simulated_events():
     assert [e["name"] for e in snap["tools"]["recent"]] == [
         "system_info", "system_info"]
     assert snap["tools"]["recent"][-1]["ok"] is True
+    assert snap["progress"]["current"]["stage"] == "tool"
+    assert snap["progress"]["recent"][-1]["detail"] == "Running tool: web_search"
+    assert snap["background"]["long_tasks"][0]["heartbeat_count"] == 1
+    assert snap["background"]["processes"][0]["pid"] == 123
     assert snap["models"]["asr_model"] == "small"
     assert snap["release"]["release_id"] == "me3-test"
     assert snap["uptime_s"] is not None

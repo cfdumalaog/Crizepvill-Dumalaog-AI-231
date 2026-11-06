@@ -9,12 +9,28 @@ from __future__ import annotations
 
 import json
 import os
+import re
+import shlex
 import signal
 import subprocess
 import threading
 import time
 import uuid
 from pathlib import Path
+
+
+_SECRET_TEXT = re.compile(
+    r"(?i)(\b(?:api[_-]?key|token|password|secret|authorization|bearer)\b\s*[:=]\s*)([^\s,;]+)"
+)
+
+
+def _safe_runtime_text(value: str, max_chars: int = 700) -> str:
+    """Keep terminal telemetry useful without copying credentials to the UI."""
+    text = str(value or "")
+    text = _SECRET_TEXT.sub(r"\1<redacted>", text)
+    text = re.sub(r"(?i)\bBearer\s+[^\s]+", "Bearer <redacted>", text)
+    text = text.replace("\x00", "")
+    return text[-max_chars:]
 
 
 class BackgroundTaskManager:
@@ -176,4 +192,77 @@ class BackgroundTaskManager:
             json.dumps(item["metadata"], indent=2) + "\n", encoding="utf-8"
         )
         return self.status(task_id)
+
+    def snapshot(self, max_tasks: int = 12, tail_lines: int = 5) -> list[dict]:
+        """Return safe live/background process telemetry for the Runtime UI.
+
+        The voice UI receives the PID, bounded command, status, elapsed time,
+        and short redacted output tails. It never receives environment values,
+        private log paths, or unrestricted process-environment data.
+        """
+        ids: set[str] = set()
+        with self._lock:
+            ids.update(self._tasks)
+        for path in sorted(self.task_root.glob("task-*.json"),
+                           key=lambda p: p.stat().st_mtime, reverse=True):
+            ids.add(path.stem)
+            if len(ids) >= max(1, int(max_tasks)):
+                break
+        rows: list[dict] = []
+        for task_id in list(ids)[:max(1, int(max_tasks))]:
+            status = self.status(task_id)
+            if not status.get("ok"):
+                continue
+            with self._lock:
+                item = self._tasks.get(task_id)
+                raw_meta = dict(item["metadata"]) if item else None
+            if raw_meta is None:
+                try:
+                    raw_meta = json.loads(
+                        self._metadata_path(task_id).read_text(encoding="utf-8"))
+                except Exception:
+                    raw_meta = {}
+            argv = raw_meta.get("argv") or status.get("argv") or []
+            try:
+                command = shlex.join([str(x) for x in argv])
+            except Exception:
+                command = " ".join(str(x) for x in argv)
+            cwd = Path(str(raw_meta.get("cwd", "")))
+            try:
+                cwd_display = cwd.resolve().relative_to(self.project_root).as_posix()
+            except (OSError, ValueError):
+                cwd_display = "project"
+            started = float(raw_meta.get("started_at", time.time()) or time.time())
+            finished = raw_meta.get("finished_at")
+            end = float(finished or time.time())
+            stdout_path = Path(str(raw_meta.get("stdout_path", "")))
+            stderr_path = Path(str(raw_meta.get("stderr_path", "")))
+
+            def tail(path: Path) -> str:
+                if not path.is_file():
+                    return ""
+                try:
+                    lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
+                    return "\n".join(_safe_runtime_text(x) for x in lines[-tail_lines:])
+                except OSError:
+                    return ""
+
+            mtimes = [p.stat().st_mtime for p in (stdout_path, stderr_path)
+                      if p.is_file()]
+            rows.append({
+                "task_id": task_id,
+                "pid": status.get("pid"),
+                "status": status.get("status", "unknown"),
+                "returncode": status.get("returncode"),
+                "command": _safe_runtime_text(command, 300),
+                "cwd": cwd_display,
+                "elapsed_s": round(max(0.0, end - started), 1),
+                "timeout_s": status.get("timeout_s"),
+                "stdout_tail": tail(stdout_path),
+                "stderr_tail": tail(stderr_path),
+                "updated_at": round(max([started, *mtimes,
+                                         float(finished or 0.0)]), 3),
+            })
+        rows.sort(key=lambda row: row.get("updated_at", 0), reverse=True)
+        return rows[:max(1, int(max_tasks))]
 

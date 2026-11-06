@@ -197,6 +197,11 @@ header{
       <pre id="terminalView" class="terminal-view">[BOOT] waiting for ME3 status...</pre>
       <div class="terminal-note">Operational state, ASR, TTS, tool names/status, and task routing only; hidden chain-of-thought is never displayed.</div>
     </div>
+    <div class="card terminal-card">
+      <div class="terminal-title"><h2>Background processes</h2><span class="terminal-badge">LIVE TASKS</span></div>
+      <pre id="processView" class="terminal-view">[BOOT] no background task telemetry yet...</pre>
+      <div class="terminal-note">Shows the active agent turn and bounded project subprocesses: PID, elapsed time, stage, command, and redacted output tails.</div>
+    </div>
     <div class="card">
       <h2>Latency (last / median / p95)</h2>
       <div id="latency">
@@ -384,6 +389,31 @@ function renderTerminal(d){
   if(el){ el.textContent = terminalLines.join('\n'); el.scrollTop = el.scrollHeight; }
 }
 
+function renderBackground(d){
+  const el = $('processView');
+  if(!el) return;
+  const bg = d.background || {};
+  const lines = [];
+  (bg.long_tasks || []).forEach((t, i) => {
+    lines.push('[AGENT ' + (i + 1) + '] ' + String(t.status || 'running').toUpperCase() +
+      '  ' + (t.thread || 'me3-turn') + '  elapsed=' + fmtUptime(t.elapsed_s) +
+      '  heartbeats=' + (t.heartbeat_count || 0));
+    lines.push('  stage: ' + (t.stage || '-') + ' | ' + (t.detail || '-'));
+    lines.push('  request: ' + (t.request || '-'));
+  });
+  (bg.processes || []).forEach(p => {
+    lines.push('[PROC] ' + String(p.status || 'unknown').toUpperCase() +
+      '  pid=' + (p.pid == null ? '-' : p.pid) +
+      '  elapsed=' + fmtUptime(p.elapsed_s) + '  id=' + (p.task_id || '-'));
+    lines.push('  ' + (p.command || '-') + '  (cwd=' + (p.cwd || 'project') + ')');
+    if(p.stdout_tail) lines.push('  stdout> ' + p.stdout_tail.replace(/\n/g, '\n  stdout> '));
+    if(p.stderr_tail) lines.push('  stderr> ' + p.stderr_tail.replace(/\n/g, '\n  stderr> '));
+  });
+  if(!lines.length) lines.push('[IDLE] no live long task or project subprocess');
+  el.textContent = lines.join('\n');
+  el.scrollTop = el.scrollHeight;
+}
+
 function renderLatency(d){
   const lat = (d.stats && d.stats.latency) || {};
   const rows = $('latency').querySelectorAll('.lat-val');
@@ -427,7 +457,7 @@ function renderRelease(d){
 
 function applyState(d){
   if(prevState !== d.state){ stateSince = Date.now(); prevState = d.state; }
-  renderState(d); renderTools(d); renderTerminal(d); renderLatency(d); renderRuntime(d); renderRelease(d);
+  renderState(d); renderTools(d); renderTerminal(d); renderBackground(d); renderLatency(d); renderRuntime(d); renderRelease(d);
 }
 
 function fillAudioDevices(d){

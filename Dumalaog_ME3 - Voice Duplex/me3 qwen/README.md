@@ -12,9 +12,10 @@ MCP servers and VAD are ours.
 
 Double-click `launchers\Start-ME3.bat`. It starts the full-duplex voice loop
 in a console window using the shared workspace `.venv` — the mic stays live
-while the agent speaks. Playback is protected by default: ordinary speech is
-buffered as the newest prompt, while explicit voice controls (`stop
-processing`, `skip`, or `steer`) control the active response. `Ctrl+C` or
+while the agent speaks. Playback is protected by default: overlap that matches
+the speaker reference is rejected as echo, while genuine user speech is
+buffered as the newest prompt; explicit voice controls (`stop processing`,
+`skip`, or `steer`) control the active response. `Ctrl+C` or
 closing the window stops it. See [launchers/README.md](launchers/README.md).
 
 This is the primary ME3 interaction. There is no Send button: the loop listens
@@ -22,7 +23,9 @@ continuously, Silero VAD detects the start and end of a turn, Whisper transcribe
 the captured utterance internally, Qwen or GPT-5.6 Luna may execute tools automatically, and
 the reply is spoken. New speech while ME3 is speaking is captured continuously;
 the newest ordinary prompt waits for a safe audio boundary, while explicit
-voice controls stop or redirect playback immediately. The browser UI below is
+ordinary overlap is either rejected as speaker echo or queued as a genuine
+user prompt; explicit voice controls stop or redirect playback immediately.
+The browser UI below is
 a secondary text and diagnostic console for inspection; it is not the
 definition of the voice agent.
 
@@ -69,6 +72,25 @@ activity, tool names/status, and selected model/voice metadata. It never shows
 hidden chain-of-thought, tool arguments, credentials, or raw tool results.
 The panel is fed by `/api/state` and remains useful over the Pi LAN URL even
 when the browser is only the speaker sink.
+
+Qwen Instruct uses direct streaming with `fast_mode: true` and
+`thinking: false`. The request includes Qwen/vLLM's
+`chat_template_kwargs.enable_thinking=false`, so hidden reasoning tokens are
+not generated on the voice path. When a model/tool turn exceeds the immediate
+acknowledgement window, the **Background processes** panel shows the live
+agent thread and bounded project subprocesses (PID, elapsed time, stage,
+command, and redacted output tails). ME3 speaks a formal progress update at
+most once per minute while the task remains active, then announces the final
+result at a safe playback boundary.
+
+For the Pi microphone-to-laptop-speaker arrangement, the echo guard keeps the
+exact browser PCM reference and also fits a bounded multi-tap acoustic path to
+cover speaker delay, room reflections, and USB-clock drift. A speaker-only
+frame is gated when the residual collapses; unmatched user speech is retained
+for the protected `stop processing`, `skip`, and `steer` control path. The
+guard exposes only counters and correlation metrics through
+`/api/audio/devices`; it does not claim a human acoustic acceptance test until
+one is run in the actual room.
 
 ```powershell
 # Existing/current audio path

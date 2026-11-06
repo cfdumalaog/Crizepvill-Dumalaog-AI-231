@@ -45,6 +45,28 @@ def test_background_task_manager_runs_and_reports(tmp_path):
         time.sleep(0.05)
     assert manager.status(task_id)["status"] == "completed"
     assert "me3-task-ok" in manager.output(task_id)["text"]
+    snapshot = manager.snapshot()
+    row = next(item for item in snapshot if item["task_id"] == task_id)
+    assert row["status"] == "completed"
+    assert row["pid"]
+    assert "me3-task-ok" in row["stdout_tail"]
+
+
+def test_background_snapshot_redacts_runtime_output(tmp_path):
+    manager = BackgroundTaskManager(tmp_path)
+    task = manager.start(
+        ["python", "-c", "print('token=super-secret')"],
+        tmp_path,
+        timeout_s=30,
+    )
+    for _ in range(30):
+        if manager.status(task["task_id"]).get("status") == "completed":
+            break
+        import time
+        time.sleep(0.05)
+    row = next(item for item in manager.snapshot() if item["task_id"] == task["task_id"])
+    assert "super-secret" not in row["stdout_tail"]
+    assert "<redacted>" in row["stdout_tail"]
 
 
 def test_qwen_tool_loop_executes_tool_then_returns_text(monkeypatch):
@@ -138,6 +160,35 @@ def test_luna_tool_loop_disables_reasoning_and_temperature(monkeypatch):
     assert "reasoning_effort" not in captured[0]
     assert captured[0]["max_completion_tokens"] == 256
     assert "temperature" not in captured[0]
+
+
+def test_qwen_fast_mode_disables_hidden_thinking(monkeypatch):
+    monkeypatch.setenv("QWEN_FAST_TEST_KEY", "in-memory-test-only")
+    captured = []
+
+    def fake_post(*args, **kwargs):
+        captured.append(kwargs["json"])
+        response = SimpleNamespace()
+        response.iter_lines = lambda decode_unicode=True: iter([
+            'data: {"choices":[{"delta":{"role":"assistant","content":"Fast Qwen response."}}]}',
+            'data: [DONE]',
+        ])
+        response.close = lambda: None
+        response.raise_for_status = lambda: None
+        return response
+
+    monkeypatch.setattr(brain.requests, "post", fake_post)
+    b = brain.ToolBrain(
+        {"base_url": "http://qwen.test/v1", "model": "Qwen/test",
+         "provider": "qwen", "api_key_env": "QWEN_FAST_TEST_KEY",
+         "fast_mode": True, "thinking": False, "stream": True,
+         "max_tokens": 256, "timeout_s": 2, "system_prompt": "test"},
+        "test",
+    )
+    assert b.chat([], "say hello") == "Fast Qwen response."
+    assert captured[0]["stream"] is True
+    assert captured[0]["chat_template_kwargs"] == {"enable_thinking": False}
+    assert "reasoning_effort" not in captured[0]
 
 
 def test_openai_compatible_response_stream_is_assembled_without_reasoning(monkeypatch):

@@ -4,7 +4,8 @@
     [string]$Brain = 'auto',
     [ValidateSet('current', 'qwen_instruct')]
     [string]$Variant = 'qwen_instruct',
-    [string]$QwenInstructSecretFile = ''
+    [string]$QwenInstructSecretFile = '',
+    [switch]$Web
 )
 
 $ErrorActionPreference = 'Stop'
@@ -107,7 +108,8 @@ if ($brainMode -eq 'auto') {
 }
 if ($brainMode -eq 'qwen') { $brainMode = 'remote' }
 
-Write-Host 'ME3 - Voice Duplex (local full-duplex loop)'
+$title = if ($Web) { 'ME3 - Voice Duplex (local browser console)' } else { 'ME3 - Voice Duplex (local full-duplex loop)' }
+Write-Host $title
 Write-Host "Project : $project"
 Write-Host "Python  : $python"
 Write-Host "LLM     : $brainMode (Qwen key $(if ($haveKey) { 'configured' } else { 'not set' }); Luna key $(if ($haveOpenAIKey) { 'configured' } else { 'not set' }))"
@@ -123,8 +125,17 @@ Write-Host 'Controls: protected playback; say "stop processing", "skip", or "ste
 Write-Host 'Echo    : speaker-reference cancellation is enabled; headphones still give the cleanest barge-in.'
 Write-Host ''
 
-$arguments = @('scripts\run_me3_module.py', 'me3.agent', '--brain', $brainMode, '--variant', $Variant)
-if ($Device -ne 'auto') { $arguments += @('--device', $Device) }
+$arguments = if ($Web) {
+    @('scripts\me3_pi_server.py', '--host', '127.0.0.1', '--port', '8126',
+      '--audio-port', '8127', '--brain', $brainMode, '--variant', $Variant,
+      '--output', 'browser')
+} else {
+    @('scripts\run_me3_module.py', 'me3.agent', '--brain', $brainMode,
+      '--variant', $Variant)
+}
+if ($Device -ne 'auto') {
+    $arguments += if ($Web) { @('--input-device', $Device) } else { @('--device', $Device) }
+}
 
 Push-Location $project
 try {

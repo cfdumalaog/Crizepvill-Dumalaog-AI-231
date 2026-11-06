@@ -29,6 +29,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import difflib
 import logging
 import os
 import re
@@ -335,6 +336,12 @@ class LocalVoiceLoop:
         self.backchannel = str(
             agent.get("backchannel", "I am processing your request now.")
         )
+        # Protected playback is intentionally uninterruptible for ordinary
+        # speech. Only the narrow voice controls below are actionable while
+        # the browser speaker is active; this prevents a residual acoustic
+        # fragment from becoming a new task after the echo canceller.
+        self.ignore_noncontrol_during_playback = bool(
+            agent.get("protected_playback_ignore_noncontrol", True))
         # Long tasks survive barge-in.  The user may interrupt the spoken
         # backchannel or a reply, but an already accepted tool request must
         # not be discarded.  Completed results wait until the audio path is
@@ -342,16 +349,24 @@ class LocalVoiceLoop:
         self._pending: deque[tuple] = deque()
         self._completed: deque[tuple] = deque()
         self._tts_lock = threading.Lock()
+        self._progress_lock = threading.RLock()
+        self._progress_holders: dict[int, dict] = {}
+        self._spoken_transcripts: deque[tuple[str, float]] = deque(maxlen=8)
         self.orchestrator = orchestrator or VocalisOrchestrator(
             sample_rate=self.sr,
             backchannel=self.backchannel,
         )
         self._brain_on_tool = None
+        self._brain_on_progress = None
         if self.brain is not None:
             callback = getattr(self.brain, "on_tool", None)
             if callable(callback):
                 self._brain_on_tool = callback
                 self.brain.on_tool = self._on_brain_tool
+            callback = getattr(self.brain, "on_progress", None)
+            if callable(callback):
+                self._brain_on_progress = callback
+                self.brain.on_progress = self._on_brain_progress
 
         self.state = "idle"
         self._pre: deque[np.ndarray] = deque(
@@ -364,6 +379,8 @@ class LocalVoiceLoop:
         self._control_speech_ms = 0
         self._control_silence_ms = 0
         self._control_started_at: float | None = None
+        self._control_echo_suspect_frames = 0
+        self._control_frame_count = 0
         self._deferred_text: str | None = None
         self._deferred_asr_ms = 0.0
         self._deferred_t_start: float | None = None
@@ -391,6 +408,132 @@ class LocalVoiceLoop:
             "name": str(name),
             "ok": bool(ok),
         })
+
+    def _on_brain_progress(self, stage: str, detail: str) -> None:
+        """Bridge safe model/tool phase summaries into status telemetry."""
+        if self._brain_on_progress is not None:
+            self._brain_on_progress(stage, detail)
+        ident = threading.get_ident()
+        with self._progress_lock:
+            holder = self._progress_holders.get(ident)
+            if holder is not None:
+                holder["progress_stage"] = str(stage)[:80]
+                holder["progress_detail"] = str(detail)[:240]
+                holder["last_progress_at"] = time.time()
+        if self.status is not None:
+            self.status.report_progress(stage, detail)
+
+    @staticmethod
+    def _long_task_update(stage: str, detail: str) -> str:
+        """Build a short professional heartbeat without exposing reasoning."""
+        clean_stage = str(stage or "work").replace("_", " ").strip()
+        clean_detail = " ".join(str(detail or "working").split())[:160]
+        if clean_detail.lower().startswith("waiting for"):
+            return ("I am still working on your request. I am waiting for the "
+                    "model to return the next step, and I will report the result.")
+        if clean_detail:
+            return (f"I am still working on your request. Current stage: "
+                    f"{clean_detail}. I will continue and report the result.")
+        return (f"I am still working on your request during the {clean_stage} "
+                "stage. I will continue and report the result.")
+
+    @staticmethod
+    def _normalise_spoken_text(text: str) -> str:
+        return " ".join(re.sub(r"[^a-zA-Z0-9À-ž\s'-]", " ",
+                               str(text).lower()).split())
+
+    def _note_transcript_echo_rejected(self, text: str, reason: str) -> None:
+        capture = getattr(self.audio, "capture", self.audio)
+        note = getattr(capture, "note_transcript_echo_rejected", None)
+        if callable(note):
+            note()
+        message = f"Rejected protected playback speech ({reason})"
+        log.info("%s: %r", message, str(text)[:120])
+        if self.status is not None:
+            self.status.report_progress("echo_guard", message)
+            self.status.report_state_reason("protected playback speech rejected")
+
+    def _is_recent_spoken_echo(self, text: str) -> bool:
+        """Reject ASR text that matches audio ME3 recently sent to speakers."""
+        candidate = self._normalise_spoken_text(text)
+        if len(candidate) < 6:
+            return False
+        now = time.perf_counter()
+        kept: deque[tuple[str, float]] = deque(maxlen=8)
+        matched = False
+        for spoken, expires in self._spoken_transcripts:
+            if expires <= now:
+                continue
+            kept.append((spoken, expires))
+            if candidate == spoken:
+                matched = True
+            elif len(candidate) >= 12 and len(spoken) >= 12:
+                ratio = difflib.SequenceMatcher(None, candidate, spoken).ratio()
+                if ratio >= 0.82:
+                    matched = True
+        self._spoken_transcripts = kept
+        return matched
+
+    def _refresh_background_status(self) -> None:
+        """Publish live agent-thread and tool-process telemetry to the UI."""
+        long_tasks = []
+        now = time.perf_counter()
+        for thread, holder, _t_start, _asr_ms, request_text in list(self._pending):
+            started = float(holder.get("started_perf", now) or now)
+            long_tasks.append({
+                "status": "running" if thread.is_alive() else "completed",
+                "thread": thread.name,
+                "elapsed_s": round(max(0.0, now - started), 1),
+                "request": str(request_text)[:160],
+                "stage": str(holder.get("progress_stage", "thinking"))[:80],
+                "detail": str(holder.get("progress_detail", "working"))[:240],
+                "heartbeat_count": int(holder.get("heartbeat_count", 0) or 0),
+                "last_update_at": holder.get("last_progress_at"),
+            })
+        try:
+            from .tools import TASKS
+            processes = TASKS.snapshot()
+        except Exception as exc:  # noqa: BLE001 - telemetry must not stop voice
+            log.debug("background process snapshot unavailable: %s", exc)
+            processes = []
+        if self.status is not None:
+            self.status.report_background(long_tasks=long_tasks,
+                                          processes=processes)
+
+    def _emit_long_task_heartbeats(self) -> None:
+        """Queue one spoken progress update per minute for each long turn."""
+        now = time.perf_counter()
+        for _thread, holder, _t_start, _asr_ms, _request_text in list(self._pending):
+            started = float(holder.get("started_perf", now) or now)
+            last = float(holder.get("last_heartbeat_perf", started) or started)
+            if holder.get("cancel_requested") or now - started < 60.0:
+                continue
+            if now - last < 60.0 or holder.get("heartbeat_text"):
+                continue
+            stage = str(holder.get("progress_stage", "working"))
+            detail = str(holder.get("progress_detail", "working"))
+            holder["heartbeat_text"] = self._long_task_update(stage, detail)
+            holder["last_heartbeat_perf"] = now
+            holder["heartbeat_count"] = int(holder.get("heartbeat_count", 0) or 0) + 1
+            holder["last_progress_at"] = time.time()
+            if self.status is not None:
+                self.status.report_progress("heartbeat", holder["heartbeat_text"])
+
+    def _announce_progress_if_idle(self) -> None:
+        """Speak one queued heartbeat only at a safe audio boundary."""
+        if self.state not in ("idle", "awaiting") or not self.audio.playback_done():
+            return
+        for _thread, holder, t_start, asr_ms, _request_text in list(self._pending):
+            text = holder.get("heartbeat_text")
+            if not text or holder.get("cancel_requested"):
+                continue
+            holder["heartbeat_text"] = None
+            if self.status is not None:
+                self.status.report_reply(text, "progress")
+            self.orchestrator.on_assistant_text_delta(text, final=True)
+            self._speak_text(self._engines[4], text, t_start, asr_ms, 0.0,
+                             count_e2e=False, voice_role="announcer")
+            return
 
     # ---- Engine loading -----------------------------------------------------
     def _load_engines(self) -> None:
@@ -484,6 +627,12 @@ class LocalVoiceLoop:
                 self.status.report_state_reason("empty transcript discarded")
             self.orchestrator.set_state(TurnState.LISTENING, "empty transcript")
             return
+        if self._is_recent_spoken_echo(text):
+            self._note_transcript_echo_rejected(text, "matches recent ME3 output")
+            self.state = "idle"
+            self.orchestrator.set_state(TurnState.LISTENING,
+                                         "speaker echo rejected")
+            return
         log.info("heard: %r [asr %.0f ms]", text, asr_ms)
         self.orchestrator.on_transcript_delta(text, final=True,
                                               timestamp=t_start)
@@ -499,11 +648,30 @@ class LocalVoiceLoop:
             # wait stops only the current audio; the background work and its
             # completion reply remain queued for a later idle boundary.
             holder: dict = {}
+            holder.update({
+                "started_perf": time.perf_counter(),
+                "started_at": time.time(),
+                "progress_stage": "thinking",
+                "progress_detail": f"Waiting for {self.brain.name} model inference",
+                "last_progress_at": time.time(),
+                "last_heartbeat_perf": time.perf_counter(),
+                "heartbeat_count": 0,
+            })
 
             history_snapshot = list(self.history)
 
             def _run_brain() -> None:
-                holder["reply"] = self.brain.chat(history_snapshot, text)
+                ident = threading.get_ident()
+                with self._progress_lock:
+                    self._progress_holders[ident] = holder
+                try:
+                    holder["reply"] = self.brain.chat(history_snapshot, text)
+                except Exception as exc:  # noqa: BLE001 - announce safely later
+                    holder["error"] = type(exc).__name__
+                    log.exception("background brain task failed")
+                finally:
+                    with self._progress_lock:
+                        self._progress_holders.pop(ident, None)
 
             th = threading.Thread(target=_run_brain, daemon=True,
                                   name="me3-turn")
@@ -524,7 +692,9 @@ class LocalVoiceLoop:
                 if self.status is not None:
                     self.status.report_state_reason("long task running")
                 return
-            reply = holder["reply"]
+            if holder.get("error"):
+                raise RuntimeError(f"background brain task failed: {holder['error']}")
+            reply = holder.get("reply", "")
         else:
             reply = self.brain.chat(self.history, text)
         llm_ms = (time.perf_counter() - t0) * 1e3
@@ -562,6 +732,12 @@ class LocalVoiceLoop:
         tts_sr = int(getattr(getattr(tts_engine, "config", None),
                              "sample_rate", 22050) or 22050)
         out = resample_to(pcm, tts_sr, self.sr)
+        self._spoken_transcripts.append((
+            self._normalise_spoken_text(text),
+            time.perf_counter() + len(out) / max(1, self.sr) +
+            float(self.cfg["audio"].get("echo_guard", {}).get("tail_ms", 250)) /
+            1000.0 + 2.0,
+        ))
         with self._tts_lock:
             backend = getattr(tts_engine, "provider", "piper")
             event = getattr(tts_engine, "last_event", None) or {}
@@ -595,6 +771,13 @@ class LocalVoiceLoop:
         self._control_speech_ms = 0
         self._control_silence_ms = 0
         self._control_started_at = None
+        self._control_echo_suspect_frames = 0
+        self._control_frame_count = 0
+
+    def _current_frame_echo_suspect(self) -> bool:
+        """Return echo provenance attached to the most recently read frame."""
+        capture = getattr(self.audio, "capture", self.audio)
+        return bool(getattr(capture, "_last_echo_suspect", False))
 
     def _transcribe_control_audio(self, utterance: np.ndarray) -> tuple[str, float]:
         """Transcribe speech captured during protected playback.
@@ -656,20 +839,29 @@ class LocalVoiceLoop:
         if speech:
             if not self._control_uttr:
                 self._control_started_at = t
+            self._control_frame_count += 1
+            if self._current_frame_echo_suspect():
+                self._control_echo_suspect_frames += 1
             self._control_uttr.append(frame)
             self._control_speech_ms += self.frame_ms
             self._control_silence_ms = 0
             return
         if not self._control_uttr:
             return
+        self._control_frame_count += 1
+        if self._current_frame_echo_suspect():
+            self._control_echo_suspect_frames += 1
         self._control_silence_ms += self.frame_ms
         self._control_uttr.append(frame)
         if (self._control_speech_ms >= self.command_min_speech_ms and
                 self._control_silence_ms >= self.command_min_silence_ms):
             utterance = np.concatenate(self._control_uttr)
             started = self._control_started_at or t
+            suspect_frames = self._control_echo_suspect_frames
+            frame_count = self._control_frame_count
             self._reset_control_buffer()
-            self._process_protected_utterance(utterance, started)
+            self._process_protected_utterance(
+                utterance, started, suspect_frames, frame_count)
 
     def _cancel_pending_announcements(self) -> None:
         """Suppress accepted results after an explicit stop command.
@@ -725,7 +917,9 @@ class LocalVoiceLoop:
         self._dispatch_deferred_if_ready(force=True)
 
     def _process_protected_utterance(self, utterance: np.ndarray,
-                                     t_start: float) -> None:
+                                     t_start: float,
+                                     echo_suspect_frames: int = 0,
+                                     captured_frames: int = 0) -> None:
         text, asr_ms = self._transcribe_control_audio(utterance)
         if not text:
             return
@@ -738,8 +932,19 @@ class LocalVoiceLoop:
             self.stats.n_control += 1
             self._handle_voice_command(kind)
             return
-        # Ordinary speech is retained as the latest prompt.  It is dispatched
-        # at the next safe audio boundary instead of cutting off TTS.
+        ratio = (float(echo_suspect_frames) / float(captured_frames)
+                 if captured_frames > 0 else 0.0)
+        recent_echo = (self._is_recent_spoken_echo(text)
+                       if self.ignore_noncontrol_during_playback else False)
+        if self.ignore_noncontrol_during_playback and (recent_echo or ratio >= 0.55):
+            reason = ("matches recent ME3 output" if recent_echo else
+                      f"speaker-reference evidence {ratio:.0%}")
+            self._note_transcript_echo_rejected(
+                text, reason)
+            return
+        # Genuine user speech during protected playback is retained as the
+        # newest prompt and dispatched once the current TTS reaches a safe
+        # boundary. This preserves overlap handling without admitting echoes.
         self._deferred_text = text
         self._deferred_asr_ms = asr_ms
         self._deferred_t_start = t_start
@@ -771,6 +976,8 @@ class LocalVoiceLoop:
             log.info("background completion suppressed by voice stop")
             return
         reply = holder.get("reply", "")
+        if not reply and holder.get("error"):
+            reply = "I could not complete that request. Please try again."
         if reply:
             self.history.append({"role": "assistant", "content": reply})
             self.history = self.history[-8:]
@@ -845,6 +1052,9 @@ class LocalVoiceLoop:
         try:
             while not self._stop_event.is_set():
                 self._collect_completed()
+                self._emit_long_task_heartbeats()
+                self._refresh_background_status()
+                self._announce_progress_if_idle()
                 self._announce_completed_if_idle()
                 self._dispatch_deferred_if_ready()
                 frame = self.audio.read_frame(timeout=0.5)
