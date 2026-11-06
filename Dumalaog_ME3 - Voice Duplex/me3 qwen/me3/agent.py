@@ -56,6 +56,15 @@ log = logging.getLogger("me3.agent")
 PROJECT = project_root()
 
 
+def _fdbench_mark(stage: str, **fields) -> None:
+    """Emit an optional benchmark mark; live operation remains unchanged."""
+    try:
+        from fdbench_marks import mark
+    except Exception:  # noqa: BLE001 - benchmark support is optional
+        return
+    mark(stage, **fields)
+
+
 # ---------------------------------------------------------------------------
 # Pipecat-facing control logic (harness-agnostic, unit-testable).
 # Kept intact for the Pi transport wiring; the local loop below reuses the
@@ -677,6 +686,7 @@ class LocalVoiceLoop:
         else:
             text = text_override.strip()
             asr_ms = float(asr_ms_override or 0.0)
+        _fdbench_mark("asr_final", text=text)
         self.stats.asr_ms.append(asr_ms)
         if not text:
             log.info("turn ignored (empty transcript) [asr %.0f ms]", asr_ms)
@@ -799,7 +809,13 @@ class LocalVoiceLoop:
                     voice_role: str = "response") -> None:
         """Synthesize + queue one reply (thread-safe playback start)."""
         t0 = time.perf_counter()
-        chunks = [c.audio_int16_bytes for c in tts_engine.synthesize(text)]
+        _fdbench_mark("tts_request")
+        chunks = []
+        for chunk in tts_engine.synthesize(text):
+            audio_bytes = chunk.audio_int16_bytes
+            if not chunks and audio_bytes:
+                _fdbench_mark("tts_first_audio")
+            chunks.append(audio_bytes)
         pcm = np.frombuffer(b"".join(chunks), dtype=np.int16)
         tts_ms = (time.perf_counter() - t0) * 1e3
         self.stats.tts_ms.append(tts_ms)
@@ -832,6 +848,7 @@ class LocalVoiceLoop:
                                        "bytes", "error_class", "model",
                                        "voice_requested", "language")
                  if k in event})
+            _fdbench_mark("audio_out")
             self.audio.play(out, blocking=False)
         self.state = "speaking"
         if self.status is not None:
@@ -1099,6 +1116,7 @@ class LocalVoiceLoop:
             self.orchestrator.set_state(TurnState.LISTENING, "short audio ignored")
             return
         t_end = time.perf_counter()
+        _fdbench_mark("vad_end")
         try:
             self._process_turn(utterance, t)
         except Exception as exc:  # noqa: BLE001 - keep the loop alive
@@ -1180,6 +1198,7 @@ class LocalVoiceLoop:
         if self.state in ("speaking", "awaiting") or self._control_uttr:
             if speech and self.barge_in:
                 self.stats.n_barge_in += 1
+                _fdbench_mark("interrupted")
                 if self.status is not None:
                     self.status.report_barge_in()
                 self.audio.stop_playback()

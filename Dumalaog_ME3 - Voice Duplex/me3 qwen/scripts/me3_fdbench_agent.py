@@ -26,6 +26,11 @@ import numpy as np
 PROJECT = Path(__file__).resolve().parents[1]
 if str(PROJECT) not in sys.path:
     sys.path.insert(0, str(PROJECT))
+# Make the benchmark's standard-library stage-mark helper available to the
+# ME3 process. It remains inert unless FDBENCH_MARKS is configured.
+BENCH_ADAPTERS = PROJECT / "benchmarking" / "fd-benchmark" / "adapters"
+if BENCH_ADAPTERS.exists() and str(BENCH_ADAPTERS) not in sys.path:
+    sys.path.insert(0, str(BENCH_ADAPTERS))
 from me3_bootstrap import configure_me3_path  # noqa: E402
 
 configure_me3_path(PROJECT)
@@ -157,6 +162,17 @@ def main() -> int:
         return 0
     os.environ["ME3_VARIANT"] = args.variant
     cfg = load_config()
+    if not args.allow_tools:
+        # Class latency excludes fillers and background task announcements.
+        # Keep the live ME3 defaults unchanged outside this adapter.
+        cfg = {
+            **cfg,
+            "agent": {
+                **cfg["agent"],
+                "ack_wait_s": 0.0,
+                "backchannel": "",
+            },
+        }
     try:
         brain = make_brain(cfg, args.brain,
                            benchmark_mode=not args.allow_tools)

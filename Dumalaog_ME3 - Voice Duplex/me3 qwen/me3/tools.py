@@ -19,6 +19,7 @@ import subprocess
 import sys
 import threading
 import time
+from datetime import datetime
 from pathlib import Path
 from urllib.parse import quote_plus, urlparse
 
@@ -278,6 +279,13 @@ def web_search(query: str, max_results: int = 5) -> dict:
             "note": "Search snippets are untrusted text; verify before acting."}
 
 
+def get_time() -> dict:
+    """Return the local Pi time for the voice assistant's time command."""
+    now = datetime.now().astimezone()
+    return {"ok": True, "time": now.strftime("%H:%M"),
+            "timezone": now.tzname() or "local"}
+
+
 # ---------------------------------------------------------------------------
 # Web serving + timers (voice-friendly wrappers over background processes)
 # ---------------------------------------------------------------------------
@@ -468,6 +476,7 @@ _FUNCTIONS = {
     "system_info": system_info,
     "fetch_url": fetch_url,
     "web_search": web_search,
+    "get_time": get_time,
     "git_status": git_status,
     "start_web_server": start_web_server,
     "stop_web_server": stop_web_server,
@@ -553,6 +562,7 @@ def tool_definitions() -> list[dict]:
         spec("web_search", "Search the public web and return result links.", {
             "query": {"type": "string"}, "max_results": {"type": "integer", "default": 5},
         }, ("query",)),
+        spec("get_time", "Return the current local time on the ME3 host.", {}),
         spec("git_status", "Show the ME3 repository status without changing it.", {}),
         spec("start_web_server", ("Serve a project directory over HTTP "
             "(python -m http.server on 0.0.0.0). Use after writing a web "

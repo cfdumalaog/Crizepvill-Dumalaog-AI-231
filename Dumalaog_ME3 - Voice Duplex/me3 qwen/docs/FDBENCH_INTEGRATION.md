@@ -43,6 +43,13 @@ transport. Direct-feed evaluation has one sample clock and no physical
 acoustic feedback; the Pi demo has the real Fifine/USB microphone and can route
 TTS either to a Pi output device or to the connected browser over LAN.
 
+For the class stage-latency rows, the adapter exposes the project's optional
+stage marks. ME3 marks VAD end, ASR final, streamed LLM first token, TTS request,
+first TTS audio, audio output, and interruption. The marks use the Pi monotonic
+clock and travel to the laptop benchmark over the benchmark UDP mark channel.
+Benchmark mode sets the acknowledgment wait to zero, so a slow turn does not
+add the live assistant's backchannel to the latency measurement.
+
 ## Evidence boundary
 
 `--check` and the simulation prove that the vendored benchmark and ME3 adapter
@@ -62,5 +69,8 @@ dispatch, filler/backchannel audio, and real channel side effects. Use
 `--allow-tools` only for a separate agentic demonstration.
 
 Targets: E2E 4.0 s, ASR final 0.8 s, LLM TTFT 1.5 s, TTS TTFB 0.6 s, and
-barge-in 0.8 s. Measured mean and p95 remain blank until a clean run of the
-updated shared benchmark produces them.
+barge-in 0.8 s. Report the arithmetic mean and p95 across every valid trial in
+the predefined run set. Do not select the fastest run. With fewer than 20
+trials, label p95 as close to the slowest trial. If the ASR provider is
+unavailable, keep the run as diagnostic evidence and label the fallback in the
+deck rather than presenting it as the Qwen ASR result.

@@ -18,6 +18,56 @@ def test_tool_definitions_are_openai_compatible_and_unique():
         assert item["function"]["parameters"]["type"] == "object"
 
 
+@pytest.mark.parametrize("utterance, expected", [
+    ("play music", "play_music"),
+    ("play that's what I like by Bruno Mars", "play_music"),
+    ("what is the weather in Manila", "get_weather"),
+    ("turn on the lights", "control_lights"),
+    ("dim lights to 30 percent", "control_lights"),
+    ("set a timer for 5 minutes", "set_timer"),
+    ("set an alarm for 7 AM", "set_alarm"),
+    ("set temperature to 24 degrees", "set_thermostat"),
+    ("pause", "media_control"),
+    ("remind me to submit the report", "create_reminder"),
+    ("call mom", "call_contact"),
+])
+def test_clear_me2_commands_have_deterministic_tool_routes(utterance, expected):
+    routed = brain._direct_me2_request(utterance)
+    assert routed is not None
+    assert routed[0] == expected
+
+
+def test_repeated_voice_history_cannot_swallow_play_music_tool_call(monkeypatch):
+    monkeypatch.setenv("ME3_DIRECT_TEST_KEY", "in-memory-test-only")
+    calls = []
+
+    def fake_dispatch(name, args):
+        calls.append((name, args))
+        return {
+            "ok": True,
+            "provider": "YouTube Music",
+            "media": {"state": "playing"},
+            "browser_url": "https://music.youtube.com/search?q=music",
+        }
+
+    b = brain.ToolBrain(
+        {"base_url": "http://qwen.test/v1", "model": "Qwen/test",
+         "api_key_env": "ME3_DIRECT_TEST_KEY", "max_tokens": 128,
+         "timeout_s": 2, "system_prompt": "test"},
+        "test", dispatch_fn=fake_dispatch,
+    )
+    history = [
+        {"role": "user", "content": "Hello, play music."},
+        {"role": "assistant", "content": "I am ready for your next request."},
+        {"role": "user", "content": "Play music."},
+        {"role": "assistant", "content": "I am ready for your next request."},
+    ]
+    reply = b.chat(history, "play music")
+    assert calls == [("play_music", {"query": "music", "service": "youtube_music"})]
+    assert b.metrics["tool_calls"][0]["name"] == "play_music"
+    assert "Open in browser" in reply
+
+
 def test_command_policy_blocks_shell_and_external_access():
     with pytest.raises(ValueError):
         tools._argv("rm -rf agent_workspace")

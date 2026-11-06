@@ -4,6 +4,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import re
 import time
 from collections.abc import Callable
 
@@ -12,6 +13,191 @@ import requests
 from .tools import dispatch, tool_definitions
 
 log = logging.getLogger("me3.brain")
+
+
+def _fdbench_mark(stage: str, **fields) -> None:
+    """Emit an optional course-benchmark mark without coupling live runtime."""
+    try:
+        from fdbench_marks import mark
+    except Exception:  # noqa: BLE001 - benchmark support is optional
+        return
+    mark(stage, **fields)
+
+
+def _direct_me2_request(text: str) -> tuple[str, dict] | None:
+    """Route clear ME2-style voice commands to their named tools.
+
+    Qwen remains the general-purpose planner.  This small deterministic guard
+    exists for short, unambiguous appliance/media commands where a repeated
+    voice history can otherwise make a model answer with a generic greeting
+    instead of emitting a function call.  It never runs when ``allow_tools``
+    is false, so the clean benchmark path is unchanged.
+    """
+    raw = " ".join(str(text or "").split()).strip()
+    low = raw.lower()
+    if not raw or low in {"stop processing", "skip", "steer"}:
+        return None
+
+    # Play music / song / track.  Google maps to YouTube Music; the operator
+    # can choose Spotify explicitly and the UI opens the signed-in browser.
+    play = re.search(r"\b(?:play|start)\b", low)
+    play_tail = low[play.end():].strip() if play else ""
+    if play and (
+        any(word in low for word in ("music", "song", "track", "album", "playlist", "spotify", "youtube"))
+        or re.search(r"\bby\b", play_tail)
+    ):
+        query = raw[play.end():].strip(" .,!?:")
+        query = re.sub(
+            r"^(?:(?:some|the|a|an)\s+)?(?:music|songs?|tracks?)\b",
+            "", query, flags=re.IGNORECASE,
+        ).strip(" .,!?:")
+        query = re.sub(
+            r"\s+(?:on|in|using|from)\s+(?:spotify|youtube(?:\s+music)?)\s*$",
+            "", query, flags=re.IGNORECASE,
+        ).strip(" .,!?:")
+        service = "spotify" if "spotify" in low else "youtube_music"
+        return "play_music", {"query": query or "music", "service": service}
+
+    # Media controls are deliberately checked before generic search phrases.
+    media = {
+        "pause": "pause", "stop music": "stop", "stop the music": "stop",
+        "skip": "skip", "next track": "skip", "next song": "skip",
+        "volume up": "volume_up", "louder": "volume_up",
+        "volume down": "volume_down", "quieter": "volume_down",
+    }
+    for marker, action in media.items():
+        if marker in low:
+            return "media_control", {"action": action}
+
+    # Lights and dim/color lights share one tool and the same simulated bulb.
+    if re.search(r"\blights?\b", low):
+        action = None
+        if re.search(r"\b(?:turn|switch)\s+on\b|\blights?\s+on\b", low):
+            action = "on"
+        elif re.search(r"\b(?:turn|switch)\s+off\b|\blights?\s+off\b", low):
+            action = "off"
+        elif any(word in low for word in ("dim", "brightness", "percent")):
+            action = "dim"
+        elif "color" in low or "colour" in low:
+            action = "color"
+        if action:
+            value: int | str | None = None
+            if action == "dim":
+                match = re.search(r"(\d{1,3})\s*%?", low)
+                if match:
+                    value = int(match.group(1))
+            elif action == "color":
+                match = re.search(
+                    r"\b(?:color|colour)\s+(?:to\s+)?([a-z]+)", low)
+                value = match.group(1) if match else "warm white"
+            return "control_lights", {"action": action, "room": "all", "value": value}
+
+    # Thermostat/temperature commands.
+    if "thermostat" in low or re.search(r"\btemperature\b", low):
+        match = re.search(r"\b(\d+(?:\.\d+)?)\s*(?:degrees?|°c)?\b", low)
+        if match:
+            return "set_thermostat", {
+                "temperature_c": float(match.group(1)), "room": "home"
+            }
+
+    # Timers and alarms use the existing validated local lifecycle tools.
+    if "timer" in low:
+        match = re.search(
+            r"(\d+(?:\.\d+)?)\s*(seconds?|secs?|minutes?|mins?|hours?|hrs?)",
+            low,
+        )
+        if match:
+            amount = float(match.group(1))
+            unit = match.group(2)
+            factor = 3600 if unit.startswith("h") else 60 if unit.startswith("m") else 1
+            return "set_timer", {"seconds": amount * factor, "label": "voice timer"}
+
+    if "alarm" in low:
+        match = re.search(
+            r"\b(?:at|for)\s+(\d{1,2}(?::\d{2})?\s*(?:a\.?m\.?|p\.?m\.?)?)",
+            raw, flags=re.IGNORECASE,
+        )
+        if match:
+            return "set_alarm", {"time_text": match.group(1), "label": "voice alarm"}
+
+    # Reminders and lists.
+    if "reminder" in low or "remind me" in low:
+        if re.search(r"\b(?:what are|list|show)\b.*\breminders?\b", low):
+            return "list_reminders", {"include_completed": False}
+        match = re.search(r"\bremind me to\s+(.+)$", raw, flags=re.IGNORECASE)
+        if match:
+            return "create_reminder", {"text": match.group(1).strip(), "delay_seconds": None}
+
+    # Telegram text and the intentionally unsupported voice-call tool still
+    # produce a tool event and a safe, explicit result.
+    if re.search(r"\bcall\b", low):
+        match = re.search(r"\bcall\s+(.+)$", raw, flags=re.IGNORECASE)
+        if match:
+            contact = re.sub(r"\s+(?:on|via)\s+.*$", "", match.group(1), flags=re.IGNORECASE)
+            return "call_contact", {"contact": contact.strip(), "confirm": False}
+    if re.search(r"\b(?:send|message|text|telegram)\b", low):
+        contact_match = re.search(r"\bto\s+([^,:]+)", raw, flags=re.IGNORECASE)
+        body_match = re.search(r"\b(?:saying|that says|message)\s+(.+)$", raw, flags=re.IGNORECASE)
+        if contact_match:
+            return "send_message", {
+                "contact": contact_match.group(1).strip(),
+                "body": body_match.group(1).strip() if body_match else "",
+                "channel": "telegram", "confirm": False,
+            }
+
+    # Questions/search/weather.  Open-ended questions remain with Qwen unless
+    # they match one of these clear, side-effect-free tool intents.
+    if "weather" in low:
+        match = re.search(r"\b(?:in|at|for)\s+(.+)$", raw, flags=re.IGNORECASE)
+        return "get_weather", {"location": (match.group(1).strip() if match else "Manila")}
+    if re.search(r"\b(?:what(?:'s| is) the time|what time is it|current time)\b", low):
+        return "get_time", {}
+    if re.search(r"\b(?:search|look up|find)\b", low):
+        query = re.sub(r"^.*?\b(?:search|look up|find)\b\s*", "", raw, flags=re.IGNORECASE).strip(" .,!?:")
+        if query:
+            return "web_search", {"query": query, "max_results": 5}
+
+    return None
+
+
+def _direct_tool_reply(name: str, args: dict, result) -> str:
+    """Turn a deterministic ME2 tool result into a short spoken response."""
+    if not isinstance(result, dict):
+        return "The requested command completed."
+    if not result.get("ok"):
+        error = str(result.get("error") or "the tool reported an error").replace("_", " ")
+        return f"I could not complete that command because {error}."
+    if name == "play_music":
+        return (f"I prepared {result.get('provider', 'the music service')} for "
+                f"{args.get('query', 'music')}. Please click Open in browser "
+                "in the ME3 UI to start playback using your signed-in session.")
+    if name == "media_control":
+        return f"Media control completed: {args.get('action', 'updated')}."
+    if name == "control_lights":
+        light = result.get("lights") or {}
+        state = "on" if light.get("on") else "off"
+        return f"The simulated light is {state} at {light.get('brightness', 100)} percent."
+    if name == "set_thermostat":
+        return f"The simulated thermostat is set to {result.get('temperature_c')} degrees Celsius."
+    if name == "get_weather":
+        return (f"The weather in {args.get('location', 'the requested location')} is "
+                f"{result.get('description', 'available')} at {result.get('temperature_c', 'an unavailable')} degrees Celsius.")
+    if name == "get_time":
+        return f"The current local time is {result.get('time', 'available')}"
+    if name == "web_search":
+        rows = result.get("results") or []
+        return f"I found {len(rows)} web result(s) for {args.get('query', 'your search')}."
+    if name == "set_timer":
+        return "The timer has been set."
+    if name == "set_alarm":
+        return "The alarm has been set."
+    if name == "create_reminder":
+        return "The reminder has been created."
+    if name == "list_reminders":
+        return f"There are {len(result.get('reminders') or [])} active reminder(s)."
+    if name in {"call_contact", "send_message"}:
+        return "I checked the requested communication action. " + str(result.get("message") or result.get("error") or "Confirmation is required.")
+    return "The requested command completed successfully."
 
 
 def resolve_llm_config(cfg: dict, selection: str = "auto") -> tuple[str | None, dict | None]:
@@ -131,6 +317,11 @@ class ToolBrain:
         # multi-tool turns past the request timeout (observed: 2 of 4 long
         # turns on 2026-10-31). One retry on pure transport failures keeps
         # the voice-to-tool path reliable; any other error surfaces at once.
+        _fdbench_mark(
+            "llm_request",
+            messages=len(messages),
+            chars=sum(len(str(m.get("content") or "")) for m in messages),
+        )
         for _attempt in (1, 2):
             try:
                 self._progress("thinking", f"Waiting for {self.name} model inference")
@@ -174,6 +365,7 @@ class ToolBrain:
         reasoning_parts: list[str] = []
         tool_calls: dict[int, dict] = {}
         usage: dict = {}
+        first_token_marked = False
         try:
             for raw_line in response.iter_lines(decode_unicode=True):
                 if raw_line is None:
@@ -198,6 +390,9 @@ class ToolBrain:
                     continue
                 delta = choices[0].get("delta") or {}
                 if isinstance(delta.get("content"), str):
+                    if not first_token_marked and delta.get("content"):
+                        _fdbench_mark("llm_first_token")
+                        first_token_marked = True
                     content_parts.append(delta["content"])
                     self._progress("response_stream", "Receiving streamed response")
                 if isinstance(delta.get("reasoning_content"), str):
@@ -205,6 +400,9 @@ class ToolBrain:
                 for fallback_index, call in enumerate(delta.get("tool_calls") or []):
                     if not isinstance(call, dict):
                         continue
+                    if not first_token_marked:
+                        _fdbench_mark("llm_first_token")
+                        first_token_marked = True
                     index = int(call.get("index", fallback_index))
                     current = tool_calls.setdefault(index, {
                         "id": "", "type": "function",
@@ -275,6 +473,37 @@ class ToolBrain:
         messages = [{"role": "system", "content": system}]
         messages.extend(history[-self.history_messages:])
         messages.append({"role": "user", "content": user_text})
+
+        # Short ME2 commands are routed through the same bounded tool
+        # dispatcher before asking Qwen to plan.  This prevents repeated
+        # generic assistant replies in a voice history from swallowing a
+        # clear command such as "play music".
+        direct = _direct_me2_request(user_text) if self.allow_tools else None
+        if direct is not None:
+            name, args = direct
+            self._progress("planning", f"Routing direct ME2 command to {name}")
+            started = time.perf_counter()
+            if self.metrics["first_tool_ms"] is None:
+                self.metrics["first_tool_ms"] = (started - self.metrics["t0"]) * 1e3
+            if self.on_tool:
+                self.on_tool("start", name, args)
+            try:
+                result = self.dispatch_fn(name, args)
+            except Exception as exc:  # noqa: BLE001 - preserve safe tool result
+                result = {"ok": False, "error": f"{type(exc).__name__}: {exc}"}
+            tool_ms = (time.perf_counter() - started) * 1e3
+            self.metrics["tool_calls"].append({
+                "name": name, "ms": round(tool_ms),
+                "ok": (bool(result.get("ok"))
+                       if isinstance(result, dict) else True),
+            })
+            if self.on_tool:
+                self.on_tool("finish", name, result)
+            self._progress(
+                "tool",
+                f"Finished tool: {name} ({'ok' if (result.get('ok') if isinstance(result, dict) else True) else 'error'})",
+            )
+            return _direct_tool_reply(name, args, result)
 
         for step in range(self.max_tool_steps):
             message, usage = self._request(messages, include_tools=True)

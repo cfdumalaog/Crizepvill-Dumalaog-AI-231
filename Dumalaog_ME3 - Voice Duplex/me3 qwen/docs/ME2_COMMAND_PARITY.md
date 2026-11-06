@@ -9,7 +9,7 @@ available to the direct ToolBrain and the owned `me3-tasks` MCP server.
 | ME2 command family | ME3 tool(s) | Current behavior | Live requirement |
 |---|---|---|---|
 | Play music | `play_music`, `music_state` | Sends a browser handoff event and search URL; Google maps to YouTube Music and Spotify is supported | One operator click in the signed-in browser; full programmatic control needs a provider player/OAuth bridge |
-| Ask/search/weather | `web_search`, `fetch_url`, `get_weather` | Public web search and no-key current-weather lookup | Internet access; verify results before acting |
+| Ask/search/weather | `web_search`, `fetch_url`, `get_weather`, `get_time` | Public web search, no-key current-weather lookup, and local time | Internet access for web/weather; verify results before acting |
 | Lights on/off | `control_lights` | Validated local demo state | Home Assistant URL/token/entity mapping or another IoT adapter |
 | Dim/color lights | `control_lights` | Percent/color validation and local state | Same physical-light connector |
 | Set a timer | `set_timer`, `set_alarm` | Timer and next-occurrence alarm records | Platform notification scheduler for audible firing |
@@ -33,3 +33,7 @@ available to the direct ToolBrain and the owned `me3-tasks` MCP server.
 - The Pi never reads or copies browser cookies. YouTube Music and Spotify use a
   visible browser handoff so the operator's existing login stays in that
   browser. Google Play Music itself is discontinued; use YouTube Music.
+- Clear short commands are routed through a bounded voice-command guard before
+  Qwen planning. This is still a tool call through the same dispatcher; it only
+  prevents repeated conversation history from swallowing an unambiguous ME2
+  command. Open-ended requests continue through normal Qwen tool inference.

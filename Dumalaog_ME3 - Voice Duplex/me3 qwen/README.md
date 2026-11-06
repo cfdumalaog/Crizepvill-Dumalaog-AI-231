@@ -279,7 +279,7 @@ Dumalaog_ME3 - Voice Duplex/
 ├── docs/CHANNEL_INTEGRATIONS.md # call, SMS/text, email API requirements
 ├── docs/acm/ME3_Voice_Duplex_ACM.tex # ACM two-column LaTeX source
 ├── docs/acm/ME3_Voice_Duplex_ACM.pdf # ACM two-column paper
-├── docs/presentation/ME3_Voice_Duplex_Presentation_v9_Luna.pptx # presentation deck
+├── docs/presentation/ME3_Voice_Duplex_Presentation_v10_Benchmark.pptx # presentation deck
 ├── docs/PHILIPPINE_CALL_CENTER_PILOT.md # Philippines-market pilot and handoff manual
 ├── docs/DEMO_RUNBOOK.md # classroom demo sequence and evidence boundaries
 ├── FULL-DUPLEX-BENCH V1.5 - EVALUATING OVERLAP.pdf # user source paper
@@ -465,7 +465,11 @@ The ME2 command families are retained through explicit model-selected tools:
 `set_thermostat`, `set_alarm`, `create_reminder`, `call_contact`, and
 `send_message`. See [ME2 command parity](docs/ME2_COMMAND_PARITY.md) for the
 demo/live integration boundary. These adapters use inference and deterministic
-tool execution; no ME2 model retraining is required.
+tool execution; no ME2 model retraining is required. Clear short ME2 commands
+also pass through a bounded voice-command routing guard before Qwen planning,
+so repeated conversation history cannot turn an actionable command into a
+generic readiness reply. The guard still emits the same named tool event and
+uses the same dispatcher.
 
 For music, the default Google route is **YouTube Music** because Google Play
 Music was discontinued. `play_music` sends a visible browser handoff event to
@@ -543,6 +547,15 @@ speaker, disables tool calls and external agent/harness calls, and disables
 fillers/backchannels. The targets are E2E 4.0 s, ASR final 0.8 s, LLM TTFT
 1.5 s, TTS TTFB 0.6 s, and barge-in 0.8 s. The direct-feed adapter keeps
 live-agent tool behavior available separately through `--allow-tools`.
+
+The first complete Pi stage run used 10 phrases × 3 runs and aggregated every
+valid trial rather than choosing the best run. It produced E2E mean/p95 of
+5.81/7.87 s, ASR final 3.38/4.92 s, LLM TTFT 0.21/0.21 s, TTS TTFB
+1.60/2.98 s, and WER 29.3%. The Qwen ASR listener on DGX3 port 8000 was
+unreachable during collection, so the runtime used its documented
+faster-whisper fallback. Treat this as diagnostic deployed-pipeline evidence,
+not a clean Qwen2-Audio ASR claim. The checked-in method and evidence boundary
+are in [docs/ME3_QWEN_STAGE_BENCHMARK_20261107.md](docs/ME3_QWEN_STAGE_BENCHMARK_20261107.md).
 
 ## Pi deployment (tool brain key)
 
