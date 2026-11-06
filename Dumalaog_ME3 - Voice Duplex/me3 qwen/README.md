@@ -180,21 +180,21 @@ cannot be matched by one microphone echo reference. Browser-native
 `speechSynthesis` is disabled in both the live assistant and diagnostic UI;
 the selected profile TTS is the only response voice.
 
-For the Qwen Instruct audio deployment, provision the protected audio endpoint
-values once after the first sync (the script reads the Windows handoff only in
-memory and never prints the key):
+For the Qwen Instruct audio deployment, install the SHARC OpenVPN client on the
+Pi first, as documented in `docs/SHARC_VPN_PI_SETUP.md`. Then provision the
+protected audio endpoint values once after the first sync (the script reads the
+Windows handoff only in memory and never prints the key):
 
 ```powershell
-& '.\scripts\Provision-Qwen-Pi.ps1' -UseReverseTunnel
+& '.\scripts\Provision-Qwen-Pi.ps1'
 ```
 
-The Pi launcher uses an SSH reverse tunnel for the Qwen Audio services because
-the audio DGX address (`10.153.60.233`) is reachable from this workstation's
-VPN but not directly from the Pi. The named Qwen launcher forwards remote Pi
-ports 18000/18001 through this workstation to DGX 8000/8001. If the serving
-address changes, pass it explicitly with `-DgxIp` in direct mode. Use
-`-UsePiBrainCredential` only when the routed endpoint accepts the Pi's existing
-Qwen brain credential.
+With the Pi SHARC VPN installed, the default endpoints are direct:
+`10.153.60.233:8000` for ASR and `10.153.60.233:8001` for TTS. If the serving
+address changes, pass it explicitly with `-DgxIp`. Use `-UseReverseTunnel` only
+when the Pi VPN is intentionally unavailable and the laptop is connected to
+the institutional VPN. Use `-UsePiBrainCredential` only when the routed
+endpoint accepts the Pi's existing Qwen brain credential.
 
 The canonical Qwen service is the Pi user unit on 8126/8127. Do not start a
 second 8136/8137 listener while it is active. The named launcher is retained
@@ -202,10 +202,11 @@ for an explicit tunnel/start workflow, but `ssh me3-pi` is the direct
 diagnostic route.
 
 If ASR reports an empty transcript even though the Fifine signal is nonzero,
-check the protected Qwen audio provider before changing microphone settings.
-The Pi audio URLs intentionally point to the reverse-tunnel ports 18000/18001;
-the public 202.92.159.240:8000/8001 endpoints currently expose the text
-Qwen3.8-27B service and are not valid Qwen2-Audio/TTS endpoints.
+check the SHARC VPN route and the protected Qwen audio provider before changing
+microphone settings. The Pi audio URLs should point directly to
+`10.153.60.233:8000/8001` when the Pi VPN is active. The public
+`202.92.159.240:8000/8001` endpoints expose the text Qwen3.8-27B service and
+are not valid Qwen2-Audio/TTS endpoints.
 
 If the Fifine appears in the UI but speech is not triggering, check the USB
 capture control on the Pi. The current Fifine card is ALSA card 2; its capture

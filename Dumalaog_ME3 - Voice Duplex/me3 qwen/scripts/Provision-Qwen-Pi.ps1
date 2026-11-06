@@ -3,7 +3,7 @@ param(
     [ValidatePattern('^[A-Za-z0-9_.@:-]+$')]
     [string]$SshTarget = 'dalmacio@192.168.254.105',
     [ValidatePattern('^(?:\d{1,3}\.){3}\d{1,3}$')]
-    [string]$DgxIp = '202.92.159.240',
+    [string]$DgxIp = '10.153.60.233',
     [switch]$UsePiBrainCredential,
     [switch]$UseReverseTunnel,
     [string]$SecretFile = ''

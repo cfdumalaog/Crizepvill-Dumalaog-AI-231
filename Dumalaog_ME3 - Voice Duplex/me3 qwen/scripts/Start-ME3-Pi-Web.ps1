@@ -18,6 +18,7 @@ param(
     [string]$Variant = 'qwen_instruct',
     [switch]$StartServer,
     [switch]$StopServer,
+    [switch]$UseReverseTunnel,
     [switch]$OpenBrowser,
     [switch]$DryRun
 )
@@ -40,7 +41,8 @@ Write-Host "Remote audio : 0.0.0.0:$RemoteAudioPort"
 Write-Host "Local URL    : $localUrl"
 Write-Host 'Audio        : Pi microphone -> ME3 -> connected browser speaker by default'
 Write-Host 'Scope        : SSH loopback tunnel; not a public Internet endpoint'
-if ($Variant -eq 'qwen_instruct') { Write-Host 'Qwen audio  : SSH reverse tunnel to workstation VPN DGX 10.153.60.233:8000/8001' }
+if ($Variant -eq 'qwen_instruct' -and $UseReverseTunnel) { Write-Host 'Qwen audio  : legacy SSH reverse tunnel to workstation VPN DGX 10.153.60.233:8000/8001' }
+if ($Variant -eq 'qwen_instruct' -and -not $UseReverseTunnel) { Write-Host 'Qwen audio  : direct Pi SHARC VPN route to DGX 10.153.60.233:8000/8001' }
 
 $envBootstrap = 'if [ -f "$HOME/.config/me3/me3.env" ]; then set -a; . "$HOME/.config/me3/me3.env"; set +a; fi; '
 $qwenEnvBootstrap = if ($Variant -eq 'qwen_instruct') { 'if [ -f "$HOME/.config/me3/qwen-instruct.env" ]; then set -a; . "$HOME/.config/me3/qwen-instruct.env"; set +a; fi; ' } else { '' }
@@ -62,7 +64,7 @@ if ($DryRun) {
     Write-Host '[dry-run] no SSH command executed.'
     if ($StartServer) { Write-Host "[dry-run] start: $startRemote" }
     if ($StopServer) { Write-Host "[dry-run] stop : $stopRemote" }
-    $reverse = if ($Variant -eq 'qwen_instruct') { ' -R 18000:10.153.60.233:8000 -R 18001:10.153.60.233:8001' } else { '' }
+    $reverse = if ($Variant -eq 'qwen_instruct' -and $UseReverseTunnel) { ' -R 18000:10.153.60.233:8000 -R 18001:10.153.60.233:8001' } else { '' }
     Write-Host "[dry-run] tunnel: ssh -N -L $LocalPort`:127.0.0.1`:$RemotePort -L $LocalAudioPort`:127.0.0.1`:$RemoteAudioPort$reverse $SshTarget"
     exit 0
 }
@@ -85,7 +87,7 @@ $sshArgs = @(
     '-L', "$LocalPort`:127.0.0.1`:$RemotePort",
     '-L', "$LocalAudioPort`:127.0.0.1`:$RemoteAudioPort"
 )
-if ($Variant -eq 'qwen_instruct') {
+if ($Variant -eq 'qwen_instruct' -and $UseReverseTunnel) {
     $sshArgs += @('-R', '18000:10.153.60.233:8000', '-R', '18001:10.153.60.233:8001')
 }
 $sshArgs += $SshTarget

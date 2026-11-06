@@ -119,8 +119,10 @@ the `ME3 QWEN INSTRUCT` profile explicitly. The Pi reads the protected
 `~/.config/me3/qwen-instruct.env`; the ordinary installer cannot overwrite
 this file during future upgrades.
 
-The named Qwen launcher also creates SSH reverse tunnels from the Pi's
-`127.0.0.1:18000/18001` to the workstation VPN route for Qwen Audio. Keep this
-workstation connected to the VPN while using Qwen Instruct. Because this
-service owns the physical Fifine microphone, run only this one full-duplex
-Qwen listener at a time.
+The named Qwen launcher forwards only the Pi UI and browser-audio ports by
+default. The Pi's SHARC VPN supplies direct access to
+`10.153.60.233:8000/8001`, so the laptop does not need to remain connected to
+the VPN for model traffic. The legacy model reverse tunnel is still available
+only through `Start-ME3-Pi-Web.ps1 -UseReverseTunnel` when the Pi VPN is
+intentionally unavailable. Because this service owns the physical Fifine
+microphone, run only this one full-duplex Qwen listener at a time.
