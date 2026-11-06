@@ -161,7 +161,7 @@ class LoopStatus:
 
     def report_models(self, **kwargs) -> None:
         with self._lock:
-            self.models = {k: v for k, v in kwargs.items() if v is not None}
+            self.models.update({k: v for k, v in kwargs.items() if v is not None})
 
     def report_progress(self, stage: str, detail: str) -> None:
         """Record a safe phase summary, never hidden model reasoning."""

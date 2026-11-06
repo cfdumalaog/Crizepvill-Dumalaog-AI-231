@@ -44,9 +44,14 @@ defaults, Pi service files, and the UI use `qwen_instruct`. It is not a
 separately trained ME3 model. The text/tool brain is shared Qwen3.8-27B by
 default, with GPT-5.6 Luna selectable as the alternative.
 
-The Qwen handoff file is read only by the launcher into process memory. If the
-VPN or DGX3 listeners are not reachable, the profile fails closed and reports a
-bounded provider error rather than silently claiming that audio succeeded.
+The Qwen handoff file is read only by the launcher into process memory. Qwen
+ASR remains the primary provider. The Pi also has an explicit availability
+failover: when the Qwen ASR listener is unavailable, cached multilingual
+faster-whisper `base` transcribes locally; the Runtime card labels this as
+`faster_whisper_fallback`. Qwen3-TTS remains the only spoken output voice. If
+both ASR paths fail, the profile reports a bounded provider error rather than
+silently claiming that audio succeeded. Fallback transcripts are functional
+demo evidence, not Qwen2-Audio benchmark evidence.
 
 ### Protected playback and the runtime terminal
 

@@ -8,9 +8,11 @@ the protected DGX3 OpenAI-compatible services:
   ``/v1/chat/completions`` audio input;
 * Qwen3-TTS through ``/v1/audio/speech``.
 
-The text ToolBrain and bounded ME3 tool registry remain unchanged.  This is
+The text ToolBrain and bounded ME3 tool registry remain unchanged. This is
 deliberate: the supplied Qwen2-Audio service is an audio-to-text model, not a
-drop-in replacement for the current text tool-calling brain.
+drop-in replacement for the current text tool-calling brain. The Pi can use a
+provisioned multilingual faster-whisper fallback when the Qwen ASR listener is
+temporarily unavailable; the UI reports which backend produced the transcript.
 """
 from __future__ import annotations
 
@@ -24,6 +26,9 @@ from types import SimpleNamespace
 
 import numpy as np
 import requests
+import logging
+
+log = logging.getLogger("me3.qwen_audio")
 
 
 def _headers(api_key: str) -> dict[str, str]:
@@ -103,60 +108,123 @@ class QwenRemoteASR:
         self.max_tokens = int(cfg.get("max_tokens", 256))
         self.timeout_s = float(cfg.get("timeout_s", 60))
         self._load_ms = 0.0
+        self.fallback_engine = str(
+            cfg.get("fallback_engine") or os.environ.get("ME3_ASR_FALLBACK", "")
+        ).strip().lower()
+        self.fallback_model = str(
+            cfg.get("fallback_model") or os.environ.get(
+                "ME3_ASR_FALLBACK_MODEL", "base"
+            )
+        ).strip()
+        self.fallback_compute_type = str(
+            cfg.get("fallback_compute_type") or os.environ.get(
+                "ME3_ASR_FALLBACK_COMPUTE_TYPE", "int8"
+            )
+        ).strip()
+        self._fallback = None
+        self._fallback_load_ms = 0.0
+        self.last_backend = "qwen_remote"
 
-    def transcribe(self, audio, beam_size: int = 1, language: str | None = None,
-                   vad_filter: bool = False, sample_rate: int | None = None):
-        del beam_size, vad_filter
-        _require_endpoint(self.base_url, self.api_key, "ASR")
-        raw, duration = _wav_bytes(
-            audio, int(sample_rate or self.cfg.get("sample_rate", 16000)))
+    def _local_fallback(self, audio, *, language: str | None,
+                        sample_rate: int, duration: float):
+        """Use the Pi's cached multilingual Whisper only when Qwen is down."""
+        if self.fallback_engine not in {"faster_whisper", "whisper"}:
+            raise RuntimeError(
+                "Qwen ASR failed and no approved local ASR fallback is configured"
+            )
+        if self._fallback is None:
+            from faster_whisper import WhisperModel
+
+            started = time.perf_counter()
+            self._fallback = WhisperModel(
+                self.fallback_model,
+                device="cpu",
+                compute_type=self.fallback_compute_type,
+            )
+            self._fallback_load_ms = (time.perf_counter() - started) * 1000
+        pcm = np.asarray(audio, dtype=np.float32).reshape(-1)
         started = time.perf_counter()
-        if self.protocol in {"transcriptions", "audio_transcriptions"}:
-            data = {
-                "model": self.model,
-                "response_format": "json",
-                "prompt": self.prompt,
-            }
-            if language:
-                data["language"] = language
-            response = requests.post(
-                f"{self.base_url}/audio/transcriptions",
-                headers=_headers(self.api_key),
-                files={"file": ("me3_turn.wav", raw, "audio/wav")},
-                data=data,
-                timeout=self.timeout_s,
-            )
-        else:
-            audio_url = "data:audio/wav;base64," + base64.b64encode(raw).decode("ascii")
-            prompt = self.prompt
-            if language:
-                prompt = f"{prompt} The spoken language is {language}."
-            payload = {
-                "model": self.model,
-                "messages": [{
-                    "role": "user",
-                    "content": [
-                        {"type": "audio_url", "audio_url": {"url": audio_url}},
-                        {"type": "text", "text": prompt},
-                    ],
-                }],
-                "max_tokens": self.max_tokens,
-                "temperature": 0,
-            }
-            response = requests.post(
-                f"{self.base_url}/chat/completions",
-                headers={**_headers(self.api_key), "Content-Type": "application/json"},
-                json=payload,
-                timeout=self.timeout_s,
-            )
-        response.raise_for_status()
-        payload = response.json()
-        text = _json_text(payload if isinstance(payload, dict) else {})
+        segments, _info = self._fallback.transcribe(
+            pcm,
+            beam_size=1,
+            language=language or None,
+            vad_filter=False,
+        )
+        self.last_backend = "faster_whisper_fallback"
         info = SimpleNamespace(
             duration=duration,
             latency_ms=(time.perf_counter() - started) * 1000,
         )
-        return [SimpleNamespace(text=text)], info
+        return segments, info
+
+    def transcribe(self, audio, beam_size: int = 1, language: str | None = None,
+                   vad_filter: bool = False, sample_rate: int | None = None):
+        del beam_size, vad_filter
+        sample_rate = int(sample_rate or self.cfg.get("sample_rate", 16000))
+        raw, duration = _wav_bytes(audio, sample_rate)
+        try:
+            _require_endpoint(self.base_url, self.api_key, "ASR")
+            started = time.perf_counter()
+            if self.protocol in {"transcriptions", "audio_transcriptions"}:
+                data = {
+                    "model": self.model,
+                    "response_format": "json",
+                    "prompt": self.prompt,
+                }
+                if language:
+                    data["language"] = language
+                response = requests.post(
+                    f"{self.base_url}/audio/transcriptions",
+                    headers=_headers(self.api_key),
+                    files={"file": ("me3_turn.wav", raw, "audio/wav")},
+                    data=data,
+                    timeout=self.timeout_s,
+                )
+            else:
+                audio_url = "data:audio/wav;base64," + base64.b64encode(raw).decode("ascii")
+                prompt = self.prompt
+                if language:
+                    prompt = f"{prompt} The spoken language is {language}."
+                payload = {
+                    "model": self.model,
+                    "messages": [{
+                        "role": "user",
+                        "content": [
+                            {"type": "audio_url", "audio_url": {"url": audio_url}},
+                            {"type": "text", "text": prompt},
+                        ],
+                    }],
+                    "max_tokens": self.max_tokens,
+                    "temperature": 0,
+                }
+                response = requests.post(
+                    f"{self.base_url}/chat/completions",
+                    headers={**_headers(self.api_key), "Content-Type": "application/json"},
+                    json=payload,
+                    timeout=self.timeout_s,
+                )
+            response.raise_for_status()
+            payload = response.json()
+            text = _json_text(payload if isinstance(payload, dict) else {})
+            if not text:
+                raise RuntimeError("Qwen ASR returned an empty transcript")
+            self.last_backend = "qwen_remote"
+            info = SimpleNamespace(
+                duration=duration,
+                latency_ms=(time.perf_counter() - started) * 1000,
+            )
+            return [SimpleNamespace(text=text)], info
+        except Exception as exc:  # noqa: BLE001 - fail over only when configured
+            if self.fallback_engine not in {"faster_whisper", "whisper"}:
+                raise
+            log.warning(
+                "Qwen ASR unavailable; using local faster-whisper fallback (%s)",
+                type(exc).__name__,
+            )
+            return self._local_fallback(
+                audio, language=language, sample_rate=sample_rate,
+                duration=duration,
+            )
 
 
 class QwenRemoteTTS:
@@ -237,5 +305,11 @@ def config_from_env(cfg: dict, *, api_key: str = "") -> dict:
     out["api_key"] = api_key or (
         os.environ.get(key_env, "") if key_env else ""
     )
+    fallback_env = out.get("fallback_engine_env", "ME3_ASR_FALLBACK")
+    fallback_model_env = out.get(
+        "fallback_model_env", "ME3_ASR_FALLBACK_MODEL"
+    )
+    out["fallback_engine"] = os.environ.get(fallback_env, "").strip()
+    out["fallback_model"] = os.environ.get(fallback_model_env, "base").strip()
     return out
 

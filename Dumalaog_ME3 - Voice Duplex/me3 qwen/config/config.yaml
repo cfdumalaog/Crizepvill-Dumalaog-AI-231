@@ -94,6 +94,8 @@ variants:
       max_tokens: 256
       timeout_s: 20                 # fail fast enough to keep the live UI responsive
       language: null
+      fallback_engine_env: ME3_ASR_FALLBACK
+      fallback_model_env: ME3_ASR_FALLBACK_MODEL
     tts:
       engine: qwen_remote
       base_url_env: QWEN_INSTRUCT_TTS_BASE_URL

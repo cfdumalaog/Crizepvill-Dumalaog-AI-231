@@ -193,9 +193,12 @@ run passed with faster-whisper ASR at 2732.0 ms and Piper TTS at 100.1 ms
 TTFB/176.7 ms total. The full injected Qwen voice lane also completed one turn
 with zero errors and called the shared `list_files`, `read_file`, `run_command`,
 `start_web_server`, and `write_file` tools. If the VPN route becomes
-unavailable, the active profile fails closed and reports the provider error.
-The former local audio build is archived rather than presented as a second
-production variant.
+unavailable, the Pi Qwen profile now uses its explicitly provisioned,
+multilingual faster-whisper `base` failover. The UI exposes
+`asr_backend=faster_whisper_fallback` so the operator can distinguish that
+functional recovery from a Qwen2-Audio result. If both providers fail, the
+active profile reports the bounded provider error. The former local audio
+build is archived rather than presented as a second production variant.
 
 ## What the agent can do
 
@@ -527,9 +530,13 @@ complete schema and deployment boundary.
 
 ### 2. ASR
 
-At the end of a turn, faster-whisper transcribes the PCM signal using the
-configured model and int8 CPU inference. Empty transcripts are ignored. A
-non-empty transcript becomes a user message for the selected Qwen or Luna brain.
+At the end of a turn, Qwen2-Audio first receives the 16-kHz PCM signal through
+the protected OpenAI-compatible endpoint. If that listener is unavailable, the
+Pi's cached multilingual faster-whisper `base` model is used with int8 CPU
+inference. Empty transcripts are ignored. A non-empty transcript becomes a
+user message for the selected Qwen or Luna brain. The fallback is a runtime
+availability measure; benchmark claims must still identify whether Qwen ASR or
+faster-whisper produced the transcript.
 
 ### 3. Provider-neutral tool-calling protocol
 

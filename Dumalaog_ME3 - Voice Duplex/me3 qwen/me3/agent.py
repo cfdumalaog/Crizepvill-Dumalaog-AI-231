@@ -568,6 +568,8 @@ class LocalVoiceLoop:
                 vad_ms=round((t1 - t0) * 1e3, 1),
                 asr_ms=round((t2 - t1) * 1e3, 1),
                 asr_model=asr_cfg.get("model"),
+                asr_backend=getattr(asr_engine, "last_backend", asr_cfg.get("engine")),
+                asr_fallback_model=getattr(asr_engine, "fallback_model", None),
                 tts_ms=round((t3 - t2) * 1e3, 1),
                 tts_backend=getattr(tts_engine, "provider", tts_cfg.get("engine")),
                 tts_model=tts_cfg.get("model"),
@@ -621,6 +623,11 @@ class LocalVoiceLoop:
                 raise
             text = " ".join(s.text.strip() for s in segments).strip()
             asr_ms = (time.perf_counter() - t0) * 1e3
+            if self.status is not None:
+                self.status.report_models(
+                    asr_backend=getattr(asr_engine, "last_backend", "qwen_remote"),
+                    asr_fallback_model=getattr(asr_engine, "fallback_model", None),
+                )
         else:
             text = text_override.strip()
             asr_ms = float(asr_ms_override or 0.0)

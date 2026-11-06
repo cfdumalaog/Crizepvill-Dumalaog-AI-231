@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import io
+import sys
 import wave
 from types import SimpleNamespace
 
@@ -114,3 +115,40 @@ def test_qwen_audio_requires_runtime_configuration():
         assert "missing base URL" in str(exc)
     else:  # pragma: no cover
         raise AssertionError("missing Qwen endpoint should fail closed")
+
+
+def test_qwen_asr_uses_local_faster_whisper_fallback_when_remote_is_down(monkeypatch):
+    class FakeWhisperModel:
+        def __init__(self, model, device, compute_type):
+            assert model == "base"
+            assert device == "cpu"
+            assert compute_type == "int8"
+
+        def transcribe(self, pcm, **kwargs):
+            assert len(pcm) == 1600
+            return [SimpleNamespace(text="fallback transcript")], SimpleNamespace(
+                duration=0.1
+            )
+
+    monkeypatch.setitem(
+        sys.modules, "faster_whisper",
+        SimpleNamespace(WhisperModel=FakeWhisperModel),
+    )
+    monkeypatch.setattr(
+        qwen_audio.requests, "post",
+        lambda *args, **kwargs: (_ for _ in ()).throw(
+            qwen_audio.requests.ConnectionError("ASR port unavailable")
+        ),
+    )
+    asr = qwen_audio.QwenRemoteASR({
+        "base_url": "http://audio.test/v1",
+        "model": "Qwen/Qwen2-Audio-7B-Instruct",
+        "api_key": "test-only",
+        "protocol": "chat_completions",
+        "fallback_engine": "faster_whisper",
+        "fallback_model": "base",
+    })
+    segments, info = asr.transcribe(np.zeros(1600, dtype=np.float32))
+    assert segments[0].text == "fallback transcript"
+    assert info.duration == 0.1
+    assert asr.last_backend == "faster_whisper_fallback"

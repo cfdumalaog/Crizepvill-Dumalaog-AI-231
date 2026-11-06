@@ -47,6 +47,8 @@ if ($UsePiBrainCredential) {
         "QWEN_INSTRUCT_ASR_BASE_URL=$asrEndpoint"
         "QWEN_INSTRUCT_TTS_BASE_URL=$ttsEndpoint"
         "QWEN_INSTRUCT_API_KEY=$qwenKey"
+        "ME3_ASR_FALLBACK=faster_whisper"
+        "ME3_ASR_FALLBACK_MODEL=base"
     ) -join "`n"
     $envText += "`n"
 }

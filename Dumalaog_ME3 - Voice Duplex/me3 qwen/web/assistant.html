@@ -271,6 +271,7 @@ header{
         <ul class="readiness-list">
           <li>Continuous Silero VAD voice loop with automatic ASR, inference, tools, and TTS</li>
           <li>Protected speaking with explicit voice controls, echo guard, Pi Fifine input, and browser/PC speaker routing</li>
+          <li>Qwen ASR primary with cached multilingual faster-whisper fallback when the DGX ASR listener is unavailable</li>
           <li>One fixed voice per profile for replies, backchannels, and completion notices</li>
           <li>Bounded MCP tools for files, commands, websites/web servers, timers, Git, and system tasks</li>
           <li>Direct LLM response streaming; hidden reasoning is disabled from spoken/UI output</li>
@@ -532,6 +533,8 @@ function renderRuntime(d){
   box.appendChild(kvRow('variant', label));
   const m = d.models || {};
   if(m.asr_model) box.appendChild(kvRow('ASR model', m.asr_model + (m.asr_ms != null ? '  (' + m.asr_ms + ' ms load)' : '')));
+  if(m.asr_backend) box.appendChild(kvRow('ASR backend', m.asr_backend + (m.asr_backend === 'faster_whisper_fallback' ? ' / Qwen unavailable' : '')));
+  if(m.asr_backend === 'faster_whisper_fallback' && m.asr_fallback_model) box.appendChild(kvRow('ASR fallback model', m.asr_fallback_model));
   if(m.vad_ms != null) box.appendChild(kvRow('VAD load', m.vad_ms + ' ms'));
   if(m.tts_backend) box.appendChild(kvRow('TTS backend', m.tts_backend));
   if(m.tts_model) box.appendChild(kvRow('TTS model', m.tts_model));
