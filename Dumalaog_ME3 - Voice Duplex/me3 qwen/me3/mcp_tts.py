@@ -1,10 +1,10 @@
 ﻿"""ME3 TTS MCP Server.
 
 Exposes the active text-to-speech backend as MCP tools so any MCP client can
-synthesize speech on the RPi and receive audio bytes. Piper is the fixed voice
-backend for the Own profile; the Qwen profile uses its fixed Qwen3-TTS
-CustomVoice. The ElevenLabs adapter remains available for future controlled
-experiments but is not selected by the active voice loop.
+synthesize speech on the RPi and receive audio bytes. The active Qwen profile
+uses its fixed Qwen3-TTS CustomVoice. The former Piper path and ElevenLabs
+adapter remain available only for archived/future controlled experiments and
+are not selected by the active voice loop.
 
 Tools:
   - synthesize(text) -> {audio_b64 (wav), sample_rate, duration_s, latency_ms, ttfb_ms}

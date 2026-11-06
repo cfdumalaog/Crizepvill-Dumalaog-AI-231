@@ -13,9 +13,7 @@ console = Console()
 def _pct(r: dict) -> str:
     if not r or r.get("value") is None:
         return "—"
-    lo, hi = r.get("ci95", [None, None])
-    ci = f"  [{lo*100:.0f}–{hi*100:.0f}]" if lo is not None else ""
-    return f"{r['value']*100:.0f}%  ({r['k']}/{r['n']}){ci}"
+    return f"{r['value']*100:.0f}%  ({r['k']}/{r['n']})"
 
 
 def _lat(r: dict) -> str:
@@ -25,8 +23,35 @@ def _lat(r: dict) -> str:
     return s
 
 
+def print_deck(summary: dict, session: dict) -> None:
+    """The course template's table first: what goes on the slides."""
+    from .deck import STATUS_TEXT, _v, build
+    from ..targets import fmt
+    d = summary.get("deck_summary") or build({**summary, "session": session})
+    t = Table(show_header=True, header_style="bold", title="Deck summary · template §5 (Evaluation & Benchmark)",
+              title_justify="left", expand=True)
+    for col in ("metric", "definition", "target", "mean", "p95", "n", ""):
+        t.add_column(col)
+    style = {"met": "green", "p95_over": "yellow", "over": "red", "na": "dim"}
+    for r in d["table"]:
+        st = r["status"]
+        t.add_row(r["metric"], r["definition"] + (f"\n[dim]{r['note']}[/dim]" if r.get("note") else ""),
+                  f"< {fmt(r['key'], r['target'])}", _v(r, "mean"), _v(r, "p95"), str(r["n"]),
+                  f"[{style[st]}]{STATUS_TEXT[st]}[/{style[st]}]")
+    console.print(t)
+    rc = d["run_card"]
+    console.print(f"[dim]{d['method']['phrases']} phrases × {d['method']['runs']} runs · {rc.get('device') or '?'} · "
+                  f"cooling: {rc.get('cooling')} · network: {rc.get('network') or '?'} · models: "
+                  f"{', '.join(f'{k} {v}' for k, v in rc['models'].items()) or 'not reported'}[/dim]")
+    c = d.get("context") or {}
+    if c.get("n"):
+        console.print(f"[dim]context size per LLM call: median {c['tokens_median']:.0f} tokens, max {c['tokens_max']:.0f}, "
+                      f"first → last {c['tokens_first']:.0f} → {c['tokens_last']:.0f}[/dim]")
+
+
 def print_results(summary: dict, session: dict) -> None:
     m = summary["metrics"]
+    print_deck(summary, session)
     console.rule(f"[bold]Results · {session.get('student', '?')} · {summary['trials']} trials")
     t = Table(show_header=True, header_style="bold dim", expand=True)
     t.add_column("metric", ratio=3)
@@ -87,6 +112,29 @@ def print_results(summary: dict, session: dict) -> None:
             sig = " [green]significant[/green]" if v["significant"] else ""
             val = f"Δ {v['mean_delta']:+.2f}  ({p}, n={v['n']}){sig}"
         row(f"Δ {f}", val, v["expected"])
+    r = summary.get("resources") or {}
+    run = r.get("run") if r.get("available") else None
+    if run:
+        hello = r.get("hello") or {}
+        sec(f"Machine resources · {hello.get('pi_model') or hello.get('os') or '?'}")
+        if run.get("temp_max") is not None:
+            row("Peak temperature", f"{run['temp_max']:.1f} °C", "lower")
+        if run.get("throttled_share") is not None:
+            sh = run["throttled_share"]
+            n_thr = sum(1 for p in r.get("per_trial", []) if p.get("throttled"))
+            row("Time throttled or capped", (f"[red]{sh*100:.1f}%[/red]" if sh else "0%") + f"  ({n_thr} trials)", "lower")
+        if run.get("cpu_median") is not None:
+            row("CPU, all cores", f"median {run['cpu_median']:.0f}% · p95 {run['cpu_p95']:.0f}% · busiest core p95 "
+                f"{run['busiest_core_p95']:.0f}%" if run.get("busiest_core_p95") is not None else
+                f"median {run['cpu_median']:.0f}% · p95 {run['cpu_p95']:.0f}%", "lower")
+        for lab, p in (run.get("procs") or {}).items():
+            row(f"   · {p['label']}", f"CPU mean {p['cpu_mean'] or 0:.1f}% · RAM peak {p['rss_peak_mb'] or 0:.0f} MB", "")
+        if run.get("mem_avail_min_mb") is not None:
+            row("Lowest free RAM", f"{run['mem_avail_min_mb']:.0f} MB", "higher")
+        if run.get("mhz_min") is not None:
+            row("Lowest ARM clock", f"{run['mhz_min']:.0f} MHz", "higher")
+        for w in (r.get("start_warnings") or []) + [f"{k} during the run" for k in r.get("new_flags_during_run") or []]:
+            row("   [yellow]![/yellow]", w, "")
     console.print(t)
     if summary.get("notes"):
         for n in summary["notes"]:

@@ -34,7 +34,7 @@ RELEASE_NAME = "me3_voice_duplex"
 # dataset spec, and the plan. Excludes dev-only artifacts and heavy caches.
 INCLUDE = [
     "me3",                 # all MCP servers + agent + benchmark + config loader
-    "me3_bootstrap.py",    # selects me3 own or me3 qwen before imports
+    "me3_bootstrap.py",    # selects the active Qwen package before imports
     "sitecustomize.py",    # import-time selector when the project is on PYTHONPATH
     "benchmarking/fd-benchmark",  # vendored MIT full-duplex benchmark + adapter
     "config",              # config/config.yaml (single source of truth)

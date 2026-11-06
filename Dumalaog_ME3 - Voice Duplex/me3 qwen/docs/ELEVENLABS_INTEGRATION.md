@@ -3,8 +3,8 @@
 Version: 0.2, 26 October 2026
 
 > Current runtime status: ElevenLabs is an adapter/test surface only. The
-> active demo selector is profile-locked to one voice: Piper
-> `en_GB-alba-medium` for Own or Qwen3-TTS `aiden` for Qwen. The commands
+> active demo selector is profile-locked to one voice: Qwen3-TTS `aiden`.
+> The former Piper/Own deployment is archived. The commands
 > below are for a future deliberate replacement experiment and are not needed
 > to run the presentable ME3 release.
 
@@ -35,12 +35,11 @@ Official references:
 
 The active runtime is intentionally single-voice and profile-locked:
 
-1. The Own profile always selects Piper `en_GB-alba-medium`.
-2. The Qwen profile always selects Qwen3-TTS CustomVoice `aiden` with a formal
+1. The active Qwen profile always selects Qwen3-TTS CustomVoice `aiden` with a formal
    style instruction.
-3. Replies, backchannels, and completion announcements use the same profile
+2. Replies, backchannels, and completion announcements use the same profile
    voice.
-4. `ME3_TTS_ENGINE`, `ME3_TTS_VOICE`, and `ME3_ANNOUNCER_VOICE` cannot switch
+3. `ME3_TTS_ENGINE`, `ME3_TTS_VOICE`, and `ME3_ANNOUNCER_VOICE` cannot switch
    the live voice. ElevenLabs remains an adapter/test surface only.
 
 The adapter tests still cover streaming PCM, bounded retries, and safe failure

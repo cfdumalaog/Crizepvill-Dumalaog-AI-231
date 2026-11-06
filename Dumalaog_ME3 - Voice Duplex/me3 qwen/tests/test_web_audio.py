@@ -40,6 +40,8 @@ def test_browser_audio_hub_publishes_pcm_and_clear_event():
             assert client.recv(timeout=3) == samples.astype("<i2").tobytes()
             hub.clear()
             assert json.loads(client.recv(timeout=3))["event"] == "clear"
+            hub.publish_event({"event": "music_action", "provider": "YouTube Music"})
+            assert json.loads(client.recv(timeout=3))["event"] == "music_action"
             assert hub.snapshot()["sent_samples"] == 4
     finally:
         hub.stop()

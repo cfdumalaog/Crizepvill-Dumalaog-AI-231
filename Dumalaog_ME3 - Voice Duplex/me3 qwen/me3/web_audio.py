@@ -137,6 +137,26 @@ class BrowserAudioHub:
                 except Exception:  # noqa: BLE001
                     pass
 
+    def publish_event(self, event: dict) -> None:
+        """Send a small JSON control event to the active browser client."""
+        try:
+            payload = json.dumps(event, ensure_ascii=False, separators=(",", ":"))
+        except (TypeError, ValueError):
+            return
+        with self._lock:
+            clients = list(self._clients)
+        dead = []
+        with self._send_lock:
+            for conn in clients:
+                try:
+                    conn.send(payload)
+                except Exception:  # noqa: BLE001 - browser disconnect is normal
+                    dead.append(conn)
+        if dead:
+            with self._lock:
+                for conn in dead:
+                    self._clients.discard(conn)
+
     def snapshot(self) -> dict:
         with self._lock:
             clients = len(self._clients)

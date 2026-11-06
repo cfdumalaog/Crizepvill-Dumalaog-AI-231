@@ -318,6 +318,102 @@ def send_email(to: list[str], subject: str, text: str, confirm: bool = False,
 
 
 @mcp.tool()
+def send_telegram_message(chat_id: str, text: str,
+                          confirm: bool = False) -> dict:
+    """Send one Telegram Bot API text message after explicit confirmation."""
+    return project_tools.channels.send_telegram_message(
+        chat_id, text, confirm=confirm,
+    )
+
+
+@mcp.tool()
+def play_music(query: str, service: str = "youtube_music") -> dict:
+    """Play music through the browser/audio sink."""
+    return project_tools.me2_commands.play_music(query, service)
+
+
+@mcp.tool()
+def media_control(action: str, value: int | None = None) -> dict:
+    """Pause, stop, skip, or adjust media volume."""
+    return project_tools.me2_commands.media_control(action, value)
+
+
+@mcp.tool()
+def music_state() -> dict:
+    """Return the current browser music handoff state."""
+    return project_tools.me2_commands.music_state()
+
+
+@mcp.tool()
+def get_weather(location: str) -> dict:
+    """Get current weather for a location."""
+    return project_tools.me2_commands.get_weather(location)
+
+
+@mcp.tool()
+def control_lights(action: str, room: str = "all",
+                   value: int | str | None = None) -> dict:
+    """Turn lights on/off, dim them, or set a color."""
+    return project_tools.me2_commands.control_lights(action, room, value)
+
+
+@mcp.tool()
+def set_thermostat(temperature_c: float, room: str = "home") -> dict:
+    """Set a thermostat temperature in Celsius."""
+    return project_tools.me2_commands.set_thermostat(temperature_c, room)
+
+
+@mcp.tool()
+def set_alarm(time_text: str, label: str = "") -> dict:
+    """Set a next-occurrence alarm."""
+    return project_tools.me2_commands.set_alarm(time_text, label)
+
+
+@mcp.tool()
+def list_alarms(include_cancelled: bool = False) -> dict:
+    """List alarms."""
+    return project_tools.me2_commands.list_alarms(include_cancelled)
+
+
+@mcp.tool()
+def cancel_alarm(alarm_id: str) -> dict:
+    """Cancel an alarm."""
+    return project_tools.me2_commands.cancel_alarm(alarm_id)
+
+
+@mcp.tool()
+def create_reminder(text: str, delay_seconds: float | None = None,
+                    at_text: str = "") -> dict:
+    """Create a reminder by delay or local time."""
+    return project_tools.me2_commands.create_reminder(text, delay_seconds, at_text)
+
+
+@mcp.tool()
+def list_reminders(include_completed: bool = False) -> dict:
+    """List reminders."""
+    return project_tools.me2_commands.list_reminders(include_completed)
+
+
+@mcp.tool()
+def complete_reminder(reminder_id: str) -> dict:
+    """Mark a reminder complete."""
+    return project_tools.me2_commands.complete_reminder(reminder_id)
+
+
+@mcp.tool()
+def call_contact(contact: str, confirm: bool = False) -> dict:
+    """Call a named or E.164 contact through the reviewed Twilio flow."""
+    return project_tools.me2_commands.call_contact(contact, confirm)
+
+
+@mcp.tool()
+def send_message(contact: str, body: str, channel: str = "sms",
+                 confirm: bool = False) -> dict:
+    """Send SMS or Telegram text using a protected contact mapping."""
+    return project_tools.me2_commands.send_message(contact, body, channel, confirm)
+
+
+@mcp.tool()
 def health() -> dict:
     """Report tasks server health and available tools."""
     return {"ok": True,
@@ -327,7 +423,11 @@ def health() -> dict:
                       "search_project_text", "run_project_command", "start_project_task",
                       "project_task_status", "project_task_output", "cancel_project_task",
                       "fetch_public_url", "search_public_web", "project_git_status",
-                      "channel_health", "send_sms", "make_call", "send_email"],
+                      "channel_health", "send_sms", "make_call", "send_email",
+                      "send_telegram_message", "play_music", "media_control", "music_state",
+                      "get_weather", "control_lights", "set_thermostat", "set_alarm",
+                      "list_alarms", "cancel_alarm", "create_reminder", "list_reminders",
+                      "complete_reminder", "call_contact", "send_message"],
             "allowlist_cmds": sorted(_ALLOWED_CMDS)}
 
 

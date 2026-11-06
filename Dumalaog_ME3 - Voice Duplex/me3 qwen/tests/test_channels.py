@@ -15,7 +15,7 @@ def _clear_channel_env(monkeypatch):
     for name in (
         "TWILIO_ACCOUNT_SID", "TWILIO_AUTH_TOKEN", "TWILIO_FROM_NUMBER",
         "TWILIO_MESSAGING_SERVICE_SID", "TWILIO_VOICE_URL",
-        "RESEND_API_KEY", "RESEND_FROM_EMAIL",
+        "RESEND_API_KEY", "RESEND_FROM_EMAIL", "TELEGRAM_BOT_TOKEN",
     ):
         monkeypatch.delenv(name, raising=False)
 
@@ -59,6 +59,8 @@ def test_external_side_effects_stop_before_network_without_confirmation():
     )
     assert channels.send_email(["customer@example.com"], "Subject", "Body",
                                request_fn=post)["error"] == "confirmation_required"
+    assert channels.send_telegram_message("12345", "Hello",
+                                         request_fn=post)["error"] == "confirmation_required"
     assert calls == []
 
 
@@ -143,9 +145,42 @@ def test_channel_validation_rejects_non_e164_and_invalid_email():
         channels.send_sms("09171234567", "hello")
     with pytest.raises(ValueError, match="email"):
         channels.send_email(["not-an-email"], "Subject", "Body")
+    with pytest.raises(ValueError, match="chat_id"):
+        channels.send_telegram_message("bad chat id", "hello")
+
+
+def test_telegram_send_message_uses_bot_api_and_returns_safe_metadata(monkeypatch):
+    _clear_channel_env(monkeypatch)
+    monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "bot-token-not-returned")
+    calls = []
+
+    def post(*args, **kwargs):
+        calls.append((args, kwargs))
+        return _response(200, {"ok": True, "result": {"message_id": 42}})
+
+    result = channels.send_telegram_message("-10012345", "Kumusta",
+                                           confirm=True, request_fn=post)
+    assert result == {"ok": True, "provider": "telegram", "status_code": 200,
+                      "channel": "text", "provider_id": "42"}
+    assert calls[0][0][0].endswith("/botbot-token-not-returned/sendMessage")
+    assert calls[0][1]["json"] == {
+        "chat_id": "-10012345", "text": "Kumusta",
+        "disable_web_page_preview": True,
+    }
+    assert "bot-token-not-returned" not in str(result)
+
+
+def test_channel_health_reports_telegram_text_and_call_boundary(monkeypatch):
+    _clear_channel_env(monkeypatch)
+    result = channels.channel_health()
+    assert result["channels"]["telegram"]["configured"] is False
+    assert result["channels"]["telegram"]["text"] == "sendMessage"
+    assert "unsupported" in result["channels"]["telegram"]["voice_calls"]
 
 
 def test_tool_registry_exposes_shared_channel_tools():
     names = {item["function"]["name"] for item in tools.tool_definitions()}
-    assert {"channel_health", "send_sms", "make_call", "send_email"} <= names
-    assert {"channel_health", "send_sms", "make_call", "send_email"} <= set(tools.health()["tools"])
+    expected = {"channel_health", "send_sms", "make_call", "send_email",
+                "send_telegram_message"}
+    assert expected <= names
+    assert expected <= set(tools.health()["tools"])

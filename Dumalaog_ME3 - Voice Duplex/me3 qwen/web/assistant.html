@@ -66,6 +66,10 @@ header{
 .event-tag.speaking{background:rgba(59,130,246,.12); color:var(--blue);}
 .event-tag.offline{background:rgba(148,163,184,.1); color:var(--muted);}
 .state-reason{color:var(--muted); font-size:.85rem; margin-bottom:14px; min-height:1.2em;}
+.runtime-error{border-color:rgba(239,68,68,.45);background:rgba(127,29,29,.16);}
+.runtime-error h2{color:#fca5a5;}
+.runtime-error-text{color:#fecaca;font-size:.8rem;line-height:1.4;}
+.runtime-error-at{display:block;color:#fda4af;font-family:"JetBrains Mono",monospace;font-size:.68rem;margin-top:7px;}
 .vad-label{font-size:.78rem; color:var(--muted); margin-bottom:6px; display:flex; justify-content:space-between;}
 .vad-bar{height:8px; border-radius:99px; background:rgba(255,255,255,.07); overflow:hidden; margin-bottom:16px;}
 #vadFill{height:100%; width:0%; border-radius:99px; background:linear-gradient(90deg,var(--green),var(--blue)); transition:width .12s linear;}
@@ -87,6 +91,14 @@ header{
 .audio-controls button{cursor:pointer; font-weight:700; background:rgba(59,130,246,.15); border-color:rgba(59,130,246,.45);}
 .audio-controls button:hover{background:rgba(59,130,246,.28);}
 .audio-note{font-size:.72rem; line-height:1.35; color:#64748b;}
+.restart-row{display:flex;align-items:center;gap:9px;margin-top:5px;}
+.restart-row button{flex:0 0 auto;background:rgba(245,158,11,.12);border-color:rgba(245,158,11,.4);color:#fbbf24;}
+.restart-row button:hover{background:rgba(245,158,11,.22);}
+.restart-row.service button{background:rgba(239,68,68,.1);border-color:rgba(239,68,68,.4);color:#fca5a5;}
+.restart-row.service button:hover{background:rgba(239,68,68,.2);}
+.music-handoff{margin-top:10px;padding:9px;border:1px solid rgba(59,130,246,.3);border-radius:9px;background:rgba(59,130,246,.08);font-size:.74rem;line-height:1.35;}
+.music-handoff strong{display:block;color:#93c5fd;margin-bottom:3px;}
+.music-handoff button{margin-top:7px;width:auto;padding:6px 9px;}
 .tool-feed{list-style:none; max-height:220px; overflow:auto;}
 .tool-feed li{display:flex; gap:8px; align-items:baseline; padding:7px 0; border-bottom:1px solid rgba(255,255,255,.05); font-size:.82rem;}
 .tool-feed li:last-child{border-bottom:none;}
@@ -141,7 +153,7 @@ header{
     <div><div class="title-line"><h1>ME3 Voice Duplex</h1><span class="variant-pill qwen" id="variantPill">ME3 QWEN INSTRUCT</span></div><div class="sub">live assistant - full duplex, protected playback + voice controls</div></div>
   </div>
   <div class="nav">
-    <a id="linkConsole" href="http://127.0.0.1:8124/" target="_blank">Console</a>
+    <a id="linkConsole" href="/#runtime-terminal">Runtime terminal</a>
     <a id="linkRoadmap" href="/roadmap" target="_blank">Roadmap</a>
     <span class="clock" id="clock"></span>
   </div>
@@ -160,6 +172,11 @@ header{
         <div class="stat"><b id="statUptime">-</b><span>uptime</span></div>
       </div>
     </div>
+    <div class="card runtime-error" id="runtimeErrorCard" hidden>
+      <h2>Provider error</h2>
+      <div class="runtime-error-text" id="runtimeErrorText"></div>
+      <span class="runtime-error-at" id="runtimeErrorAt"></span>
+    </div>
     <div class="card">
       <h2>Pi audio routing</h2>
       <div class="audio-controls">
@@ -168,7 +185,10 @@ header{
         <label>Browser speaker<select id="browserSinkSelect"><option value="default">Browser default speaker</option></select></label>
         <button id="applyAudio" type="button">Apply Pi audio routing</button>
         <button id="connectAudio" type="button">Connect browser speaker</button>
+        <div class="restart-row"><button id="restartMe3" type="button">Restart ME3 loop</button><span class="audio-note" id="restartStatus">Audio-loop reset only; the UI and browser speaker stay online.</span></div>
+        <div class="restart-row service"><button id="restartService" type="button">Restart ME3 service</button><span class="audio-note" id="serviceRestartStatus">Pi only: restarts the canonical systemd service and briefly reloads the UI.</span></div>
         <div class="audio-note" id="audioStatus">Pi audio controls appear when the LAN server is running. Browser output needs one click because browsers block autoplay.</div>
+        <div class="music-handoff" id="musicHandoff" hidden><strong id="musicProvider">Music handoff</strong><span id="musicDetails"></span><br><button id="openMusic" type="button">Open in browser</button></div>
       </div>
     </div>
     <div class="card talk">
@@ -192,7 +212,7 @@ header{
       <h2>Tool activity (sanitized: names + status only)</h2>
       <ul class="tool-feed" id="toolFeed"><li class="empty">no tool calls yet</li></ul>
     </div>
-    <div class="card terminal-card">
+    <div class="card terminal-card" id="runtime-terminal">
       <div class="terminal-title"><h2>Runtime terminal</h2><span class="terminal-badge">SAFE EVENTS</span></div>
       <pre id="terminalView" class="terminal-view">[BOOT] waiting for ME3 status...</pre>
       <div class="terminal-note">Operational state, ASR, TTS, tool names/status, and task routing only; hidden chain-of-thought is never displayed.</div>
@@ -256,8 +276,11 @@ const $ = (id) => document.getElementById(id);
 // Never add a second browser-native voice on top of the Qwen/Piper PCM stream.
 // This also stops an utterance left over by an older ME3 tab after reload.
 if ('speechSynthesis' in window) speechSynthesis.cancel();
-const STATUS_BASE = (location.port === '8126' || location.port === '8090' || location.port === '8136' || location.port === '8100') ? '' : 'http://127.0.0.1:8126';
+// The assistant, roadmap, console alias, and status API are same-origin. Do
+// not redirect a Pi-hosted page to the viewer's own 127.0.0.1.
+const STATUS_BASE = '';
 $('linkRoadmap').href = STATUS_BASE + '/roadmap';
+$('linkConsole').href = STATUS_BASE + '/#runtime-terminal';
 async function apiState(){
   const r = await fetch(STATUS_BASE + '/api/state', {cache:'no-store'});
   if (!r.ok) throw new Error('status offline');
@@ -269,7 +292,7 @@ let last = null, online = false;
 let smoothRms = 0, orbHue = 220, orbPhase = 0;
 let bargeFlashUntil = 0, seenBargeAt = null;
 let prevState = null, stateSince = 0, seenTranscriptAt = null, seenReplyAt = null;
-let audioSocket = null, audioContext = null, audioNextTime = 0, audioNodes = [];
+let audioSocket = null, audioContext = null, audioNextTime = 0, audioNodes = [], pendingMusicUrl = '';
 
 setInterval(() => { $('clock').textContent = new Date().toLocaleTimeString('en-PH', {hour12:false}); }, 1000);
 $('clock').textContent = new Date().toLocaleTimeString('en-PH', {hour12:false});
@@ -348,7 +371,7 @@ function renderTools(d){
 }
 
 let terminalLines = ['[BOOT] waiting for ME3 status...'];
-let terminalState = null, terminalTranscriptAt = null, terminalReplyAt = null;
+let terminalState = null, terminalTranscriptAt = null, terminalReplyAt = null, terminalErrorAt = null;
 const terminalSeenKeys = new Set();
 function addTerminal(line, key=''){
   if(key && terminalSeenKeys.has(key)) return;
@@ -372,6 +395,11 @@ function renderTerminal(d){
   if(lr.at && lr.at !== terminalReplyAt){
     terminalReplyAt = lr.at;
     addTerminal('[' + fmtTime(lr.at) + '] [TTS ' + String(lr.kind || 'reply').toUpperCase() + '] ' + (lr.text || '-'));
+  }
+  const le = d.last_error || {};
+  if(le.at && le.at !== terminalErrorAt){
+    terminalErrorAt = le.at;
+    addTerminal('[' + fmtTime(le.at) + '] [ERROR ' + String(le.stage || 'runtime').toUpperCase() + '] ' + (le.message || '-'));
   }
   const tools = (d.tools || {}).recent || [];
   tools.forEach(e => {
@@ -414,6 +442,17 @@ function renderBackground(d){
   el.scrollTop = el.scrollHeight;
 }
 
+function renderRuntimeError(d){
+  const card = $('runtimeErrorCard'), text = $('runtimeErrorText'), at = $('runtimeErrorAt');
+  const e = d.last_error || {};
+  if(!card || !text || !at) return;
+  card.hidden = !e.message;
+  if(e.message){
+    text.textContent = (e.stage ? e.stage + ': ' : '') + e.message;
+    at.textContent = e.at ? 'Last observed ' + fmtTime(e.at) : '';
+  }
+}
+
 function renderLatency(d){
   const lat = (d.stats && d.stats.latency) || {};
   const rows = $('latency').querySelectorAll('.lat-val');
@@ -429,10 +468,10 @@ function kvRow(k, v){ const div = document.createElement('div'); const a = docum
 function renderRuntime(d){
   const box = $('runtime'); box.innerHTML = '';
   box.appendChild(kvRow('brain', d.brain || '-'));
-  const label = d.variant === 'qwen_instruct' ? 'ME3 QWEN INSTRUCT' : 'ME3 FASTER-WHISPER + PIPER';
+  const label = d.variant === 'qwen_instruct' ? 'ME3 QWEN INSTRUCT' : 'ME3 QWEN INSTRUCT (compatibility profile)';
   const pill = $('variantPill');
   pill.textContent = label;
-  pill.className = 'variant-pill ' + (d.variant === 'qwen_instruct' ? 'qwen' : 'own');
+  pill.className = 'variant-pill qwen';
   box.appendChild(kvRow('variant', label));
   const m = d.models || {};
   if(m.asr_model) box.appendChild(kvRow('ASR model', m.asr_model + (m.asr_ms != null ? '  (' + m.asr_ms + ' ms load)' : '')));
@@ -457,7 +496,7 @@ function renderRelease(d){
 
 function applyState(d){
   if(prevState !== d.state){ stateSince = Date.now(); prevState = d.state; }
-  renderState(d); renderTools(d); renderTerminal(d); renderBackground(d); renderLatency(d); renderRuntime(d); renderRelease(d);
+  renderState(d); renderRuntimeError(d); renderTools(d); renderTerminal(d); renderBackground(d); renderLatency(d); renderRuntime(d); renderRelease(d);
 }
 
 function fillAudioDevices(d){
@@ -511,7 +550,22 @@ async function connectBrowserAudio(){
     audioSocket.onclose = () => { $('audioStatus').textContent = 'Browser speaker disconnected.'; };
     audioSocket.onerror = () => { $('audioStatus').textContent = 'Could not connect to Pi audio stream; check port ' + audioPort + '.'; };
     audioSocket.onmessage = ev => {
-      if(typeof ev.data === 'string'){ try { if(JSON.parse(ev.data).event === 'clear'){ audioNodes.splice(0).forEach(n => { try { n.stop(); } catch(e){} }); audioNextTime = audioContext.currentTime; } } catch(e){} return; }
+      if(typeof ev.data === 'string'){
+        try {
+          const event = JSON.parse(ev.data);
+          if(event.event === 'clear'){
+            audioNodes.splice(0).forEach(n => { try { n.stop(); } catch(e){} });
+            audioNextTime = audioContext.currentTime;
+          } else if(event.event === 'music_action') {
+            pendingMusicUrl = event.url || '';
+            $('musicProvider').textContent = (event.provider || 'Music') + ' handoff';
+            $('musicDetails').textContent = event.query ? 'Request: ' + event.query + '. Click to open it in this browser.' : 'Click to open the active browser player.';
+            $('openMusic').hidden = !pendingMusicUrl;
+            $('musicHandoff').hidden = false;
+          }
+        } catch(e){}
+        return;
+      }
       const pcm = new Int16Array(ev.data), f = audioContext.createBuffer(1, pcm.length, 16000), ch = f.getChannelData(0);
       for(let i=0;i<pcm.length;i++) ch[i] = pcm[i] / 32768;
       const src = audioContext.createBufferSource(); src.buffer=f; src.connect(audioContext.destination);
@@ -523,6 +577,38 @@ async function connectBrowserAudio(){
 $('applyAudio').addEventListener('click', applyAudio);
 $('connectAudio').addEventListener('click', connectBrowserAudio);
 $('browserSinkSelect').addEventListener('change', () => { if(audioSocket && audioSocket.readyState === WebSocket.OPEN) connectBrowserAudio(); });
+$('restartMe3').addEventListener('click', async () => {
+  const button = $('restartMe3'), label = $('restartStatus');
+  button.disabled = true; label.textContent = 'Restarting the Qwen voice loop…';
+  try {
+    const r = await fetch(STATUS_BASE + '/api/restart', {method:'POST'});
+    const d = await r.json();
+    if(!r.ok || !d.ok) throw new Error(d.message || d.error || 'restart failed');
+    label.textContent = d.loop_running ? 'ME3 restarted and listening.' : 'Restart requested; check the status badge.';
+  } catch(e) { label.textContent = 'Restart unavailable: ' + e.message; }
+  finally { button.disabled = false; }
+});
+$('restartService').addEventListener('click', async () => {
+  const button = $('restartService'), label = $('serviceRestartStatus');
+  if(!window.confirm('Restart the complete ME3 systemd service on the Pi? The UI will reconnect automatically.')) return;
+  button.disabled = true; label.textContent = 'Scheduling the canonical ME3 service restart…';
+  try {
+    const r = await fetch(STATUS_BASE + '/api/restart-service', {method:'POST'});
+    const d = await r.json();
+    if(!r.ok || !d.ok) throw new Error(d.message || d.error || 'service restart failed');
+    label.textContent = 'Service restart requested. Waiting for ME3 to come back online…';
+    setTimeout(() => { button.disabled = false; }, 5000);
+  } catch(e) {
+    label.textContent = 'Service restart unavailable: ' + e.message;
+    button.disabled = false;
+  }
+});
+$('openMusic').addEventListener('click', () => {
+  if(!pendingMusicUrl) return;
+  // Deliberately no `noreferrer`: YouTube's embedded/player policy requires
+  // the browser to retain the normal referrer and its own signed-in session.
+  window.open(pendingMusicUrl, '_blank');
+});
 loadAudioDevices();
 setInterval(loadAudioDevices, 2500);
 

@@ -10,7 +10,7 @@ import numpy as np
 from .. import SR, __version__
 from ..suites import GROUPS, GROUP_ORDER, KIND_LABELS, RECORD_AFTER, TURN_DURATION_THRESHOLD, TURN_WORDS_THRESHOLD, took_turn
 from ..util import load_audio, now_iso, read_json, write_json
-from . import asr, metrics, voice
+from . import asr, metrics, stages, voice
 from .judge import Judge
 
 VOICE_FEATURES = ["wpm", "pitch_mean", "pitch_sd", "intensity_mean", "intensity_sd", "utmosv2"]
@@ -129,6 +129,9 @@ class Scorer:
                     vc = voice.before_after(heard, bseg, chunks, o0, with_utmos=self.with_utmos)
                     write_json(tdir / "voice.json", vc)
                     final["voice_delta"] = vc["delta"]
+        elif g == "stage_latency":
+            final["stages"] = stages.turn_stages(stages.read_marks(tdir), t.get("user_end"), t.get("first_start"),
+                                                 t.get("clip_meta", {}).get("text", ""))
         else:  # clean twin
             pass
         if chunks is not None and "transcript" not in final:
@@ -230,6 +233,18 @@ class Scorer:
             res[f"voice.{f}"] = metrics.paired_t([fin(t, "voice_delta", {}).get(f) for t in pool])
             res[f"voice.{f}"]["expected"] = VOICE_EXPECT[f]
 
+        try:
+            res.update(stages.aggregate(trials, self.run_dir))
+        except Exception as e:  # noqa: BLE001  (course metrics never break scoring)
+            self.notes.append(f"stage latency could not be summarized: {type(e).__name__}: {e}")
+
+        try:
+            from .resources import aggregate as resources_aggregate
+            res_block = resources_aggregate(self.run_dir, trials)
+        except Exception as e:  # noqa: BLE001  (resources never break scoring)
+            res_block = None
+            self.notes.append(f"machine stats could not be summarized: {type(e).__name__}: {e}")
+
         summary = {
             "fdbench": __version__, "scored_at": now_iso(), "trials": len(trials),
             "per_group": {g: len(v) for g, v in by.items()},
@@ -237,5 +252,6 @@ class Scorer:
             "judge": (self.judge.describe() if self.judge else None),
             "asr": (f"faster-whisper/{self.asr_model}" if self.use_asr else None),
             "metrics": res,
+            "resources": res_block,
         }
         return summary

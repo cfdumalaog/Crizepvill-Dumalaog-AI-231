@@ -191,6 +191,31 @@ def test_qwen_fast_mode_disables_hidden_thinking(monkeypatch):
     assert "reasoning_effort" not in captured[0]
 
 
+def test_benchmark_mode_omits_tools_even_if_model_returns_a_tool_call(monkeypatch):
+    monkeypatch.setenv("ME3_BENCH_TEST_KEY", "in-memory-test-only")
+    captured = []
+
+    def fake_post(*args, **kwargs):
+        captured.append(kwargs["json"])
+        return SimpleNamespace(
+            raise_for_status=lambda: None,
+            json=lambda: {"choices": [{"message": {
+                "role": "assistant", "content": "Benchmark response."
+            }}]},
+        )
+
+    monkeypatch.setattr(brain.requests, "post", fake_post)
+    b = brain.ToolBrain(
+        {"base_url": "http://qwen.test/v1", "model": "Qwen/test",
+         "api_key_env": "ME3_BENCH_TEST_KEY", "allow_tools": False,
+         "max_tokens": 128, "timeout_s": 2, "system_prompt": "test"},
+        "test",
+    )
+    assert b.chat([], "benchmark this turn") == "Benchmark response."
+    assert "tools" not in captured[0]
+    assert "tool_choice" not in captured[0]
+
+
 def test_openai_compatible_response_stream_is_assembled_without_reasoning(monkeypatch):
     monkeypatch.setenv("ME3_STREAM_TEST_KEY", "in-memory-test-only")
     captured = []

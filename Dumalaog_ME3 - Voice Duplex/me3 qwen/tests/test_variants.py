@@ -57,9 +57,10 @@ def test_spoken_tone_is_formal_and_professional(monkeypatch):
     load_config.cache_clear()
 
 
-def test_current_ui_uses_actual_audio_model_label():
+def test_qwen_ui_uses_the_final_audio_model_label():
     source = (Path(__file__).resolve().parents[1] / "web" / "assistant.html").read_text(
         encoding="utf-8"
     )
-    assert "ME3 FASTER-WHISPER + PIPER" in source
+    assert "ME3 QWEN INSTRUCT" in source
     assert "ME3 OWN" not in source
+    assert "ME3 FASTER-WHISPER + PIPER" not in source

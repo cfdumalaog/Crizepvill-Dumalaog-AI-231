@@ -28,9 +28,11 @@ import requests
 
 TWILIO_BASE_URL = "https://api.twilio.com/2010-04-01"
 RESEND_BASE_URL = "https://api.resend.com"
+TELEGRAM_BASE_URL = "https://api.telegram.org"
 _E164 = re.compile(r"^\+[1-9]\d{7,14}$")
 _EMAIL = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 _SAFE_ID = re.compile(r"^[A-Za-z0-9._:-]{1,160}$")
+_TELEGRAM_CHAT = re.compile(r"^[A-Za-z0-9_@:-]{1,128}$")
 
 RequestFn = Callable[..., Any]
 
@@ -59,6 +61,15 @@ def _email(value: str, field: str) -> str:
     _, address = parseaddr(raw)
     if not _EMAIL.fullmatch(address):
         raise ValueError(f"{field} must be a valid email address")
+    return raw
+
+
+def _telegram_chat(value: str) -> str:
+    raw = str(value or "").strip()
+    if not _TELEGRAM_CHAT.fullmatch(raw):
+        raise ValueError(
+            "chat_id must be a Telegram numeric chat id or @channel username"
+        )
     return raw
 
 
@@ -103,6 +114,7 @@ def channel_health() -> dict:
         "TWILIO_MESSAGING_SERVICE_SID")
     call_ready = _present("TWILIO_FROM_NUMBER") and _present("TWILIO_VOICE_URL")
     resend = _missing(["RESEND_API_KEY", "RESEND_FROM_EMAIL"])
+    telegram = _missing(["TELEGRAM_BOT_TOKEN"])
     call_missing = twilio_core + ([] if _present("TWILIO_FROM_NUMBER") else [
         "TWILIO_FROM_NUMBER"]) + ([] if _present("TWILIO_VOICE_URL") else [
             "TWILIO_VOICE_URL"])
@@ -124,6 +136,13 @@ def channel_health() -> dict:
                 "provider": "resend",
                 "configured": not resend,
                 "missing_env": resend,
+            },
+            "telegram": {
+                "provider": "telegram_bot_api",
+                "configured": not telegram,
+                "missing_env": telegram,
+                "text": "sendMessage",
+                "voice_calls": "unsupported_by_telegram_bot_api_use_twilio",
             },
         },
         "side_effects_require_confirm": True,
@@ -253,4 +272,54 @@ def send_email(to: str | list[str], subject: str, text: str, *,
         return result
     except Exception as exc:  # noqa: BLE001
         return _request_error("resend", exc) | {"channel": "email"}
+
+
+def send_telegram_message(chat_id: str, text: str, *,
+                          confirm: bool = False,
+                          bot_token: str | None = None,
+                          request_fn: RequestFn | None = None) -> dict:
+    """Send one Telegram Bot API text message after explicit confirmation.
+
+    The Bot API supports text messages but does not expose ordinary Telegram
+    voice-call initiation.  Phone calls remain a Twilio capability in ME3;
+    this adapter deliberately does not pretend that ``sendMessage`` is a call.
+    """
+    chat_id = _telegram_chat(chat_id)
+    text = str(text or "").strip()
+    if not text:
+        raise ValueError("text is required")
+    if len(text) > 4096:
+        raise ValueError("text must be at most 4096 characters")
+    if not confirm:
+        return {"ok": False, "provider": "telegram", "channel": "text",
+                "error": "confirmation_required", "network_called": False}
+
+    token = str(bot_token or _env("TELEGRAM_BOT_TOKEN")).strip()
+    if not token:
+        return {"ok": False, "provider": "telegram", "channel": "text",
+                "error": "configuration_missing",
+                "missing_env": ["TELEGRAM_BOT_TOKEN"],
+                "network_called": False}
+    post = request_fn or requests.post
+    try:
+        response = post(
+            f"{TELEGRAM_BASE_URL}/bot{token}/sendMessage",
+            json={"chat_id": chat_id, "text": text,
+                  "disable_web_page_preview": True},
+            timeout=20,
+        )
+        status_code = int(getattr(response, "status_code", 0) or 0)
+        payload = _response_json(response)
+        result = payload.get("result") if isinstance(payload, dict) else None
+        message_id = _safe_id(result.get("message_id")) if isinstance(result, dict) else None
+        ok = 200 <= status_code < 300 and payload.get("ok") is True
+        out = {"ok": ok, "provider": "telegram", "status_code": status_code,
+               "channel": "text"}
+        if message_id:
+            out["provider_id"] = message_id
+        if not ok:
+            out["error"] = "provider_rejected_request"
+        return out
+    except Exception as exc:  # noqa: BLE001
+        return _request_error("telegram", exc) | {"channel": "text"}
 

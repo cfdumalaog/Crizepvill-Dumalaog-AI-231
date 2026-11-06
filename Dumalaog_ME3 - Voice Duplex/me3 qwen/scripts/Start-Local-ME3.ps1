@@ -115,7 +115,7 @@ Write-Host "Python  : $python"
 Write-Host "LLM     : $brainMode (Qwen key $(if ($haveKey) { 'configured' } else { 'not set' }); Luna key $(if ($haveOpenAIKey) { 'configured' } else { 'not set' }))"
 Write-Host "Audio   : $Variant (Qwen ASR endpoint $(if ($qwenAsrEndpointConfigured) { 'configured' } else { 'not set' }); TTS endpoint $(if ($qwenTtsEndpointConfigured) { 'configured' } else { 'not set' }); shared key $(if ($qwenAudioKeyConfigured) { 'configured' } else { 'not set' }))"
 if ($Device -eq 'auto') { Write-Host 'Mic     : system default input' } else { Write-Host "Mic     : $Device" }
-Write-Host 'Models  : local Silero VAD + current faster-whisper/Piper or Qwen Instruct remote ASR/TTS'
+Write-Host 'Models  : local Silero VAD + Qwen Instruct remote ASR/TTS (active profile)'
 Write-Host 'Stop    : Ctrl+C in this window (or close the window)'
 Write-Host 'Assistant : http://127.0.0.1:8126/  (live voice UI - orb, state, transcript, tools)'
 Write-Host 'Roadmap   : http://127.0.0.1:8126/roadmap  (what is left to do)'

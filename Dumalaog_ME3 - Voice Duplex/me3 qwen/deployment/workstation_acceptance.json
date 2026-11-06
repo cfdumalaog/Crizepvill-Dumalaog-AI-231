@@ -1,41 +1,41 @@
 {
   "schema": 1,
-  "acceptance_id": "workstation-20261105-140025",
+  "acceptance_id": "workstation-20261106-130200",
   "status": "pass",
-  "created_utc": "2026-11-05T14:00:25.301351+00:00",
+  "created_utc": "2026-11-06T13:02:00.904165+00:00",
   "host": "DABEXY",
   "python": "3.12.10",
   "mode": "windows_workstation_only",
   "external_side_effects": false,
   "pi_contacted": false,
   "promotion_policy": "workstation_acceptance_required",
-  "release_id": "me3-20261105-140022-21b0fae3",
-  "source_fingerprint": "21b0fae3ecaf5657f2e93021921a4acd6f85758d0b8df194886625989467b964",
-  "zip_sha256": "8bb028c808446f9f7ca440d36268199478f7bf36ce6631999ebc51fcb1d5ccd3",
+  "release_id": "me3-20261106-130159-6486e1d9",
+  "source_fingerprint": "6486e1d99e7a18874bb154a7f54ba571e424195ff7107b5abafb74394bd6ce99",
+  "zip_sha256": "5dd3a9f9afbd58d00fe822fd135af6102d10437525efc12a2b467dca01e6207d",
   "checks": [
     {
       "name": "shared_environment",
       "status": "pass",
       "returncode": 0,
-      "duration_s": 5.079,
+      "duration_s": 2.929,
       "command": "C:\\Users\\danda\\Desktop\\MEng AI Notebooks\\AI 222 231\\.venv\\Scripts\\python.exe scripts/dev_env_check.py",
       "stdout_tail": "                      MCP SDK - all four servers speak MCP\n  [OK ] fastapi        0.141.1                       FastMCP server framework\n  [OK ] uvicorn        0.52.4                        ASGI transport for streamable-http mode\n  [OK ] pipecat        1.13.0                        full-duplex orchestration pipeline\n  [OK ] faster_whisper 1.2.1                         SOTA ASR (CTranslate2)\n  [OK ] piper          present                       SOTA low-latency TTS\n  [OK ] onnxruntime    1.24.4                        CPU Silero VAD runtime\n  [OK ] sounddevice    0.5.6                         full-duplex mic/speaker I/O (PortAudio)\n  [OK ] requests       2.34.2                        LLM endpoint client (remote vLLM option)\n\nRESULT: PASS - all ME3 dependencies importable in this environment.\n",
-      "stderr_tail": "\u001b[32m2026-11-05 21:59:52.887\u001b[0m | \u001b[1mINFO    \u001b[0m | \u001b[36mpipecat\u001b[0m:\u001b[36m<module>\u001b[0m:\u001b[36m54\u001b[0m - \u001b[1m\\u14da\\u160f\\u15e2 Pipecat 1.13.0 (Python 3.12.10 (tags/v3.12.10:0cc8128, Apr  8 2025, 12:21:36) [MSC v.1943 64 bit (AMD64)]) \\u14da\\u160f\\u15e2\u001b[0m\n"
+      "stderr_tail": "\u001b[32m2026-11-06 21:01:41.909\u001b[0m | \u001b[1mINFO    \u001b[0m | \u001b[36mpipecat\u001b[0m:\u001b[36m<module>\u001b[0m:\u001b[36m54\u001b[0m - \u001b[1m\\u14da\\u160f\\u15e2 Pipecat 1.13.0 (Python 3.12.10 (tags/v3.12.10:0cc8128, Apr  8 2025, 12:21:36) [MSC v.1943 64 bit (AMD64)]) \\u14da\\u160f\\u15e2\u001b[0m\n"
     },
     {
       "name": "pytest",
       "status": "pass",
       "returncode": 0,
-      "duration_s": 8.864,
+      "duration_s": 6.128,
       "command": "C:\\Users\\danda\\Desktop\\MEng AI Notebooks\\AI 222 231\\.venv\\Scripts\\python.exe -m pytest tests -q",
-      "stdout_tail": "......................................................................   [100%]\n70 passed in 6.72s\n",
+      "stdout_tail": "........................................................................ [ 88%]\n.........                                                                [100%]\n81 passed in 5.02s\n",
       "stderr_tail": ""
     },
     {
       "name": "python_compile",
       "status": "pass",
       "returncode": 0,
-      "duration_s": 0.234,
+      "duration_s": 0.144,
       "command": "C:\\Users\\danda\\Desktop\\MEng AI Notebooks\\AI 222 231\\.venv\\Scripts\\python.exe -m compileall -q me3 scripts",
       "stdout_tail": "",
       "stderr_tail": ""
@@ -44,7 +44,7 @@
       "name": "bash_syntax",
       "status": "pass",
       "returncode": 0,
-      "duration_s": 7.175,
+      "duration_s": 4.432,
       "command": "bash -n install.sh",
       "stdout_tail": "",
       "stderr_tail": ""
@@ -53,16 +53,16 @@
       "name": "mcp_and_audio_smoke",
       "status": "pass",
       "returncode": 0,
-      "duration_s": 6.527,
+      "duration_s": 3.928,
       "command": "C:\\Users\\danda\\Desktop\\MEng AI Notebooks\\AI 222 231\\.venv\\Scripts\\python.exe scripts/local_smoke_test.py",
-      "stdout_tail": "7B-Instruct\", \"compute_type\": \"int8\", \"load_ms\": 136.0}\n  [PASS] me3.mcp_tts   tools=4 health={\"ok\": true, \"engine\": \"qwen3-tts\", \"configured_engine\": \"qwen_remote\", \"voice\": \"aiden\", \"sample_rate\": 24000, \"load_ms\n  [PASS] me3.mcp_vad   tools=4 health={\"ok\": true, \"engine\": \"silero-vad\", \"threshold\": 0.5, \"min_silence_ms\": 800, \"load_ms\": 445.5}\n  [PASS] me3.mcp_tasks tools=25 health={\"ok\": true, \"tools\": [\"set_timer\", \"list_timers\", \"cancel_timer\", \"system_info\", \"read_file\", \"write_file\", \"run_comman\n\nBenchmark:\n  [PASS] me3.benchmark constructed; 5 benchmark scenarios registered\n\nAudio I/O:\n  [SKIP] audio I/O (use --with-audio to test PortAudio devices)\n\nRESULT: PASS - 4 MCP servers healthy, benchmark + audio OK.\nSafe to run scripts/package_release.py and then scripts/deploy_to_pi.py.\n",
-      "stderr_tail": "\u001b[32m2026-11-05 22:00:16.051\u001b[0m | \u001b[1mINFO    \u001b[0m | \u001b[36mpipecat\u001b[0m:\u001b[36m<module>\u001b[0m:\u001b[36m54\u001b[0m - \u001b[1m\\u14da\\u160f\\u15e2 Pipecat 1.13.0 (Python 3.12.10 (tags/v3.12.10:0cc8128, Apr  8 2025, 12:21:36) [MSC v.1943 64 bit (AMD64)]) \\u14da\\u160f\\u15e2\u001b[0m\n"
+      "stdout_tail": "-7B-Instruct\", \"compute_type\": \"int8\", \"load_ms\": 79.4}\n  [PASS] me3.mcp_tts   tools=4 health={\"ok\": true, \"engine\": \"qwen3-tts\", \"configured_engine\": \"qwen_remote\", \"voice\": \"aiden\", \"sample_rate\": 24000, \"load_ms\n  [PASS] me3.mcp_vad   tools=4 health={\"ok\": true, \"engine\": \"silero-vad\", \"threshold\": 0.5, \"min_silence_ms\": 800, \"load_ms\": 385.3}\n  [PASS] me3.mcp_tasks tools=40 health={\"ok\": true, \"tools\": [\"set_timer\", \"list_timers\", \"cancel_timer\", \"system_info\", \"read_file\", \"write_file\", \"run_comman\n\nBenchmark:\n  [PASS] me3.benchmark constructed; 5 benchmark scenarios registered\n\nAudio I/O:\n  [SKIP] audio I/O (use --with-audio to test PortAudio devices)\n\nRESULT: PASS - 4 MCP servers healthy, benchmark + audio OK.\nSafe to run scripts/package_release.py and then scripts/deploy_to_pi.py.\n",
+      "stderr_tail": "\u001b[32m2026-11-06 21:01:56.605\u001b[0m | \u001b[1mINFO    \u001b[0m | \u001b[36mpipecat\u001b[0m:\u001b[36m<module>\u001b[0m:\u001b[36m54\u001b[0m - \u001b[1m\\u14da\\u160f\\u15e2 Pipecat 1.13.0 (Python 3.12.10 (tags/v3.12.10:0cc8128, Apr  8 2025, 12:21:36) [MSC v.1943 64 bit (AMD64)]) \\u14da\\u160f\\u15e2\u001b[0m\n"
     },
     {
       "name": "paper_alignment",
       "status": "pass",
       "returncode": 0,
-      "duration_s": 0.725,
+      "duration_s": 0.335,
       "command": "C:\\Users\\danda\\Desktop\\MEng AI Notebooks\\AI 222 231\\.venv\\Scripts\\python.exe scripts/check_paper_alignment.py",
       "stdout_tail": "onse_latency_s\": \"tmodel_start - tuser_end\"\n    },\n    \"transforms\": {\n      \"talking_to_others\": {\n        \"gain_db\": -8.0,\n        \"high_shelf_hz\": 4000.0,\n        \"high_shelf_db\": -5.0,\n        \"reflections\": [\n          [\n            0.045,\n            -6.0\n          ],\n          [\n            0.12,\n            -12.0\n          ]\n        ]\n      },\n      \"background_speech\": {\n        \"gain_db\": -15.0,\n        \"lowpass_hz\": 3000.0,\n        \"echo\": [\n          0.1,\n          -10.0\n        ]\n      }\n    }\n  },\n  \"pi\": {\n    \"installer\": true,\n    \"systemd_units\": 4,\n    \"owned_mcp_servers\": 4,\n    \"variant\": \"me3 qwen\",\n    \"lan_browser_server\": true,\n    \"fdbench_adapter\": true,\n    \"full_duplex\": true,\n    \"asr_compute_type\": \"int8\"\n  }\n}\nLIVE_PI_RUN: not performed by this static check\n",
       "stderr_tail": ""
@@ -71,16 +71,16 @@
       "name": "variant_imports",
       "status": "pass",
       "returncode": 0,
-      "duration_s": 2.431,
+      "duration_s": 0.656,
       "command": "C:\\Users\\danda\\Desktop\\MEng AI Notebooks\\AI 222 231\\.venv\\Scripts\\python.exe scripts/check_variants.py",
-      "stdout_tail": "me3 own: variant imports PASS\nme3 qwen: variant imports PASS\nME3 VARIANT IMPORTS PASS\n",
+      "stdout_tail": "me3 qwen: variant imports PASS\nME3 QWEN IMPORTS PASS\n",
       "stderr_tail": ""
     },
     {
       "name": "fdbench_adapter_check",
       "status": "pass",
       "returncode": 0,
-      "duration_s": 1.427,
+      "duration_s": 0.517,
       "command": "C:\\Users\\danda\\Desktop\\MEng AI Notebooks\\AI 222 231\\.venv\\Scripts\\python.exe scripts/me3_fdbench_agent.py --check",
       "stdout_tail": "ME3 fdbench adapter ready; websockets=17.1; url=ws://127.0.0.1:8791\n",
       "stderr_tail": ""
@@ -89,7 +89,7 @@
       "name": "git_whitespace",
       "status": "pass",
       "returncode": 0,
-      "duration_s": 0.142,
+      "duration_s": 0.041,
       "command": "git diff --check -- Dumalaog_ME3 - Voice Duplex",
       "stdout_tail": "",
       "stderr_tail": ""

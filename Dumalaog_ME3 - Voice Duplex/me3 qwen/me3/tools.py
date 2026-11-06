@@ -25,6 +25,7 @@ from urllib.parse import quote_plus, urlparse
 from .config import load_config, project_root
 from .task_runner import BackgroundTaskManager
 from . import channels
+from . import me2_commands
 
 PROJECT = project_root()
 AGENT_ROOT = PROJECT / "agent_workspace"
@@ -474,10 +475,25 @@ _FUNCTIONS = {
     "set_timer": set_timer,
     "list_timers": list_timers,
     "cancel_timer": cancel_timer,
+    "play_music": me2_commands.play_music,
+    "media_control": me2_commands.media_control,
+    "music_state": me2_commands.music_state,
+    "get_weather": me2_commands.get_weather,
+    "control_lights": me2_commands.control_lights,
+    "set_thermostat": me2_commands.set_thermostat,
+    "set_alarm": me2_commands.set_alarm,
+    "list_alarms": me2_commands.list_alarms,
+    "cancel_alarm": me2_commands.cancel_alarm,
+    "create_reminder": me2_commands.create_reminder,
+    "list_reminders": me2_commands.list_reminders,
+    "complete_reminder": me2_commands.complete_reminder,
+    "call_contact": me2_commands.call_contact,
+    "send_message": me2_commands.send_message,
     "channel_health": channels.channel_health,
     "send_sms": channels.send_sms,
     "make_call": channels.make_call,
     "send_email": channels.send_email,
+    "send_telegram_message": channels.send_telegram_message,
 }
 
 
@@ -557,6 +573,65 @@ def tool_definitions() -> list[dict]:
             "include_cancelled": {"type": "boolean", "default": False}}),
         spec("cancel_timer", "Cancel a pending timer by id.",
              {"timer_id": {"type": "string"}}, ("timer_id",)),
+        spec("play_music", (
+            "Play music through a signed-in browser handoff. Google means YouTube "
+            "Music; Spotify is also supported. The UI requires one user click."), {
+            "query": {"type": "string"},
+            "service": {"type": "string", "enum": ["youtube_music", "spotify", "youtube", "local"], "default": "youtube_music"},
+        }, ("query",)),
+        spec("media_control", (
+            "Control current media: play, pause, stop, skip, volume_up, "
+            "volume_down, or set_volume."), {
+            "action": {"type": "string"}, "value": {"type": "integer"},
+        }, ("action",)),
+        spec("music_state", "Return the current ME3 browser music handoff state.", {}),
+        spec("get_weather", "Get current weather for a city or location.", {
+            "location": {"type": "string"},
+        }, ("location",)),
+        spec("control_lights", (
+            "Turn lights on/off, dim them to a percent, or set a color. "
+            "Uses local demo state unless Home Assistant is configured."), {
+            "action": {"type": "string", "enum": ["on", "off", "dim", "color"]},
+            "room": {"type": "string", "default": "all"},
+            "value": {"type": ["integer", "string"]},
+        }, ("action",)),
+        spec("set_thermostat", (
+            "Set the requested temperature in Celsius. Uses local demo state "
+            "unless a physical climate integration is configured."), {
+            "temperature_c": {"type": "number"}, "room": {"type": "string", "default": "home"},
+        }, ("temperature_c",)),
+        spec("set_alarm", "Set a next-occurrence alarm such as 7:30 AM or 19:30.", {
+            "time_text": {"type": "string"}, "label": {"type": "string", "default": ""},
+        }, ("time_text",)),
+        spec("list_alarms", "List active alarms.", {
+            "include_cancelled": {"type": "boolean", "default": False},
+        }),
+        spec("cancel_alarm", "Cancel an alarm by id.", {
+            "alarm_id": {"type": "string"},
+        }, ("alarm_id",)),
+        spec("create_reminder", "Create a reminder after a delay or at a local time.", {
+            "text": {"type": "string"},
+            "delay_seconds": {"type": "number"},
+            "at_text": {"type": "string"},
+        }, ("text",)),
+        spec("list_reminders", "List active reminders.", {
+            "include_completed": {"type": "boolean", "default": False},
+        }),
+        spec("complete_reminder", "Mark a reminder complete by id.", {
+            "reminder_id": {"type": "string"},
+        }, ("reminder_id",)),
+        spec("call_contact", (
+            "Call a named or E.164 contact through the reviewed Twilio flow. "
+            "Ask for explicit confirmation before confirm=true."), {
+            "contact": {"type": "string"}, "confirm": {"type": "boolean", "default": False},
+        }, ("contact",)),
+        spec("send_message", (
+            "Send SMS or Telegram text to a named/number contact. Ask for "
+            "explicit confirmation before confirm=true."), {
+            "contact": {"type": "string"}, "body": {"type": "string"},
+            "channel": {"type": "string", "enum": ["sms", "telegram"], "default": "sms"},
+            "confirm": {"type": "boolean", "default": False},
+        }, ("contact", "body")),
         spec("channel_health", (
             "Report safe configuration status for call, SMS, and email. "
             "This does not contact providers or send anything."), {}),
@@ -589,6 +664,14 @@ def tool_definitions() -> list[dict]:
             "confirm": {"type": "boolean", "default": False},
             "from_email": {"type": "string"},
         }, ("to", "subject", "text")),
+        spec("send_telegram_message", (
+            "Send a Telegram Bot API text message. Ask for explicit confirmation "
+            "before setting confirm=true. Telegram Bot API voice calls are not "
+            "available; use make_call for a reviewed Twilio phone call."), {
+            "chat_id": {"type": "string"},
+            "text": {"type": "string"},
+            "confirm": {"type": "boolean", "default": False},
+        }, ("chat_id", "text")),
     ]
 
 

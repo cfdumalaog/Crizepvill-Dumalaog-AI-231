@@ -27,18 +27,13 @@ voice loop:
 & .\scripts\Start-Local-ME3.ps1 -Brain remote
 ```
 
-To demonstrate the two audio-provider profiles with the same tool behavior,
-use `-Variant current` for the offline/local path or
-`-Variant qwen_instruct` for the protected DGX3 Qwen2-Audio/Qwen3-TTS path.
-The latter reads the protected handoff file automatically on this workstation;
-with the VPN connected, it uses the live Qwen2-Audio/Qwen3-TTS services. If the
-VPN route is not reachable, use `current` and show the bounded Qwen provider
-error rather than presenting an unverified live claim.
+The active presentation profile is `-Variant qwen_instruct`; it reads the
+protected handoff file automatically on this workstation and uses the live
+Qwen2-Audio/Qwen3-TTS services when the VPN route is reachable. If the route is
+not reachable, show the bounded provider error rather than presenting an
+unverified live claim. The former local audio profile is archived.
 
 ```powershell
-# Current local ASR/TTS path
-& .\scripts\Start-Local-ME3.ps1 -Brain remote -Variant current
-
 # Qwen Instruct audio path
 & .\scripts\Start-Local-ME3.ps1 -Brain remote -Variant qwen_instruct
 
@@ -57,6 +52,12 @@ the newest captured prompt. The live Pi browser page also exposes a Runtime
 terminal with sanitized state, ASR, TTS, and tool lifecycle events. The browser
 console at port 8124 is a secondary text/tool diagnostic surface, not a
 replacement for this voice loop.
+The Runtime terminal is intentionally embedded in the live Assistant page; it
+is an observability panel, not a second UI or a shell. Keep it visible for the
+demo because it provides safe evidence of processing without exposing hidden
+chain-of-thought. Use **Restart ME3 loop** for an audio-loop reset. Use the
+Pi-only **Restart ME3 service** control when the systemd unit itself needs to
+be reloaded; the browser will briefly show offline and then reconnect.
 
 The same run is observable through the Vocalis-Pi contract: the live loop
 publishes turn state, VAD, transcript, assistant-text, TTS-control, and

@@ -92,7 +92,7 @@ variants:
       protocol: chat_completions
       prompt: Transcribe the spoken audio exactly. Return only the transcript.
       max_tokens: 256
-      timeout_s: 60
+      timeout_s: 20                 # fail fast enough to keep the live UI responsive
       language: null
     tts:
       engine: qwen_remote
@@ -243,6 +243,19 @@ fdb_v15:
 
 benchmark:
   n_trials: 20                   # per scenario
+  class_target_ms:
+    end_to_end: 4000             # class-group target: 4.0 s
+    asr_final: 800               # class-group target: 0.8 s
+    llm_ttft: 1500               # class-group target: 1.5 s
+    tts_ttfb: 600                # class-group target: 0.6 s
+    barge_in: 800                # class-group target: 0.8 s
+  class_protocol:
+    injected_audio_only: true
+    open_microphone: false
+    open_speaker: false
+    disable_tool_calls: true
+    disable_agent_calls: true
+    disable_fillers_and_backchannels: true
   scenarios:
     - wake_to_first_word         # VAD trigger -> first TTS audio byte
     - utterance_to_llm_token     # ASR final -> first LLM token

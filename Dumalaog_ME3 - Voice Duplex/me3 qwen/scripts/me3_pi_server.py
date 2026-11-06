@@ -10,6 +10,9 @@ from __future__ import annotations
 import argparse
 import logging
 import os
+import re
+import shutil
+import subprocess
 import sys
 import threading
 from pathlib import Path
@@ -26,6 +29,7 @@ from me3.agent_status import LoopStatus, StatusServer, load_release_info  # noqa
 from me3.audio_io import FullDuplexAudio  # noqa: E402
 from me3.brain import build_system_prompt, build_tool_brain  # noqa: E402
 from me3.config import load_config  # noqa: E402
+from me3 import me2_commands  # noqa: E402
 from me3.web_audio import BrowserAudioHub, BrowserOutputAudio  # noqa: E402
 
 log = logging.getLogger("me3.pi_server")
@@ -111,6 +115,15 @@ class AgentController:
         self.start()
         return self.audio_info()
 
+    def restart(self) -> dict:
+        """Restart only the agent loop while keeping UI/audio online."""
+        self.stop()
+        self.start()
+        with self.lock:
+            running = bool(self.thread and self.thread.is_alive())
+        return {"loop_running": running,
+                "variant": self.cfg.get("runtime_variant", "qwen_instruct")}
+
     def audio_info(self) -> dict:
         try:
             import sounddevice as sd
@@ -126,6 +139,26 @@ class AgentController:
                     inputs.append({**row, "channels": int(dev.get("max_input_channels", 0))})
                 if dev.get("max_output_channels", 0) > 0:
                     outputs.append({**row, "channels": int(dev.get("max_output_channels", 0))})
+            if not inputs:
+                # Some Pi PortAudio builds expose a USB microphone through
+                # arecord but report zero input channels.  Surface those ALSA
+                # devices so the UI still offers an explicit selectable mic.
+                try:
+                    listed = subprocess.run(
+                        ["arecord", "-l"], capture_output=True, text=True,
+                        timeout=5, check=False,
+                    )
+                    for card, _card_label, name, device in re.findall(
+                            r"(?m)^card\s+(\d+):\s+([^\[]+)\[([^\]]+)\].*?device\s+(\d+):",
+                            listed.stdout):
+                        inputs.append({
+                            "id": f"hw:{card},{device}",
+                            "name": f"{name.strip()} (ALSA hw:{card},{device})",
+                            "sample_rate": 16000,
+                            "channels": 1,
+                        })
+                except (OSError, subprocess.SubprocessError):
+                    pass
             with self.lock:
                 selected_input = self.input_device
                 selected_output = ("browser" if self.output_mode == "browser"
@@ -156,6 +189,34 @@ class AgentController:
             return {"ok": False, "available": False,
                     "error": type(exc).__name__, "message": str(exc)[:300],
                     "browser_audio": self.hub.snapshot(), "echo_guard": {}}
+
+
+def schedule_systemd_restart(service_name: str = "me3-agent.service") -> dict:
+    """Schedule a restart of the canonical Pi user service.
+
+    The HTTP response must leave the process before systemd stops it, so the
+    command is launched from a short-lived daemon timer. This endpoint is
+    wired only by the Pi server; workstation status servers do not expose it.
+    """
+    if not shutil.which("systemctl"):
+        raise RuntimeError("systemctl is unavailable on this host")
+
+    def _restart() -> None:
+        try:
+            subprocess.Popen(
+                ["systemctl", "--user", "restart", service_name],
+                stdin=subprocess.DEVNULL,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                start_new_session=True,
+            )
+        except Exception:  # noqa: BLE001 - the service will expose its own logs
+            log.exception("could not launch systemd restart for %s", service_name)
+
+    timer = threading.Timer(0.35, _restart)
+    timer.daemon = True
+    timer.start()
+    return {"service": service_name, "restart_scheduled": True}
 
 
 def build_brain(cfg: dict, selection: str):
@@ -199,10 +260,14 @@ def main() -> int:
     status = LoopStatus(
         release_info=load_release_info(PROJECT),
         brain_name=str(getattr(brain, "name", "brain")),
-        variant=str(cfg.get("runtime_variant", "current")),
+        variant=str(cfg.get("runtime_variant", "qwen_instruct")),
     )
     hub = BrowserAudioHub(args.host, args.audio_port)
     hub.start()
+    # Tool calls can notify the same browser tab that receives PCM.  The
+    # browser opens a provider URL only after a user click, preserving the
+    # browser's own authenticated session and keeping cookies off the Pi.
+    me2_commands.set_music_event_sink(hub.publish_event)
     controller = AgentController(
         cfg, brain, status, hub,
         input_device=args.input_device,
@@ -215,6 +280,8 @@ def main() -> int:
         get_stats=lambda: controller.loop.stats if controller.loop else type("S", (), {})(),
         port=args.port, host=args.host, project=PROJECT,
         audio_info=controller.audio_info, audio_select=controller.select,
+        restart_agent=controller.restart,
+        restart_service=schedule_systemd_restart,
     )
     if not http.start():
         hub.stop()
@@ -230,6 +297,7 @@ def main() -> int:
     except KeyboardInterrupt:
         pass
     finally:
+        me2_commands.set_music_event_sink(None)
         controller.stop()
         http.stop()
         hub.stop()

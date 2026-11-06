@@ -1,7 +1,7 @@
 # ME3 external-channel API requirements
 
 This document is the implementation and provisioning checklist for connecting
-ME3 to telephone calls, SMS/text messages, and email. The adapters are shared
+ME3 to telephone calls, SMS/text messages, Telegram text, and email. The adapters are shared
 by the direct provider-neutral tool loop and the `me3-tasks` MCP server. They do
 not train a model: Qwen or GPT-5.6 Luna performs inference and chooses a bounded
 tool, while the Pi runs
@@ -14,6 +14,8 @@ the adapter and records only safe provider metadata.
 | Outbound voice call | Twilio Voice Calls resource | `make_call` | Starts a phone call | Implemented; fake-request tested, no live call placed |
 | SMS/text | Twilio Messages resource | `send_sms` | Sends one SMS | Implemented; fake-request tested, no live SMS sent |
 | Transactional email | Resend Send Email API | `send_email` | Sends an email | Implemented; fake-request tested, no live email sent |
+| Telegram text | Telegram Bot API `sendMessage` | `send_telegram_message` | Sends one bot text message | Implemented; fake-request tested, no live message sent |
+| Telegram voice call | Telegram Bot API | n/a | Ordinary bot voice-call initiation | Not available in the Bot API; use Twilio or a separately reviewed user-authenticated MTProto/TDLib bridge |
 | Configuration status | Local, network-free | `channel_health` | None | Implemented and tested |
 
 Every external side effect requires `confirm=true`. The agent must first state
@@ -41,14 +43,14 @@ must be configured; the optional Luna provider below can be used instead.
 
 No Qwen training or fine-tuning is required for ME3.
 
-### 1b. Optional Qwen Instruct audio services
+### 1b. Active Qwen Instruct audio services
 
-The supplied second Qwen handoff is an audio-provider pair, not a replacement
-for the text tool-calling brain. The `qwen_instruct` ME3 variant uses the
+The supplied Qwen handoff is an audio-provider pair, not a replacement
+for the text tool-calling brain. The active ME3 release uses the
 OpenAI-compatible vLLM audio endpoints for `Qwen/Qwen2-Audio-7B-Instruct` ASR
 and `Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice` TTS. Local Silero VAD, the text ToolBrain,
-bounded tools, and the duplex interruption controller are shared with the
-`current` variant. Qwen2-Audio uses vLLM's multimodal `/v1/chat/completions`
+bounded tools, and the duplex interruption controller are in the same release.
+Qwen2-Audio uses vLLM's multimodal `/v1/chat/completions`
 surface with an `audio_url` data URL and transcript-only prompt; Qwen3-TTS uses
 `/v1/audio/speech`. ME3 wraps those routes as its ASR/TTS MCP servers. The
 protected services were live-verified over VPN on 31 October 2026.
@@ -63,8 +65,9 @@ QWEN_INSTRUCT_API_KEY
 
 The workstation launcher can parse the protected handoff file in memory. A Pi
 deployment must provide the same values through its protected service
-environment. If the VPN route is unavailable, `current` is the safe offline
-path; the optional variant fails closed and reports a provider error.
+environment. If the VPN route is unavailable, the active Qwen profile fails
+closed and reports a provider error. The former local audio deployment is
+archived.
 
 ### 2. GPT-5.6 Luna: optional OpenAI reasoning and tool selection
 
@@ -171,6 +174,34 @@ starts with plain-text transactional email; HTML templates, attachments,
 threading, and inbound mailbox processing are intentionally not enabled by
 the first adapter.
 
+### 6. Telegram Bot API: text messages
+
+ME3 uses the official Telegram Bot API `sendMessage` method with a JSON `POST`
+to `https://api.telegram.org/bot<TOKEN>/sendMessage`. The implementation is
+available through both the direct tool registry and the `me3-tasks` MCP server
+as `send_telegram_message(chat_id, text, confirm=true)`. The bot token is read
+from the protected runtime environment variable `TELEGRAM_BOT_TOKEN`; the
+adapter reports only configured/not-configured state and never returns the
+token or Telegram response body.
+
+Required protected environment value:
+
+```text
+TELEGRAM_BOT_TOKEN
+```
+
+The agent must identify the chat and message and receive explicit confirmation
+before setting `confirm=true`. The operator must first start the bot and send
+it a message so Telegram can provide the correct numeric `chat_id` (or use a
+reviewed `@channelusername`).
+
+The Telegram Bot API does not provide ordinary one-to-one voice-call initiation.
+ME3 therefore does not expose a fake Telegram call tool. `make_call` remains
+the Twilio phone-call tool. A future Telegram voice-call feature would require
+a separately reviewed user-account bridge using MTProto/TDLib, with its own
+session security, consent, rate limits, and human-transfer policy; a bot token
+alone is insufficient.
+
 ## Local model and infrastructure APIs
 
 These are required by the complete voice agent even when no external channel
@@ -222,14 +253,19 @@ python -c "from me3.channels import channel_health; print(channel_health())"
 ```
 
 The first command checks the local model and audio prerequisites. The second
-does not contact Twilio or Resend. A live channel test requires an
+does not contact Twilio, Resend, or Telegram. A live channel test requires an
 operator-owned destination and an explicit run outside the ordinary smoke
 test; no live message or call is part of the automated test suite.
 
 ## Remaining production work
 
 - provision and securely inject the provider values;
+- for Telegram text, create the bot, obtain the operator-approved chat ID, and
+  perform one confirmed test message;
 - supply an HTTPS Twilio webhook/media-stream bridge for conversational calls;
+- if Telegram voice calls are required, design and review a separate
+  user-authenticated MTProto/TDLib bridge; do not treat the Bot API as a call
+  transport;
 - connect approved CRM/ticket/identity systems through separately reviewed
   MCP tools rather than giving the agent unrestricted HTTP access;
 - add inbound call/SMS/email webhooks, signature verification, idempotency,

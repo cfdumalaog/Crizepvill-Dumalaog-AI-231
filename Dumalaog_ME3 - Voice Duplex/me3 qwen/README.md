@@ -29,30 +29,24 @@ The browser UI below is
 a secondary text and diagnostic console for inspection; it is not the
 definition of the voice agent.
 
-### Two selectable audio variants
+### Single active audio profile: Qwen Instruct
 
-ME3 has one shared duplex/tool architecture and two audio-provider profiles:
+The active ME3 release is **ME3 QWEN INSTRUCT**. It uses local Silero VAD plus
+the supplied DGX3 vLLM services: `Qwen2-Audio-7B-Instruct` for ASR and
+`Qwen3-TTS-12Hz-1.7B-CustomVoice` for TTS. The Qwen text ToolBrain, MCP tools,
+web-app creation, channel safety gates, and protected-playback control state
+machine are all part of this same release line.
 
-* `current` (default): local faster-whisper ASR plus one fixed Piper voice,
-  `en_GB-alba-medium`, for every spoken event.
-* `qwen_instruct`: local Silero VAD plus the supplied DGX3 vLLM services,
-  `Qwen2-Audio-7B-Instruct` for ASR and `Qwen3-TTS-12Hz-1.7B-CustomVoice`
-  for TTS. The existing Qwen text ToolBrain, MCP tools, web-app creation,
-  channel safety gates, and protected-playback control state machine are shared.
-
-The second profile is plug-and-play: the protected handoff file is read only
-by the launcher into process memory. If the VPN or DGX3 listeners are not
-reachable, `current` remains usable and the Qwen profile reports a bounded
-provider error rather than silently claiming that audio succeeded.
-
-The live browser UI labels the selected project variant in the header and
-runtime card: the `me3 own` copy displays **ME3 FASTER-WHISPER + PIPER**, while
-the `me3 qwen` copy displays **ME3 QWEN INSTRUCT**. The internal folder and
-launcher identifiers remain `me3 own` and `current` for compatibility; the
-user-facing name now describes the actual voice stack: multilingual
-faster-whisper `small` ASR plus Piper `en_GB-alba-medium` TTS. It is not a
+The former local faster-whisper/Piper Own deployment has been archived and is
+not an active launch target. The internal `current` profile remains only as a
+legacy compatibility option for old comparison scripts; new launchers,
+defaults, Pi service files, and the UI use `qwen_instruct`. It is not a
 separately trained ME3 model. The text/tool brain is shared Qwen3.8-27B by
 default, with GPT-5.6 Luna selectable as the alternative.
+
+The Qwen handoff file is read only by the launcher into process memory. If the
+VPN or DGX3 listeners are not reachable, the profile fails closed and reports a
+bounded provider error rather than silently claiming that audio succeeded.
 
 ### Protected playback and the runtime terminal
 
@@ -93,9 +87,6 @@ guard exposes only counters and correlation metrics through
 one is run in the actual room.
 
 ```powershell
-# Existing/current audio path
-& '.\scripts\Start-Local-ME3.ps1' -Brain remote -Variant current
-
 # Qwen Instruct ASR/TTS path; launcher auto-reads the protected handoff file
 & '.\scripts\Start-Local-ME3.ps1' -Brain remote -Variant qwen_instruct
 
@@ -144,9 +135,9 @@ viewing the UI. This is the intended path when the operator wants the sound to
 play through the PC while the microphone remains attached to the Pi.
 
 ```bash
-# On the Pi, from the active /home/dalmacio/Desktop/dandan release:
+# On the Pi, from the active /home/dalmacio/Desktop/dandan-qwen release:
 python scripts/me3_pi_server.py --host 0.0.0.0 --port 8126 --audio-port 8127 \
-  --brain remote --variant current
+  --brain remote --variant qwen_instruct
 ```
 
 Open `http://<PI-IP>:8126/` from a PC on the same network. In the **Pi audio
@@ -157,6 +148,24 @@ audio output when the browser supports `AudioContext.setSinkId`. The same
 server is installed by `deploy/me3-agent.service`; the Windows ME2-style
 launcher `launchers/Start-ME3-Pi-Web.bat` starts it and forwards both HTTP and
 audio ports through SSH.
+
+For the current deployment, use the Windows SSH alias:
+
+```powershell
+ssh me3-pi
+```
+
+It resolves to `dalmacio@192.168.254.105`. `localhost` is this PC, not the Pi.
+The live Pi page serves `/`, `/roadmap`, and `/console` from the same origin;
+navigation deliberately uses relative links so a browser opened through a
+tunnel does not jump to the viewer's unavailable `127.0.0.1:8124`.
+The `/console` path is retained only as a backward-compatible alias; the
+authoritative operator page is the Assistant page, where Runtime terminal is
+an in-page safe-events panel rather than a second terminal application. The
+audio card has two deliberately different restart controls: **Restart ME3
+loop** resets capture/TTS while keeping the UI and browser audio hub alive;
+**Restart ME3 service** is Pi-only and restarts the canonical
+`me3-agent.service` systemd user unit.
 
 The browser PCM transport permits exactly one active audio tab. A new ME3 tab
 replaces a stale one and long responses are sent as 30-ms PCM chunks so the
@@ -182,9 +191,16 @@ address changes, pass it explicitly with `-DgxIp` in direct mode. Use
 `-UsePiBrainCredential` only when the routed endpoint accepts the Pi's existing
 Qwen brain credential.
 
-The named `launchers\Start-ME3-Pi-Qwen.bat` launcher then loads those values
-from the dedicated mode-600 `~/.config/me3/qwen-instruct.env` and starts Qwen
-on its separate 8136/8137 ports. The Own deployment remains on 8126/8127.
+The canonical Qwen service is the Pi user unit on 8126/8127. Do not start a
+second 8136/8137 listener while it is active. The named launcher is retained
+for an explicit tunnel/start workflow, but `ssh me3-pi` is the direct
+diagnostic route.
+
+If ASR reports an empty transcript even though the Fifine signal is nonzero,
+check the protected Qwen audio provider before changing microphone settings.
+The Pi audio URLs intentionally point to the reverse-tunnel ports 18000/18001;
+the public 202.92.159.240:8000/8001 endpoints currently expose the text
+Qwen3.8-27B service and are not valid Qwen2-Audio/TTS endpoints.
 
 If the Fifine appears in the UI but speech is not triggering, check the USB
 capture control on the Pi. The current Fifine card is ALSA card 2; its capture
@@ -397,12 +413,13 @@ evaluation.
 | FR13 | LLM brain (local or commercial API) | ✅ config | `config.yaml` `llm.remote` Qwen + `llm.openai` GPT-5.6 Luna |
 | FR14 | Local-dev-before-deploy pipeline (ME2 pattern) | ✅ built | `scripts/` + `deployment/` state files |
 | FR15 | Local quick launch like ME2 | ✅ built | `launchers/Start-ME3.bat` + `scripts/Start-Local-ME3.ps1` |
-| FR16 | Agentic tool calling (build real artifacts from voice) | ✅ verified | `me3/brain.py` provider-neutral Qwen/Luna tool loop + `me3/tools.py` (23 tools) + `me3/task_runner.py` |
+| FR16 | Agentic tool calling (build real artifacts from voice) | ✅ verified | `me3/brain.py` provider-neutral Qwen/Luna tool loop + `me3/tools.py` (project, web, task, ME2-parity, and channel tools) + `me3/task_runner.py` |
 | FR17 | Optional ElevenLabs adapter | ✅ implemented, inactive in the single-voice demo path | `me3/elevenlabs_tts.py`; active profiles stay on one fixed voice |
 | FR18 | Outbound voice-call integration | ✅ implemented, credential-gated | `me3/channels.py` (`make_call`) + Twilio Calls API; requires reviewed HTTPS TwiML/media bridge |
 | FR19 | SMS/text integration | ✅ implemented, credential-gated | `me3/channels.py` (`send_sms`) + Twilio Messages API |
 | FR20 | Transactional email integration | ✅ implemented, credential-gated | `me3/channels.py` (`send_email`) + Resend Send Email API |
-| FR21 | Optional Qwen Instruct audio variant | ✅ live ASR/TTS + shared tool loop verified over VPN | `me3/qwen_audio.py`, `--variant qwen_instruct`, `scripts/compare_audio_variants.py` |
+| FR21 | Telegram text integration | ✅ implemented, credential-gated | `me3/channels.py` (`send_telegram_message`) + Telegram Bot API `sendMessage` |
+| FR22 | Optional Qwen Instruct audio variant | ✅ live ASR/TTS + shared tool loop verified over VPN | `me3/qwen_audio.py`, `--variant qwen_instruct`, `scripts/compare_audio_variants.py` |
 
 ## Tool brain (agentic capabilities)
 
@@ -425,14 +442,32 @@ end-to-end on the dev box (2026-10-25): Qwen created
 `agent_workspace/voice_webapp/index.html`, and a later Qwen verification
 pass listed and read `index.html`, `styles.css`, and `app.js`.
 
-Available tools (23): file ops (`list_files`, `read_file`, `write_file`,
+Available tools include file ops (`list_files`, `read_file`, `write_file`,
 `search_text`), build/test (`run_command`, `start_background_task`,
 `task_status`, `task_output`, `cancel_task`), web serving
 (`start_web_server`, `stop_web_server`, `web_servers`), research
 (`fetch_url`, `web_search`), system (`system_info`, `git_status`), and
 timers (`set_timer`, `list_timers`, `cancel_timer`). The channel tools are
-`channel_health`, `send_sms`, `make_call`, and `send_email`; the latter three
-require explicit confirmation and protected provider configuration.
+`channel_health`, `send_sms`, `make_call`, `send_email`, and
+`send_telegram_message`; all external side-effect tools require explicit
+confirmation and protected provider configuration. Telegram Bot API text is
+supported; ordinary Telegram voice-call initiation is not exposed by the Bot
+API, so phone calls remain a Twilio capability.
+
+The ME2 command families are retained through explicit model-selected tools:
+`play_music`, `media_control`, `get_weather`, `control_lights`,
+`set_thermostat`, `set_alarm`, `create_reminder`, `call_contact`, and
+`send_message`. See [ME2 command parity](docs/ME2_COMMAND_PARITY.md) for the
+demo/live integration boundary. These adapters use inference and deterministic
+tool execution; no ME2 model retraining is required.
+
+For music, the default Google route is **YouTube Music** because Google Play
+Music was discontinued. `play_music` sends a visible browser handoff event to
+the Pi UI; click **Open in browser** to use the already signed-in YouTube Music
+or Spotify session on the operator's computer. ME3 never copies browser cookies
+to the Pi. Fully automatic pause/skip/volume control would require a provider
+player bridge and OAuth/SDK setup, so the current safe demo boundary is the
+visible browser handoff.
 
 Safety: all file paths are confined to the ME3 project; commands run
 tokenized (no shell) against an allowlist; secret-looking files are refused;
@@ -454,9 +489,9 @@ history, the repository, or documentation. Luna's API model ID is
 the direct response stream when the provider supports it. The voice loop speaks
 only returned assistant content, never hidden reasoning.
 
-## Qwen Instruct audio variant
+## Active Qwen Instruct audio profile
 
-`--variant qwen_instruct` preserves the same 23-tool ToolBrain and duplex
+`--variant qwen_instruct` preserves the same tool registry and duplex
 controller while replacing only the audio providers. Qwen2-Audio is served as
 `Qwen/Qwen2-Audio-7B-Instruct` through vLLM's multimodal
 `/v1/chat/completions` route: ME3 sends the WAV as a base64 `audio_url` data URL
@@ -465,8 +500,8 @@ with a transcript-only prompt. Qwen3-TTS is served as
 
 The protected handoff is read in memory by the PowerShell launcher and mapped
 to `QWEN_INSTRUCT_ASR_BASE_URL`, `QWEN_INSTRUCT_TTS_BASE_URL`, and
-`QWEN_INSTRUCT_API_KEY`. The current local path remains available as
-`--variant current`. On 31 October 2026 over the VPN, the matched fixture
+`QWEN_INSTRUCT_API_KEY`. The former local audio deployment is archived. On
+31 October 2026 over the VPN, the matched fixture
 passed with Qwen ASR at 431.9 ms and Qwen TTS at 851.6 ms; the same run passed
 with faster-whisper ASR at 2732.0 ms and Piper TTS at 100.1 ms TTFB/176.7 ms
 total. The full injected Qwen voice/tool turn passed with zero errors and
@@ -476,7 +511,7 @@ transcripts, endpoints, or audio bytes.
 ## Call, text, and email integrations
 
 ME3 includes shared direct-provider and MCP tools for outbound Twilio calls,
-Twilio SMS, and Resend transactional email. They are deliberately
+Twilio SMS, Telegram text, and Resend transactional email. They are deliberately
 credential-gated and confirmation-gated: the agent must identify the target
 and content, receive explicit confirmation, and only then pass `confirm=true`.
 The tools never return credential material or provider response bodies. The
@@ -489,6 +524,20 @@ environment names. An outbound call starts a Twilio call using a reviewed
 HTTPS TwiML URL; conversational inbound/outbound call-center behavior still
 requires the operator's media-stream bridge, transfer workflow, consent,
 recording policy, and CRM/identity integrations.
+
+Telegram uses the Bot API `sendMessage` method and requires
+`TELEGRAM_BOT_TOKEN`; the operator must provide the approved `chat_id` and
+confirm the message. The Bot API cannot place an ordinary Telegram voice call;
+use Twilio for phone calls or separately review a user-authenticated
+MTProto/TDLib bridge.
+
+### Class benchmark protocol update
+
+The class latency run is injection-only: it opens no physical microphone or
+speaker, disables tool calls and external agent/harness calls, and disables
+fillers/backchannels. The targets are E2E 4.0 s, ASR final 0.8 s, LLM TTFT
+1.5 s, TTS TTFB 0.6 s, and barge-in 0.8 s. The direct-feed adapter keeps
+live-agent tool behavior available separately through `--allow-tools`.
 
 ## Pi deployment (tool brain key)
 

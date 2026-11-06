@@ -1,4 +1,4 @@
-\documentclass[sigconf,nonacm]{acmart}
+\documentclass[sigconf,nonacm,balance=false]{acmart}
 
 \settopmatter{printacmref=false}
 \setcopyright{none}
@@ -44,13 +44,11 @@ interaction beyond question answering: a user can ask by voice for a web
 application or other coding task, and the model can call bounded file, search,
 command, and background-job tools to perform the work. No task-specific model
 training is required. Instead, the system integrates pretrained Silero VAD,
-faster-whisper ASR with one fixed Piper voice in the Own profile, Qwen3-TTS
-with one fixed CustomVoice in the Qwen profile, and a retained but inactive
-ElevenLabs adapter, and
-an OpenAI-compatible Qwen/vLLM endpoint or the OpenAI GPT-5.6 Luna API. This
-revision adds a plug-and-play audio profile using Qwen2-Audio-7B-Instruct ASR
-and Qwen3-TTS-12Hz-1.7B-CustomVoice TTS through protected vLLM listeners; the
-text ToolBrain and bounded tools remain shared between profiles.
+Qwen2-Audio-7B-Instruct ASR, Qwen3-TTS-12Hz-1.7B-CustomVoice TTS, and a
+retained but inactive ElevenLabs adapter, together with an OpenAI-compatible
+Qwen/vLLM endpoint or the OpenAI GPT-5.6 Luna API. The active Qwen audio path
+uses protected vLLM listeners; the text ToolBrain and bounded tools remain
+shared within the final release.
 This paper describes the architecture, tool-call protocol, safety boundary,
 local verification, Raspberry Pi release workflow, and evidence boundary for
 the separate FULL-DUPLEX-BENCH v1.5 evaluation. The current implementation is
@@ -62,15 +60,14 @@ includes the existing local checks plus mocked request-shape and configuration
 tests for the Qwen audio profile. The protected DGX3 listeners were
 authenticated and exercised over the restored VPN route. Qwen2-Audio ASR and
 Qwen3-TTS both returned provider-live audio results, and a complete injected
-voice/tool turn passed. The latest accepted Own and Qwen releases were deployed
-to separate Pi directories; the live Qwen service returned HTTP 200, loaded its
-Qwen audio models, and reported a nonzero Fifine startup signal. A clean human
-spoken turn and paper-native overlap run remain separate evidence gates. The
-two implementation variants are now organized as complete packages under
-\texttt{me3 own} and \texttt{me3 qwen} are complete self-contained variants;
-the vendored benchmark adapter
-and LAN browser-speaker server were added after the previous workstation
-release.
+voice/tool turn passed. The latest accepted Qwen release was deployed to
+\texttt{/home/dalmacio/Desktop/dandan-qwen}; the former Own deployment was
+removed from the active Pi path and moved to a dated archive. The live Qwen
+service returned HTTP 200, loaded its Qwen audio models, and reported a
+nonzero Fifine startup signal. A clean human spoken turn and paper-native
+overlap run remain separate evidence gates. The vendored benchmark adapter,
+LAN browser-speaker server, browser music handoff, and operator restart
+control are part of the final Qwen package.
 \end{abstract}
 
 \keywords{voice agents, full duplex, Raspberry Pi, tool calling, MCP, Qwen,
@@ -147,8 +144,7 @@ pre-roll is retained so the beginning of an utterance is not clipped. The VAD
 endpoint requires a minimum speech interval followed by configured trailing
 silence.
 
-The Own profile always uses Piper \texttt{en\_GB-alba-medium}; the Qwen profile
-always uses Qwen3-TTS CustomVoice \texttt{aiden} with a formal style
+The active Qwen profile always uses Qwen3-TTS CustomVoice \texttt{aiden} with a formal style
 instruction. Replies, backchannels, and
 completion announcements use the same profile voice. The Philippines-market
 profile keeps English, Filipino, and Taglish in the supported interaction set.
@@ -383,8 +379,7 @@ python scripts/run_me3_module.py me3.agent --brain remote --text \\
   "Use system_info and summarize the host."
 \end{lstlisting}
 
-The complete test suites passed 59 tests per active variant in the current
-checkout. The
+The active Qwen test suite passed 79 tests in the current checkout. The
 tool-focused tests cover OpenAI-compatible schemas, blocked shell patterns,
 background task completion, and a mocked multi-step Qwen response. The
 ElevenLabs tests additionally cover split-byte PCM reassembly, genuinely odd
@@ -408,7 +403,7 @@ The evidence status at this revision is summarized in
 Table~\ref{tab:progress}.
 
 \begin{table}[t]
-\caption{ME3 progress evidence at the 4 November 2026 revision}
+\caption{ME3 progress evidence at the 6 November 2026 revision}
 \label{tab:progress}
 \small
 \begin{tabularx}{\columnwidth}{@{}lX@{}}
@@ -425,7 +420,7 @@ physical Pi capture and LAN audio are still separate hardware gates. \\
 Integrated fd-benchmark & Vendored MIT benchmark source and ME3 direct-feed
 adapter pass import/protocol checks; a 10-trial development-dataset simulation
 completed without ASR/judge scoring. This is not a paper-grade result. \\
-Qwen Instruct audio profile & Adapter, runtime selection, configuration checks,
+Active Qwen Instruct audio profile & Adapter, runtime selection, configuration checks,
 and request-shape tests pass. Over the VPN, Qwen2-Audio ASR returned in 431.9 ms
 and Qwen3-TTS returned in 851.6 ms; the same matched run recorded
 faster-whisper ASR at 2732.0 ms and Piper TTS at 100.1 ms TTFB/176.7 ms total.
@@ -525,15 +520,15 @@ implementation uses inference and tools rather than model training, keeps
 local speech services under project ownership, and records the distinction
 between local verification, prepared release, Pi deployment, and benchmark
 evidence. The ElevenLabs adapter was provider-tested locally but is not part of
-the active single-voice runtime. The current workstation releases pass 59 tests
-per variant and the injection lane passes one clean fixture run. The Pi browser-speaker path and vendored
-benchmark adapter pass local protocol checks, including a small simulated
-10-trial run. Both accepted releases are deployed to Pi, and the Qwen Instruct audio profile is
+the active single-voice runtime. The final Qwen workstation acceptance passes
+79 tests and the injection lane passes one clean fixture run. The Pi
+browser-speaker path and vendored benchmark adapter pass local protocol checks,
+including a small simulated 10-trial run. The Qwen Instruct audio profile is
 provider-live over the restored VPN route: its matched run passes both ASR and
-TTS, and the full injected voice/tool turn passes with zero errors. The latest
-prepared bundle is also Pi-installed. The next decisive checks are a clean
-physical Pi microphone/speaker turn, operator-owned live channel tests, and a
-clean captured v1.5 overlap evaluation.
+TTS, and the full injected voice/tool turn passes with zero errors. The next
+decisive checks are a clean physical Pi microphone/speaker turn,
+operator-owned live channel tests, and a clean captured v1.5 overlap
+evaluation.
 
 \begin{thebibliography}{9}
 

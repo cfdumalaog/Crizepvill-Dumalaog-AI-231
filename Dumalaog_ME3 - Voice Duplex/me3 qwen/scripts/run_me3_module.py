@@ -1,4 +1,4 @@
-"""Run an importable ME3 module after selecting ``me3 own`` or ``me3 qwen``.
+"""Run an importable module from the active ME3 Qwen Instruct package.
 
 The project contains a self-contained ``me3`` package, but this wrapper keeps
 the documented Pi/Windows commands explicit and reliable from any directory.

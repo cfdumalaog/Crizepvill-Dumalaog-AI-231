@@ -7,7 +7,7 @@ scenario definitions, reports, and direct-feed protocol in the project rather
 than reimplementing its metrics.
 
 Source provenance: [trueshotjames/ai231-me3-full-duplex-benchmarking](https://github.com/trueshotjames/ai231-me3-full-duplex-benchmarking), commit
-`106ac8e543a5fd996e254a87e69fa101bfd27a42` (captured 2026-11-04). The
+`57eaddbc188ce9a19b8fd002b575f703426956f4` (captured 2026-11-06). The
 upstream README describes direct feed as 16-kHz mono int16 PCM over WebSocket,
 with a JSON `{"event":"clear"}` message for interrupted output; the ME3
 adapter below implements that protocol.
@@ -35,10 +35,6 @@ then connect the selected ME3 variant with:
 
 ```powershell
 & $py scripts\me3_fdbench_agent.py --url ws://<laptop-ip>:8791 `
-  --brain remote --variant current
-
-# Same tool loop, with Qwen Instruct ASR/TTS:
-& $py scripts\me3_fdbench_agent.py --url ws://<laptop-ip>:8791 `
   --brain remote --variant qwen_instruct
 ```
 
@@ -54,3 +50,17 @@ are importable and protocol-compatible. They are not a human-microphone or
 paper-grade result. A publishable ME3 result must record the exact variant,
 brain/provider, benchmark commit, dataset revision, round count, and generated
 `results.json`/`results.csv`/HTML report.
+
+## Class latency protocol (updated 2026-11-06)
+
+The current upstream benchmark uses direct feed by default: the assistant
+receives injected 16-kHz mono PCM over the benchmark socket and opens no real
+microphone or speaker. The updated upstream run adds the stage-latency block,
+stage marks, latency chart, and the agreed targets. ME3's adapter additionally
+defaults to benchmark mode, which omits tool schemas, external agent/harness
+dispatch, filler/backchannel audio, and real channel side effects. Use
+`--allow-tools` only for a separate agentic demonstration.
+
+Targets: E2E 4.0 s, ASR final 0.8 s, LLM TTFT 1.5 s, TTS TTFB 0.6 s, and
+barge-in 0.8 s. Measured mean and p95 remain blank until a clean run of the
+updated shared benchmark produces them.

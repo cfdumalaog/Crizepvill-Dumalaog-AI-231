@@ -9,7 +9,7 @@ Double-click these Windows launchers from File Explorer:
 | `Start-ME3-UI.bat` | Interactive local agent console | Opens `http://127.0.0.1:8124/`; Qwen + tools, GPT-5.6 Luna + tools, or offline stub, tool events, and hard-disabled Twilio/Resend side effects. |
 | `Start-ME3-Web.bat` | Local browser preview | Serves the tracked `web\` presenter surface on `http://127.0.0.1:8123/` and reports LAN URLs. Pass `-Path agent_workspace\voice_webapp` for a generated app. |
 | `Start-ME3-Pi-Web.bat` | ME2-style Pi browser tunnel | Starts the Pi static preview when available, forwards it to `http://127.0.0.1:8090/`, and opens the browser. `Ctrl+C` closes the tunnel. |
-| `Start-ME3-Pi-Qwen.bat` | **Named Qwen Instruct Pi launcher** | Starts `/home/dalmacio/Desktop/dandan-qwen` on Pi ports 8136/8137 and opens the workstation tunnel at `http://127.0.0.1:8100/`. |
+| `Start-ME3-Pi-Qwen.bat` | **Named Qwen Instruct Pi launcher** | Connects to the canonical systemd service at `/home/dalmacio/Desktop/dandan-qwen` on Pi ports 8126/8127 and opens the workstation tunnel at `http://127.0.0.1:8100/`; it does not start a duplicate listener. |
 | `Start-Pi-Injection-Demo.bat` | The deployed Pi Qwen/tool demo | Uses reviewed WAV fixtures and a virtual sink; recommended when the physical Fifine input is occupied or the speaker path is not ready. |
 
 It uses the single shared workspace `.venv` (same as the ME2 launchers).
@@ -24,7 +24,6 @@ PowerShell overrides:
 & '.\scripts\Start-Local-ME3.ps1' -Device 'Fifine'     # pick a mic
 & '.\scripts\Start-Local-ME3.ps1' -Brain luna         # GPT-5.6 Luna medium
 & '.\scripts\Start-Local-ME3.ps1' -Brain stub          # force canned replies
-& '.\scripts\Start-Local-ME3.ps1' -Brain remote -Variant current
 & '.\scripts\Start-Local-ME3.ps1' -Brain remote -Variant qwen_instruct
 # Pi Fifine microphone -> this workstation's default speakers
 & '..\..\..\.venv\Scripts\python.exe' scripts\run_me3_module.py me3.agent --brain remote `
@@ -114,8 +113,7 @@ public URL. To forward an already-running Pi server without starting one:
 Use `-StopServer` only for a server started by this launcher.
 
 For the named Qwen launcher, double-click `Start-ME3-Pi-Qwen.bat`. It selects
-the `ME3 QWEN INSTRUCT` profile explicitly and keeps its PID, HTTP, and audio
-ports separate from the `ME3 FASTER-WHISPER + PIPER` deployment. The Pi reads the protected
+the `ME3 QWEN INSTRUCT` profile explicitly. The Pi reads the protected
 `QWEN_INSTRUCT_ASR_BASE_URL`, `QWEN_INSTRUCT_TTS_BASE_URL`, and
 `QWEN_INSTRUCT_API_KEY` values from the dedicated mode-600
 `~/.config/me3/qwen-instruct.env`; the ordinary installer cannot overwrite
@@ -123,6 +121,6 @@ this file during future upgrades.
 
 The named Qwen launcher also creates SSH reverse tunnels from the Pi's
 `127.0.0.1:18000/18001` to the workstation VPN route for Qwen Audio. Keep this
-workstation connected to the VPN while using Qwen Instruct. Because both
-variants use the same physical Fifine microphone, run only one full-duplex
-listener at a time unless different input devices are selected.
+workstation connected to the VPN while using Qwen Instruct. Because this
+service owns the physical Fifine microphone, run only this one full-duplex
+Qwen listener at a time.

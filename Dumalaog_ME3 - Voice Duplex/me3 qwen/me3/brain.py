@@ -84,6 +84,7 @@ class ToolBrain:
         # more rounds, chat() executes this final batch and asks for a safe
         # no-tool summary instead of speaking an internal limit error.
         self.max_tool_steps = max(1, min(int(cfg.get("max_tool_steps", 24)), 32))
+        self.allow_tools = bool(cfg.get("allow_tools", True))
         self.api_key = os.environ.get(self.api_key_env, "")
         self.on_tool = on_tool
         # Progress is deliberately a safe summary callback.  It may describe
@@ -120,7 +121,7 @@ class ToolBrain:
             body["max_completion_tokens"] = int(self.max_completion_tokens)
         elif self.max_tokens is not None:
             body["max_tokens"] = int(self.max_tokens)
-        if include_tools:
+        if include_tools and self.allow_tools:
             body["tools"] = tool_definitions()
             body["tool_choice"] = "auto"
         # The VPN path to the Qwen endpoint intermittently stalls on long
@@ -277,7 +278,7 @@ class ToolBrain:
             self.metrics["n_llm_calls"] += 1
             self.metrics["prompt_tokens"] += usage["prompt_tokens"]
             self.metrics["completion_tokens"] += usage["completion_tokens"]
-            calls = self._tool_calls(message)
+            calls = self._tool_calls(message) if self.allow_tools else []
             if calls:
                 self._progress("planning", f"Model selected {len(calls)} tool call(s)")
             else:
@@ -344,7 +345,8 @@ class ToolBrain:
 def build_tool_brain(cfg: dict, selection: str, system_prompt: str,
                      on_tool: Callable | None = None,
                      dispatch_fn: Callable | None = None,
-                     on_progress: Callable | None = None) -> ToolBrain:
+                     on_progress: Callable | None = None,
+                     allow_tools: bool = True) -> ToolBrain:
     """Build the selected tool brain while keeping provider secrets in env vars."""
     provider, provider_cfg = resolve_llm_config(cfg, selection)
     if provider_cfg is None:
@@ -354,6 +356,7 @@ def build_tool_brain(cfg: dict, selection: str, system_prompt: str,
     provider_cfg["system_prompt"] = system_prompt
     provider_cfg["name"] = (
         "qwen-tools" if provider == "qwen" else "gpt-5.6-luna-medium-tools")
+    provider_cfg["allow_tools"] = bool(allow_tools)
     return ToolBrain(provider_cfg, system_prompt, on_tool=on_tool,
                      dispatch_fn=dispatch_fn, on_progress=on_progress)
 

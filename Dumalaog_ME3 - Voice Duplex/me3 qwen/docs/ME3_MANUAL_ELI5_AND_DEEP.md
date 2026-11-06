@@ -149,21 +149,21 @@ interpret an open-ended request such as “build a web app” and execute the
 resulting bounded file/build/web-server tools. The two systems should not be
 compared using the same accuracy denominator.
 
-### The Qwen Instruct audio variant
+### The final Qwen Instruct audio profile
 
-The protected handoff also defines a second, optional audio path. It is easy
-to misunderstand this as a second general-purpose agent model. It is not:
+The protected handoff defines the active Qwen audio path. It is easy to
+misunderstand the audio services as a second general-purpose agent model. They
+are not:
 `Qwen/Qwen2-Audio-7B-Instruct` is used as the ASR service and
 `Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice` is used as the speech renderer. ME3 keeps
 Silero VAD local, then sends the completed turn to the same text ToolBrain and
-the same bounded MCP/tool registry used by `current`. Therefore a request to
-build a web app, inspect files, set a timer, or prepare a channel action has
-the same tool behavior in both variants.
+the same bounded MCP/tool registry. Therefore a request to build a web app,
+inspect files, set a timer, or prepare a channel action uses the final Qwen
+release's normal agent tools.
 
 Select the path at runtime:
 
 ```powershell
-& '.\scripts\Start-Local-ME3.ps1' -Brain remote -Variant current
 & '.\scripts\Start-Local-ME3.ps1' -Brain remote -Variant qwen_instruct
 & '.\scripts\Start-ME3-UI.ps1' -Variant qwen_instruct -OpenBrowser
 ```
@@ -193,8 +193,9 @@ run passed with faster-whisper ASR at 2732.0 ms and Piper TTS at 100.1 ms
 TTFB/176.7 ms total. The full injected Qwen voice lane also completed one turn
 with zero errors and called the shared `list_files`, `read_file`, `run_command`,
 `start_web_server`, and `write_file` tools. If the VPN route becomes
-unavailable, the implementation remains plug-and-play: the `current` local
-path is the offline fallback and the optional variant fails closed.
+unavailable, the active profile fails closed and reports the provider error.
+The former local audio build is archived rather than presented as a second
+production variant.
 
 ## What the agent can do
 
@@ -221,6 +222,15 @@ The direct Qwen registry contains these project-local capabilities:
 | `start_web_server` | Serves a project folder on the LAN and reports the URL | “Serve the web app and tell me the URL.” |
 | `stop_web_server` | Stops a running preview server | “Stop the web server.” |
 | `web_servers` | Lists active preview servers | “What is running on this machine?” |
+| `play_music` | Queues a browser/audio-sink music action | “Play Filipino jazz.” |
+| `media_control` | Plays, pauses, stops, skips, or changes volume | “Pause.” / “Make it louder.” |
+| `get_weather` | Reads current weather for a location | “What is the weather in Manila?” |
+| `control_lights` | Turns lights on/off, dims, or sets a color | “Dim the living-room lights to 30 percent.” |
+| `set_thermostat` | Sets a validated Celsius target | “Set the temperature to 24 degrees.” |
+| `set_alarm` | Creates a next-occurrence alarm | “Set an alarm for 7 AM.” |
+| `create_reminder` | Creates a delayed or timed reminder | “Remind me in ten minutes.” |
+| `call_contact` | Resolves a protected contact and requests a call | “Call mom.” |
+| `send_message` | Sends confirmed SMS or Telegram text | “Message mom on Telegram.” |
 
 | `channel_health` | Reports safe call/SMS/email configuration status | "Are the communication channels configured?" |
 | `send_sms` | Sends one confirmed Twilio SMS | "Text the customer this update." |

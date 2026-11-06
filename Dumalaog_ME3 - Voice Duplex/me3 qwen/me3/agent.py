@@ -608,12 +608,16 @@ class LocalVoiceLoop:
 
         if text_override is None:
             t0 = time.perf_counter()
-            segments, _info = asr_engine.transcribe(
-                utterance.astype(np.float32) / 32768.0,
-                beam_size=asr_cfg.get("beam_size", 1),
-                language=asr_cfg.get("language", "en"),
-                vad_filter=False,
-            )
+            try:
+                segments, _info = asr_engine.transcribe(
+                    utterance.astype(np.float32) / 32768.0,
+                    beam_size=asr_cfg.get("beam_size", 1),
+                    language=asr_cfg.get("language", "en"),
+                    vad_filter=False,
+                )
+            except Exception as exc:  # noqa: BLE001 - keep listening after provider failure
+                self._report_runtime_error("ASR", exc)
+                raise
             text = " ".join(s.text.strip() for s in segments).strip()
             asr_ms = (time.perf_counter() - t0) * 1e3
         else:
@@ -634,6 +638,8 @@ class LocalVoiceLoop:
                                          "speaker echo rejected")
             return
         log.info("heard: %r [asr %.0f ms]", text, asr_ms)
+        if self.status is not None:
+            self.status.clear_error()
         self.orchestrator.on_transcript_delta(text, final=True,
                                               timestamp=t_start)
         if self.status is not None:
@@ -711,6 +717,25 @@ class LocalVoiceLoop:
         if self.status is not None:
             self.status.report_reply(reply, "reply")
         self._speak_text(tts_engine, reply, t_start, asr_ms, llm_ms)
+
+    def _report_runtime_error(self, stage: str, exc: Exception) -> None:
+        """Turn provider failures into useful, secret-free operator status."""
+        raw = " ".join(str(exc).split()).lower()
+        if stage == "ASR":
+            if "401" in raw or "unauthorized" in raw:
+                message = "Qwen ASR authorization failed; refresh the protected audio credential."
+            elif any(token in raw for token in (
+                    "connection", "empty reply", "timed out", "timeout",
+                    "max retries", "502", "503", "504")):
+                message = "Qwen ASR provider unavailable; restore the VPN/SSH audio tunnel and DGX ASR service."
+            else:
+                message = "Qwen ASR failed; check the protected audio provider configuration."
+        else:
+            message = f"{stage} failed; check the ME3 provider status."
+        if self.status is not None:
+            self.status.report_error(stage, message)
+            self.status.report_state_reason(message)
+        log.error("%s provider failure: %s", stage, message)
 
     def _speak_text(self, tts_engine, text: str, t_start: float,
                     asr_ms: float, llm_ms: float,
@@ -1023,6 +1048,8 @@ class LocalVoiceLoop:
             self.stats.n_errors += 1
             self.state = "idle"
             self.orchestrator.set_state(TurnState.LISTENING, "turn error")
+            if self.status is not None and not self.status.last_error:
+                self._report_runtime_error("TURN", exc)
             log.exception("turn processing failed: %s", exc)
 
     # ---- Main loop ----------------------------------------------------------

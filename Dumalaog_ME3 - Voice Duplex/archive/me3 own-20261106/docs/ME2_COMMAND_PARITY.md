@@ -1,0 +1,32 @@
+# ME2 command parity in ME3
+
+ME3 keeps the ME2 user-facing command set, but replaces the trained ME2
+classifier with model inference plus explicit tools. The Qwen Instruct model
+selects the tool from Filipino, English, or Taglish speech; the deterministic
+adapter performs validation and records the action. The same registry is
+available to the direct ToolBrain and the owned `me3-tasks` MCP server.
+
+| ME2 command family | ME3 tool(s) | Current behavior | Live requirement |
+|---|---|---|---|
+| Play music | `play_music` | Produces a browser/audio-sink media action and search URL | UI/player mapping for automatic playback |
+| Ask/search/weather | `web_search`, `fetch_url`, `get_weather` | Public web search and no-key current-weather lookup | Internet access; verify results before acting |
+| Lights on/off | `control_lights` | Validated local demo state | Home Assistant URL/token/entity mapping or another IoT adapter |
+| Dim/color lights | `control_lights` | Percent/color validation and local state | Same physical-light connector |
+| Set a timer | `set_timer`, `set_alarm` | Timer and next-occurrence alarm records | Platform notification scheduler for audible firing |
+| Set an alarm | `set_alarm`, `list_alarms`, `cancel_alarm` | Alarm lifecycle is available to voice and MCP | Platform notification scheduler |
+| Thermostat | `set_thermostat` | Celsius validation and local demo state | Home Assistant climate entity or vendor API |
+| Media controls | `media_control` | Pause, stop, skip, play, volume up/down/set | Browser/player adapter for physical playback |
+| Reminders and lists | `create_reminder`, `list_reminders`, `complete_reminder` | Reminder lifecycle and delay/time parsing | Platform notification scheduler for delivery |
+| Calls and messaging | `call_contact`, `send_message`, `make_call`, `send_sms`, `send_telegram_message` | Confirmation-gated Twilio SMS/call and Telegram text paths | Protected contact mappings, provider credentials, HTTPS call flow; Telegram Bot API does not initiate ordinary voice calls |
+
+## Safety and demo boundary
+
+- Benchmark mode disables all tool calls, agent/harness dispatch, fillers, and
+  backchannels; it remains direct-feed/injection-only as required by the class
+  benchmark.
+- Demo-state tools do not claim that a physical lamp, thermostat, player, or
+  notification scheduler is connected. Their result explicitly reports
+  `local_demo` until the corresponding connector is configured.
+- External communication tools require explicit confirmation. Contact names
+  resolve only through protected `ME3_CONTACT_<NAME>` or
+  `ME3_TELEGRAM_CHAT_<NAME>` environment mappings.

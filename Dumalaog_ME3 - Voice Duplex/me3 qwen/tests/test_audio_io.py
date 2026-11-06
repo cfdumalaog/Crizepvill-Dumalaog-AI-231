@@ -122,3 +122,15 @@ def test_philippine_profile_uses_multilingual_asr_and_echo_guard():
         assert cfg["asr"]["model"] in {"tiny", "base", "small", "medium"}
     assert cfg["asr"]["language"] is None
     assert cfg["audio"]["echo_guard"]["enabled"] is True
+
+
+def test_alsa_fallback_discovers_pi_capture_devices(monkeypatch):
+    audio = FullDuplexAudio({"audio": {"sample_rate": 16000, "frame_ms": 30}})
+    monkeypatch.setattr("me3.audio_io.shutil.which", lambda name: "/usr/bin/arecord")
+
+    class Result:
+        stdout = "card 2: Microphone [fifine Microphone], device 0: USB Audio [USB Audio]"
+
+    monkeypatch.setattr("me3.audio_io.subprocess.run", lambda *args, **kwargs: Result())
+    assert audio._alsa_capture_devices() == ["hw:2,0"]
+    audio.close()

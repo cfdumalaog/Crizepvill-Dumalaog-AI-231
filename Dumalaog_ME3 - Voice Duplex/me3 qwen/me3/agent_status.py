@@ -34,7 +34,7 @@ from urllib.parse import urlsplit
 log = logging.getLogger("me3.agent_status")
 
 _PAGE_FILES = {"/": "assistant.html", "/index.html": "assistant.html",
-               "/roadmap": "roadmap.html"}
+               "/roadmap": "roadmap.html", "/console": "assistant.html"}
 
 
 def _iso(ts: float | None) -> str | None:
@@ -85,6 +85,9 @@ class LoopStatus:
         self.last_reply = ""
         self.last_reply_kind = ""
         self.last_reply_at: float | None = None
+        self.last_error = ""
+        self.last_error_stage = ""
+        self.last_error_at: float | None = None
         self.last_barge_in_at: float | None = None
         self.models: dict = {}
         self.tool_events: deque = deque(maxlen=8)
@@ -126,6 +129,20 @@ class LoopStatus:
             self.last_reply = str(text)
             self.last_reply_kind = str(kind)
             self.last_reply_at = time.time()
+
+    def report_error(self, stage: str, message: str) -> None:
+        """Publish a bounded operator-facing error, never raw payloads."""
+        clean = " ".join(str(message).split())[:300]
+        with self._lock:
+            self.last_error = clean
+            self.last_error_stage = str(stage)[:40]
+            self.last_error_at = time.time()
+
+    def clear_error(self) -> None:
+        with self._lock:
+            self.last_error = ""
+            self.last_error_stage = ""
+            self.last_error_at = None
 
     def report_tool(self, phase: str, name: str, ok: bool | None = None) -> None:
         with self._lock:
@@ -203,6 +220,9 @@ class LoopStatus:
                 "last_reply": {"text": self.last_reply,
                                "kind": self.last_reply_kind,
                                "at": _iso(self.last_reply_at)},
+                "last_error": {"stage": self.last_error_stage,
+                                "message": self.last_error,
+                                "at": _iso(self.last_error_at)},
                 "last_barge_in_at": _iso(self.last_barge_in_at),
                 "stats": {
                     "n_turns": int(getattr(stats, "n_turns", 0) or 0),
@@ -353,6 +373,36 @@ class _StatusHandler(BaseHTTPRequestHandler):
 
     def do_POST(self):  # noqa: N802
         path = urlsplit(self.path).path
+        if path == "/api/restart":
+            callback = getattr(self.server, "restart_agent", None)
+            if callback is None:
+                self._send(403, b"agent restart is not enabled", "text/plain; charset=utf-8")
+                return
+            try:
+                result = callback()
+                self._send(200, json.dumps({"ok": True, **(result or {})}).encode("utf-8"),
+                           "application/json; charset=utf-8")
+            except Exception as exc:  # noqa: BLE001
+                self._send(500, json.dumps({
+                    "ok": False, "error": type(exc).__name__,
+                    "message": str(exc)[:300],
+                }).encode("utf-8"), "application/json; charset=utf-8")
+            return
+        if path == "/api/restart-service":
+            callback = getattr(self.server, "restart_service", None)
+            if callback is None:
+                self._send(403, b"service restart is not enabled", "text/plain; charset=utf-8")
+                return
+            try:
+                result = callback()
+                self._send(200, json.dumps({"ok": True, **(result or {})}).encode("utf-8"),
+                           "application/json; charset=utf-8")
+            except Exception as exc:  # noqa: BLE001
+                self._send(500, json.dumps({
+                    "ok": False, "error": type(exc).__name__,
+                    "message": str(exc)[:300],
+                }).encode("utf-8"), "application/json; charset=utf-8")
+            return
         if path != "/api/audio/select":
             self._send(404, b"not found", "text/plain; charset=utf-8")
             return
@@ -381,7 +431,8 @@ class StatusServer:
     def __init__(self, status: LoopStatus, *, html_dir: Path,
                  get_state, get_stats, port: int = 8126,
                  project: Path | None = None, host: str = "127.0.0.1",
-                 audio_info=None, audio_select=None):
+                 audio_info=None, audio_select=None, restart_agent=None,
+                 restart_service=None):
         self.status = status
         self.html_dir = Path(html_dir)
         self.get_state = get_state
@@ -391,6 +442,8 @@ class StatusServer:
         self.project = project
         self.audio_info = audio_info
         self.audio_select = audio_select
+        self.restart_agent = restart_agent
+        self.restart_service = restart_service
         self._httpd: ThreadingHTTPServer | None = None
         self._thread: threading.Thread | None = None
 
@@ -410,6 +463,8 @@ class StatusServer:
         self._httpd.get_stats = self.get_stats
         self._httpd.audio_info = self.audio_info
         self._httpd.audio_select = self.audio_select
+        self._httpd.restart_agent = self.restart_agent
+        self._httpd.restart_service = self.restart_service
         self._httpd.release_refresher = (
             ReleaseInfoRefresher(self.project) if self.project is not None
             else None)

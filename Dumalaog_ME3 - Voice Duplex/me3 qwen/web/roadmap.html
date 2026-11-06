@@ -87,7 +87,7 @@ footer code{font-family:"JetBrains Mono",monospace; font-size:.74rem; color:var(
   </div>
   <div class="nav">
     <a id="linkAssistant" href="/" target="_blank">Assistant (live voice)</a>
-    <a href="http://127.0.0.1:8124/" target="_blank">Console</a>
+    <a href="/#runtime-terminal" target="_blank">Runtime terminal</a>
   </div>
 </header>
 <main>
@@ -101,7 +101,7 @@ footer code{font-family:"JetBrains Mono",monospace; font-size:.74rem; color:var(
 
   <div class="section-title">Done &amp; verified (evidence-backed)</div>
   <ul class="checks">
-    <li><span class="mark">&#10003;</span><div>Workstation acceptance gate passed 8/8 with 54/54 pytest - release <b>me3-20261103-201049-2241d0fc</b> (57 files, ZIP SHA recorded).<span class="when">2026-11-04 - deployment/workstation_acceptance.json</span></div></li>
+    <li><span class="mark">&#10003;</span><div>Current Qwen workstation acceptance passed 10/10 with 80/80 pytest - release <b>me3-20261106-120050-2b068ca2</b> (160 files, ZIP SHA recorded).<span class="when">2026-11-06 - deployment/workstation_acceptance.json</span></div></li>
     <li><span class="mark">&#10003;</span><div>Live thinking / task-progress panel added to the local console (<code>web/ui.html</code>), safe task summary only.<span class="when">2026-11-04 - web/ui.html</span></div></li>
     <li><span class="mark">&#10003;</span><div>Version hygiene: 46 historical release pairs + old presentation/build outputs archived; single canonical release in <code>dist/</code>.<span class="when">2026-11-04 - archive/README.md</span></div></li>
     <li><span class="mark">&#10003;</span><div>Bounded-retry fix in <code>ToolBrain._request()</code> (one retry on ReadTimeout/ConnectionError only) - recovered the 180 s VPN stall in a 487.5 s passing injection eval.<span class="when">2026-10-31 - me3/brain.py</span></div></li>
@@ -109,10 +109,11 @@ footer code{font-family:"JetBrains Mono",monospace; font-size:.74rem; color:var(
     <li><span class="mark">&#10003;</span><div>First real-Qwen-brain barge-in: <code>barge_in_detected=true</code>, 248.1 s, 6 tools, reply cut mid-playback with a proper barge-in reply.<span class="when">2026-10-31 - runs/injection_eval/20261031-121708</span></div></li>
     <li><span class="mark">&#10003;</span><div><code>LocalVoiceLoop</code> LISTENING on the real mic (vad 239 ms / asr 1832 ms / tts 1578 ms); ambient discard correct; live barge-in event observed at 19:34.<span class="when">2026-10-31 - runs/local-run-20261031T120651Z.log</span></div></li>
     <li><span class="mark">&#10003;</span><div>Stereo Mix speaker-feedback guard: 5.82 s captured, 182 echo frames suppressed, zero false VAD/ASR turns.<span class="when">2026-10-31 - workstation audio check</span></div></li>
-    <li><span class="mark">&#10003;</span><div>Live Qwen turns on both local UIs: 8124 <code>current</code> (11.4 s Filipino reply + tool events) and 8125 <code>qwen_instruct</code> (51.3 s tool-loop turn).<span class="when">2026-10-31 - UI logs</span></div></li>
+    <li><span class="mark">&#10003;</span><div>Historical local Qwen turns and tool-loop evidence are retained as development evidence; the active demo target is now the single Pi-hosted Qwen Instruct service.<span class="when">2026-10-31 evidence; Qwen-only policy 2026-11-06</span></div></li>
     <li><span class="mark">&#10003;</span><div>Presenter surface (8123) and Pi-tunnel web (8090) both HTTP 200; voice-built demo app created + served by the agent itself.<span class="when">2026-10-31</span></div></li>
     <li><span class="mark">&#10003;</span><div>Vocalis-Pi protocol: 5 states, event channels, sanitized harness progress, protocol + integration tests 4/4.<span class="when">me3/vocalis.py + tests</span></div></li>
-    <li><span class="mark">&#10003;</span><div>Docs set: ELI5/deep manual, channel API requirements, ACM paper (5-page two-column PDF), canonical 8-slide deck.<span class="when">docs/</span></div></li>
+    <li><span class="mark">&#10003;</span><div>Qwen Pi promotion and capture readiness: accepted release installed at <code>/home/dalmacio/Desktop/dandan-qwen</code>; <code>me3-agent.service</code> active; protected Qwen text authentication returns HTTP 200; Fifine USB input enumerated; UI/audio ports 8126/8127 healthy. Qwen audio-provider availability remains a separate open gate.<span class="when">2026-11-06 - direct SSH and Pi health/audio checks</span></div></li>
+    <li><span class="mark">&#10003;</span><div>Docs set: ELI5/deep manual, channel API requirements, six-page two-column ACM PDF, system-flow infographic, and presentation deck.<span class="when">docs/</span></div></li>
   </ul>  <div class="section-title">What is left to do</div>
   <div class="todos">
     <div class="todo">
@@ -135,15 +136,9 @@ footer code{font-family:"JetBrains Mono",monospace; font-size:.74rem; color:var(
     </div>
     <div class="todo">
       <span class="owner system">System / Operator</span>
-      <h3>Promote the accepted release to the Pi</h3>
-      <p>The workstation-accepted release is <code>pending_sync</code>: the direct hostname does not resolve and the Pi Connect shell is browser-interactive, not CLI SSH. The Pi still runs the older deployed release.</p>
-      <div class="next"><b>Next action</b>Provide a reachable SSH route (or a one-time browser Connect transfer) to <code>/home/dalmacio/Desktop/dandan</code>, then run the Pi preflight.</div>
-    </div>
-    <div class="todo">
-      <span class="owner system">System / Operator</span>
-      <h3>Pi capture device + enable the me3-agent service</h3>
-      <p>Read-only Pi preflight: zero PortAudio input devices, ALSA lists no capture hardware (HDMI playback visible). The service stays disabled until the capture gate is met; VCM owns the Fifine.</p>
-      <div class="next"><b>Next action</b>Attach a working USB capture device on the Pi, re-run the preflight, then enable the unit.</div>
+      <h3>Human spoken transcript from the Pi Fifine</h3>
+      <p>The Pi service, Qwen ASR/TTS authentication, and Fifine capture device are now healthy. A real operator sentence still needs to be observed as a transcript in the Assistant UI; the earlier empty transcript was caused by a missing audio endpoint/tunnel and stale audio API key.</p>
+      <div class="next"><b>Next action</b>Run <code>ssh me3-pi</code>, open the reachable Pi UI on port <code>8126</code>, connect the browser speaker, then say one Filipino or Taglish sentence and confirm the transcript appears.</div>
     </div>
     <div class="todo">
       <span class="owner operator">Operator</span>
@@ -188,17 +183,18 @@ footer code{font-family:"JetBrains Mono",monospace; font-size:.74rem; color:var(
   <code>deployment/last_pi_deployment.json</code> (Pi state) &middot;
   <code>docs/ME3_NEW_VERSION_TEST_COMPARISON_20261031.md</code> (old-vs-new test comparison) &middot;
   <code>runs/injection_eval/</code> (injected audio proofs) &middot;
-  <code>docs/ME3_SPEC_AND_BENCHMARK_PLAN.md</code> (draft benchmark). Live values above refresh every 2 s from the running agent at 127.0.0.1:8126; when the agent is off, the static checklist still stands.
+  <code>docs/ME3_SPEC_AND_BENCHMARK_PLAN.md</code> (draft benchmark). Live values above refresh every 2 s from this same-origin Pi service; when the agent is off, the static checklist still stands.
 </footer><script>
 'use strict';
-const ON_STATUS_PORT = (location.port === '8126');
-document.getElementById('linkAssistant').href = ON_STATUS_PORT ? '/' : 'http://127.0.0.1:8126/';
+// This page is served by the same Pi status server as the assistant. Relative
+// links keep a remote browser on the Pi/tunnel instead of its own loopback.
+document.getElementById('linkAssistant').href = '/';
 async function apiState(){
   try {
     const r = await fetch('/api/state', {cache:'no-store'});
     if (r.ok) return r.json();
   } catch (e) { /* static serving - try the live status port */ }
-  const r = await fetch('http://127.0.0.1:8126/api/state', {cache:'no-store'});
+  const r = await fetch('/api/state', {cache:'no-store'});
   if (!r.ok) throw new Error('status offline');
   return r.json();
 }

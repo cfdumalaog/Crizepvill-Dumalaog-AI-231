@@ -28,6 +28,7 @@ def test_snapshot_shape_after_simulated_events():
     st.report_started()
     st.report_transcript("hello me3")
     st.report_reply("hi there", "reply")
+    st.report_error("ASR", "Qwen ASR provider unavailable")
     st.report_tool("tool_started", "system_info")
     st.report_tool("tool_finished", "system_info", ok=True)
     st.report_barge_in()
@@ -48,6 +49,9 @@ def test_snapshot_shape_after_simulated_events():
     assert snap["last_transcript"]["text"] == "hello me3"
     assert snap["last_reply"]["text"] == "hi there"
     assert snap["last_reply"]["kind"] == "reply"
+    assert snap["last_error"]["stage"] == "ASR"
+    assert snap["last_error"]["message"] == "Qwen ASR provider unavailable"
+    assert snap["last_error"]["at"] is not None
     assert snap["last_barge_in_at"] is not None
     assert snap["stats"]["n_turns"] == 2
     assert snap["stats"]["n_barge_in"] == 1
@@ -69,6 +73,9 @@ def test_snapshot_shape_after_simulated_events():
     snap2 = st.snapshot("idle", _fake_stats())
     assert snap2["loop"] is False
     assert snap2["stopped_at"] is not None
+
+    st.clear_error()
+    assert st.snapshot("idle", _fake_stats())["last_error"]["message"] == ""
 
 
 def test_tool_active_tracking_and_bounded_history():
@@ -115,16 +122,59 @@ def test_status_server_serves_state_and_pages():
             assert data["release"]["release_id"] == "me3-test"
         with urllib.request.urlopen(base + "/api/health", timeout=5) as r:
             assert json.loads(r.read())["ok"] is True
+        request = urllib.request.Request(base + "/api/restart", method="POST")
+        try:
+            urllib.request.urlopen(request, timeout=5)
+        except urllib.error.HTTPError as exc:
+            assert exc.code == 403
+        else:  # pragma: no cover
+            raise AssertionError("restart should be disabled without a callback")
+        service_request = urllib.request.Request(
+            base + "/api/restart-service", method="POST")
+        try:
+            urllib.request.urlopen(service_request, timeout=5)
+        except urllib.error.HTTPError as exc:
+            assert exc.code == 403
+        else:  # pragma: no cover
+            raise AssertionError("service restart should be disabled without a callback")
         with urllib.request.urlopen(base + "/", timeout=5) as r:
             assert r.status == 200
             html = r.read().decode("utf-8")
             assert "orbCanvas" in html and "ME3" in html
+            assert "runtime-terminal" in html
+            assert "restartService" in html
         with urllib.request.urlopen(base + "/roadmap", timeout=5) as r:
             assert r.status == 200
             assert "left to do" in r.read().decode("utf-8")
+        with urllib.request.urlopen(base + "/console", timeout=5) as r:
+            assert r.status == 200
+            assert "orbCanvas" in r.read().decode("utf-8")
     finally:
         server.stop()
     assert server._httpd is None
+
+
+def test_status_server_can_dispatch_service_restart_callback():
+    st = LoopStatus()
+    calls = []
+    server = StatusServer(
+        st, html_dir=PROJECT / "web",
+        get_state=lambda: "idle", get_stats=lambda: _fake_stats(), port=0,
+        restart_service=lambda: calls.append("restart") or {
+            "service": "me3-agent.service", "restart_scheduled": True},
+    )
+    assert server.start() is True
+    try:
+        request = urllib.request.Request(
+            f"http://127.0.0.1:{server.port}/api/restart-service", method="POST")
+        with urllib.request.urlopen(request, timeout=5) as response:
+            payload = json.loads(response.read().decode("utf-8"))
+        assert payload["ok"] is True
+        assert payload["service"] == "me3-agent.service"
+        assert payload["restart_scheduled"] is True
+        assert calls == ["restart"]
+    finally:
+        server.stop()
 
 
 def test_load_release_info_reads_deployment_records():

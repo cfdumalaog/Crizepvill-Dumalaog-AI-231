@@ -35,7 +35,7 @@ class RunLog:
 class Runner:
     def __init__(self, run_dir: Path, ds: Dataset, rig: RigBase, session: dict, rounds: int, seed: int,
                  live: bool = True, gap: float = GAP_BETWEEN_TRIALS, reset_cmd: Optional[str] = None,
-                 realtime_gap: bool = True):
+                 realtime_gap: bool = True, phrases: int = 0, runs: int = 0):
         self.run_dir = run_dir
         self.ds = ds
         self.rig = rig
@@ -51,10 +51,13 @@ class Runner:
             self.plan = Plan.from_json(existing)
             self.log.log(f"resuming queue with {sum(1 for i in self.plan.items if i.status == 'pending')} pending trials")
         else:
-            self.plan = build_plan(ds, rounds, seed)
+            self.plan = build_plan(ds, rounds, seed, phrases=phrases, runs=runs)
             write_json(plan_file, self.plan.to_json())
         self.clips = {g: {c.id: c for c in ds.clips(g)} for g in ds.groups}
         self.trial_times: list = []
+        self.stats = getattr(rig, "stats", None)  # StatsStore: machine stats streamed during the run (stats.py)
+        self.marks = getattr(rig, "marks", None)  # MarksStore: stage marks from the assistant (marks.py)
+        self._stats_checked = False
 
     # ------------------------------------------------------------------
     def _save_plan(self):
@@ -110,7 +113,8 @@ class Runner:
                     item_results.append(res)
                     if res.get("error"):
                         item.status = "failed"
-                    expects_reply = item.group in ("v1_turntaking", "v1_interrupt") or item.group.startswith("v15_")
+                    expects_reply = (item.group in ("v1_turntaking", "v1_interrupt", "stage_latency")
+                                     or item.group.startswith("v15_"))
                     if expects_reply and not res.get("error"):
                         if res.get("bot_segments"):
                             quiet_streak = 0
@@ -145,6 +149,12 @@ class Runner:
             table.set_header(n_done, items[-1].round if items else self.plan.rounds, sw.elapsed(), 0.0)
         keys.stop()
         self._save_plan()
+        self._flush_stats()
+        if self.marks is not None:
+            try:
+                self.marks.flush(self.run_dir)
+            except Exception as e:  # noqa: BLE001
+                self.log.log(f"marks flush: {e}")
         completed = sum(1 for i in self.plan.items if i.status == "done")
         self.log.log(f"run end · {completed}/{total} trials done · stopped_early={stopped_early} · {sw.elapsed():.0f} s")
         self.log.event("run_end", completed=completed, total=total, stopped_early=stopped_early, seconds=sw.elapsed())
@@ -160,7 +170,8 @@ class Runner:
             except Exception as e:  # noqa: BLE001
                 self.log.log(f"reset command failed: {e}")
         if self.realtime_gap and self.gap > 0:
-            table.set_status(f"[dim]waiting {self.gap:.0f} s for her to settle…[/dim]")
+            st = self.stats.status_line() if self.stats is not None else ""
+            table.set_status(f"[dim]waiting {self.gap:.0f} s for her to settle…[/dim]" + (f"  {st}" if st else ""))
             time.sleep(self.gap)
         table.set_status("")
 
@@ -178,6 +189,7 @@ class Runner:
             elif kind == "bot_end":
                 table.update(row, actual=f"▶ she stopped at {t:.2f} s")
 
+        m0 = time.monotonic()
         try:
             script = make_script(plan, on_event=on_event)
             rec = self.rig.run(script)
@@ -187,6 +199,7 @@ class Runner:
             write_json(tdir / "timing.json", {"error": str(e), "trial": plan.trial_id})
             return {"error": str(e)}
 
+        m1 = time.monotonic()
         save_audio(tdir / "played.flac", rec.played)
         save_audio(tdir / "her.flac", rec.heard)
         facts = provisional(plan, rec)
@@ -195,8 +208,12 @@ class Runner:
             "expected": plan.expected, "duration": rec.duration,
             "events": [{"name": e.name, "t": e.t, "len": len(e.audio) / SR} for e in rec.events],
             "live_bot_starts": rec.bot_starts, "live_bot_ends": rec.bot_ends, "rig": rec.notes,
-            "clip_meta": plan.clip.meta, **facts,
+            "clip_meta": plan.clip.meta, "mono": [m0, m1], **facts,
         }
+        self._trial_stats(tdir, m0, m1)
+        n_marks = self._trial_marks(tdir, rec)
+        if n_marks is not None:
+            timing["marks"] = n_marks
         write_json(tdir / "timing.json", timing)
         table.update(row, actual=facts.get("actual", ""), verdict=facts.get("verdict", ""), ok=facts.get("ok"),
                      live=False)
@@ -204,3 +221,43 @@ class Runner:
         self.log.event("trial_end", trial=plan.trial_id, actual=facts.get("actual"), verdict=facts.get("verdict"),
                        ok=facts.get("ok"))
         return timing
+
+    # ------------------------------------------------------------------ stage marks
+    def _trial_marks(self, tdir: Path, rec) -> Optional[int]:
+        """Save this trial's stage marks to stages.jsonl, each with `tt` = seconds from trial start."""
+        if self.marks is None or rec.mono0 is None:
+            return None
+        try:
+            ms = self.marks.window(rec.mono0, rec.mono0 + rec.duration)
+            (tdir / "stages.jsonl").unlink(missing_ok=True)
+            for m in ms:
+                m["tt"] = round(m["lt"] - rec.mono0, 4)
+                append_jsonl(tdir / "stages.jsonl", m)
+            return len(ms)
+        except Exception as e:  # noqa: BLE001  (marks never break a run)
+            self.log.log(f"marks: {e}")
+            return None
+
+    # ------------------------------------------------------------------ machine stats
+    def _trial_stats(self, tdir: Path, m0: float, m1: float) -> None:
+        """Save the stats samples of this trial and append new ones to the run's pi_stats.jsonl."""
+        if self.stats is None:
+            return
+        try:
+            for smp in self.stats.window(m0, m1):
+                append_jsonl(tdir / "pi_stats.jsonl", smp)
+            self._flush_stats()
+            if not self._stats_checked and self.stats.samples:
+                self._stats_checked = True
+                for w in self.stats.start_warnings():
+                    self.log.log(f"machine stats: {w}")
+                    self.log.event("stats_warning", text=w)
+        except Exception as e:  # noqa: BLE001  (stats never break a run)
+            self.log.log(f"machine stats: {e}")
+
+    def _flush_stats(self) -> None:
+        if self.stats is not None:
+            try:
+                self.stats.flush(self.run_dir)
+            except Exception as e:  # noqa: BLE001
+                self.log.log(f"machine stats flush: {e}")

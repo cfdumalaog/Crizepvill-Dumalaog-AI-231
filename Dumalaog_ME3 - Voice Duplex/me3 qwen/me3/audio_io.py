@@ -20,6 +20,8 @@ from __future__ import annotations
 
 import logging
 import queue
+import re
+import shutil
 import subprocess
 import threading
 import time
@@ -58,6 +60,9 @@ class FullDuplexAudio:
         self._q: "queue.Queue[tuple[np.ndarray, bool]]" = queue.Queue(maxsize=200)
         self._sd = None
         self._stream = None
+        self._alsa_proc = None
+        self._alsa_thread = None
+        self._alsa_stop = threading.Event()
         self._play_stream = None
         self._playing = False
         self._play_buf = None  # flat int16 buffer at out rate
@@ -244,6 +249,77 @@ class FullDuplexAudio:
                  self.io_out_rate, self.sr)
 
     # ---- Capture -----------------------------------------------------------
+    def _alsa_capture_devices(self) -> list[str]:
+        """Find ALSA capture devices when PortAudio hides USB inputs on Pi."""
+        if shutil.which("arecord") is None:
+            return []
+        candidates: list[str] = []
+        explicit = self.in_dev_cfg
+        if isinstance(explicit, str) and re.fullmatch(r"(?:plug)?hw:\d+(?:,\d+)?", explicit.strip()):
+            candidates.append(explicit.strip())
+        try:
+            result = subprocess.run(
+                ["arecord", "-l"], capture_output=True, text=True,
+                timeout=5, check=False,
+            )
+            for card, device in re.findall(
+                    r"(?m)^card\s+(\d+):.*?device\s+(\d+):", result.stdout):
+                candidates.append(f"hw:{card},{device}")
+        except (OSError, subprocess.SubprocessError):
+            return candidates
+        return list(dict.fromkeys(candidates))
+
+    def _start_alsa_capture(self) -> bool:
+        """Start raw mono PCM capture through arecord as a Pi fallback."""
+        devices = self._alsa_capture_devices()
+        if not devices:
+            return False
+        bytes_per_frame = self.frame_n * 2
+        for device in devices:
+            command = [
+                "arecord", "-q", "-D", device, "-f", "S16_LE",
+                "-r", str(self.sr), "-c", "1", "-t", "raw", "-",
+            ]
+            try:
+                proc = subprocess.Popen(
+                    command, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+                    bufsize=0,
+                )
+                time.sleep(0.12)
+                if proc.poll() is not None or proc.stdout is None:
+                    if proc.poll() is None:
+                        proc.terminate()
+                    continue
+            except OSError:
+                continue
+            self._alsa_proc = proc
+            self._alsa_stop.clear()
+
+            def reader() -> None:
+                assert proc.stdout is not None
+                try:
+                    while not self._alsa_stop.is_set():
+                        data = proc.stdout.read(bytes_per_frame)
+                        if len(data) < bytes_per_frame:
+                            break
+                        frame = np.frombuffer(data, dtype="<i2").copy()
+                        self._enqueue_capture(frame)
+                except (OSError, ValueError):
+                    pass
+                finally:
+                    log.info("ALSA capture ended (%s)", device)
+
+            self._alsa_thread = threading.Thread(
+                target=reader, daemon=True, name="me3-alsa-capture")
+            self._alsa_thread.start()
+            self.in_idx = device
+            self.io_in_rate = self.sr
+            self._digital_loopback = False
+            log.info("capture started through ALSA fallback: %s @ %d Hz",
+                     device, self.sr)
+            return True
+        return False
+
     @staticmethod
     def _rms(pcm: np.ndarray) -> float:
         if pcm.size == 0:
@@ -496,7 +572,12 @@ class FullDuplexAudio:
 
     def start_capture(self):
         sd = self._ensure_sd()
-        self.resolve_devices(output_required=False)
+        try:
+            self.resolve_devices(output_required=False)
+        except AudioDeviceError:
+            if self._start_alsa_capture():
+                return
+            raise
         block = int(self.io_in_rate * self.frame_ms / 1000)
         self._stream = sd.InputStream(
             samplerate=self.io_in_rate, channels=1, dtype="int16",
@@ -622,6 +703,20 @@ class FullDuplexAudio:
             log.info("playback stopped (barge-in)")
 
     def close(self):
+        self._alsa_stop.set()
+        proc, self._alsa_proc = self._alsa_proc, None
+        if proc is not None:
+            try:
+                proc.terminate()
+                proc.wait(timeout=1.0)
+            except Exception:  # noqa: BLE001 - best-effort capture shutdown
+                try:
+                    proc.kill()
+                except Exception:
+                    pass
+        thread, self._alsa_thread = self._alsa_thread, None
+        if thread is not None and thread is not threading.current_thread():
+            thread.join(timeout=1.0)
         if self._stream is not None:
             self._stream.stop()
             self._stream.close()

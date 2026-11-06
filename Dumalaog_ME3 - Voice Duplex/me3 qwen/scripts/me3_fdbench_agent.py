@@ -5,7 +5,9 @@ tool.  It uses the benchmark's direct-feed WebSocket protocol: fdbench sends
 16-kHz mono int16 microphone frames, while ME3 sends generated PCM back and
 emits ``{"event":"clear"}`` on barge-in.  No microphone or speaker is opened
 in this mode, so the evaluator is deterministic and safe to run on Windows or
-on a Pi.
+on a Pi. Benchmark mode also disables ME3 tool calls, external harness/agent
+dispatch, and filler/backchannel audio so latency measures the voice path
+rather than optional task side effects.
 """
 from __future__ import annotations
 
@@ -118,15 +120,23 @@ class FdbenchAudio:
             pass
 
 
-def make_brain(cfg: dict, mode: str):
+def make_brain(cfg: dict, mode: str, *, benchmark_mode: bool = True):
     if mode == "stub":
         return StubBrain()
     selection = "qwen" if mode == "remote" else mode
+    prompt = build_system_prompt(cfg["agent"]["system_prompt"])
+    if benchmark_mode:
+        prompt += (
+            "\n\nBenchmark mode is active. Do not call tools, external agents, "
+            "or harnesses. Return one concise spoken response only. Do not "
+            "emit a filler, backchannel, or progress announcement."
+        )
     return build_tool_brain(
-        cfg, selection, build_system_prompt(cfg["agent"]["system_prompt"]),
+        cfg, selection, prompt,
         on_tool=lambda kind, name, payload: log.info(
             "tool %s %s ok=%s", kind, name,
             payload.get("ok") if isinstance(payload, dict) else True),
+        allow_tools=not benchmark_mode,
     )
 
 
@@ -138,6 +148,8 @@ def main() -> int:
     parser.add_argument("--variant", choices=("current", "qwen_instruct"),
                         default="current")
     parser.add_argument("--check", action="store_true")
+    parser.add_argument("--allow-tools", action="store_true",
+                        help="opt in to tools; class benchmark mode keeps them disabled")
     args = parser.parse_args()
     if args.check:
         import websockets
@@ -146,7 +158,8 @@ def main() -> int:
     os.environ["ME3_VARIANT"] = args.variant
     cfg = load_config()
     try:
-        brain = make_brain(cfg, args.brain)
+        brain = make_brain(cfg, args.brain,
+                           benchmark_mode=not args.allow_tools)
     except RuntimeError:
         if args.brain != "auto":
             raise

@@ -69,7 +69,9 @@ def load_config() -> dict:
     # Silero VAD and the existing text ToolBrain stay in place, while ASR/TTS
     # point at protected DGX3 vLLM services. Endpoint values come from env so
     # the supplied credential file never enters the repository or config.yaml.
-    variant = os.environ.get("ME3_VARIANT", "current").strip().lower()
+    # Qwen Instruct is the sole active ME3 release line.  ``current`` remains
+    # accepted only as an explicit legacy compatibility profile in old scripts.
+    variant = os.environ.get("ME3_VARIANT", "qwen_instruct").strip().lower()
     variants = cfg.get("variants", {}) or {}
     if variant not in {"current", "qwen_instruct"}:
         raise ValueError("ME3_VARIANT must be current or qwen_instruct")
