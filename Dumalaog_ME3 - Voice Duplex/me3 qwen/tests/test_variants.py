@@ -53,6 +53,8 @@ def test_spoken_tone_is_formal_and_professional(monkeypatch):
     assert cfg["agent"]["backchannel"] == "I am processing your request now."
     prompt = cfg["agent"]["system_prompt"].lower()
     assert "reply in english by default" in prompt
+    assert "me3 full-duplex voice agent" in prompt
+    assert "do not describe me3 as half-duplex" in prompt
     assert "formal, professional customer-service tone" in prompt
     assert "do not flirt" in prompt
     assert "pet names" in prompt

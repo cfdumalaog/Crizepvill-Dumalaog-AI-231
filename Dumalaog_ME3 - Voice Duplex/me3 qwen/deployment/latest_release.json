@@ -1,12 +1,12 @@
 {
-  "release_id": "me3-20261106-225631-8b1f08b0",
+  "release_id": "me3-20261106-230518-62b6e228",
   "status": "prepared",
-  "created_utc": "20261106-225631",
-  "source_fingerprint": "8b1f08b0c1c3a9a8353c464357794eea67548776913e0acd404028fefdb0223e",
+  "created_utc": "20261106-230518",
+  "source_fingerprint": "62b6e228dc7f490d04ba574c18d7e6b27fa61eccd373967b369935c281b336a2",
   "file_count": 160,
-  "archive": "dist/me3-20261106-225631-8b1f08b0/me3_voice_duplex",
-  "zip": "dist/me3-20261106-225631-8b1f08b0.zip",
-  "zip_sha256": "3044eaed57deb232d1d5521d03f7518bb6f9678a693ccb059bd629daf92a100b",
+  "archive": "dist/me3-20261106-230518-62b6e228/me3_voice_duplex",
+  "zip": "dist/me3-20261106-230518-62b6e228.zip",
+  "zip_sha256": "1922c73e752ecbed7a6e909a08ad5c477c5e36f5bf1003f186d8059a7842baa9",
   "target": "rpi",
   "note": "Workstation-accepted release deployed to the Pi; service restart and live health verification passed."
 }
