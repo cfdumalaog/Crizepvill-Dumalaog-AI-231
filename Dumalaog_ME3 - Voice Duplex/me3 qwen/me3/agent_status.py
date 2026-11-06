@@ -333,6 +333,21 @@ class _StatusHandler(BaseHTTPRequestHandler):
     def do_GET(self):  # noqa: N802
         path = urlsplit(self.path).path
         status = self.server.status  # type: ignore[attr-defined]
+        if path == "/api/demo/light":
+            callback = getattr(self.server, "demo_light_get", None)
+            if callback is None:
+                self._send(404, b"demo light is not enabled", "text/plain; charset=utf-8")
+                return
+            try:
+                payload = callback()
+                self._send(200, json.dumps(payload).encode("utf-8"),
+                           "application/json; charset=utf-8")
+            except Exception as exc:  # noqa: BLE001 - keep status UI reachable
+                self._send(500, json.dumps({
+                    "ok": False, "error": type(exc).__name__,
+                    "message": str(exc)[:300],
+                }).encode("utf-8"), "application/json; charset=utf-8")
+            return
         if path == "/api/audio/devices":
             callback = getattr(self.server, "audio_info", None)
             payload = callback() if callback is not None else {
@@ -373,6 +388,28 @@ class _StatusHandler(BaseHTTPRequestHandler):
 
     def do_POST(self):  # noqa: N802
         path = urlsplit(self.path).path
+        if path == "/api/demo/light":
+            callback = getattr(self.server, "demo_light_control", None)
+            if callback is None:
+                self._send(404, b"demo light is not enabled", "text/plain; charset=utf-8")
+                return
+            try:
+                length = int(self.headers.get("Content-Length", "0"))
+                if length <= 0 or length > 10000:
+                    raise ValueError("invalid JSON body")
+                payload = json.loads(self.rfile.read(length).decode("utf-8"))
+                if not isinstance(payload, dict):
+                    raise ValueError("selection must be a JSON object")
+                result = callback(payload)
+                code = 200 if result.get("ok", True) else 400
+                self._send(code, json.dumps(result).encode("utf-8"),
+                           "application/json; charset=utf-8")
+            except Exception as exc:  # noqa: BLE001 - UI receives bounded error
+                self._send(400, json.dumps({
+                    "ok": False, "error": type(exc).__name__,
+                    "message": str(exc)[:300],
+                }).encode("utf-8"), "application/json; charset=utf-8")
+            return
         if path == "/api/restart":
             callback = getattr(self.server, "restart_agent", None)
             if callback is None:
@@ -432,7 +469,8 @@ class StatusServer:
                  get_state, get_stats, port: int = 8126,
                  project: Path | None = None, host: str = "127.0.0.1",
                  audio_info=None, audio_select=None, restart_agent=None,
-                 restart_service=None):
+                 restart_service=None, demo_light_get=None,
+                 demo_light_control=None):
         self.status = status
         self.html_dir = Path(html_dir)
         self.get_state = get_state
@@ -444,6 +482,8 @@ class StatusServer:
         self.audio_select = audio_select
         self.restart_agent = restart_agent
         self.restart_service = restart_service
+        self.demo_light_get = demo_light_get
+        self.demo_light_control = demo_light_control
         self._httpd: ThreadingHTTPServer | None = None
         self._thread: threading.Thread | None = None
 
@@ -465,6 +505,8 @@ class StatusServer:
         self._httpd.audio_select = self.audio_select
         self._httpd.restart_agent = self.restart_agent
         self._httpd.restart_service = self.restart_service
+        self._httpd.demo_light_get = self.demo_light_get
+        self._httpd.demo_light_control = self.demo_light_control
         self._httpd.release_refresher = (
             ReleaseInfoRefresher(self.project) if self.project is not None
             else None)

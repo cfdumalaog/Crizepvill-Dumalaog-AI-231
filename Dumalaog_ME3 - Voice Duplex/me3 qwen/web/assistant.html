@@ -99,6 +99,21 @@ header{
 .music-handoff{margin-top:10px;padding:9px;border:1px solid rgba(59,130,246,.3);border-radius:9px;background:rgba(59,130,246,.08);font-size:.74rem;line-height:1.35;}
 .music-handoff strong{display:block;color:#93c5fd;margin-bottom:3px;}
 .music-handoff button{margin-top:7px;width:auto;padding:6px 9px;}
+.light-card{border-color:rgba(245,158,11,.32);background:linear-gradient(145deg,rgba(245,158,11,.10),rgba(16,24,38,.72));}
+.light-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;}
+.light-head h2{margin:0;}
+.light-mode{font-size:.62rem;color:#fbbf24;border:1px solid rgba(245,158,11,.38);border-radius:999px;padding:3px 7px;white-space:nowrap;}
+.bulb-row{display:flex;align-items:center;gap:12px;}
+.bulb{width:48px;height:48px;border-radius:50%;display:grid;place-items:center;font-size:1.45rem;background:#1e293b;border:1px solid rgba(255,255,255,.12);filter:grayscale(1);transition:.2s;}
+.bulb.on{background:#fbbf24;color:#fff7ed;filter:none;box-shadow:0 0 24px rgba(251,191,36,.65);}
+.light-state{font-size:.9rem;font-weight:700;}
+.light-meta{font-size:.72rem;color:var(--muted);margin-top:3px;}
+.light-controls{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:12px;}
+.light-controls button,.light-controls select{border:1px solid var(--line);border-radius:8px;background:#0b1220;color:var(--text);padding:7px;font:inherit;font-size:.75rem;cursor:pointer;}
+.light-controls button:hover{border-color:var(--gold);background:rgba(245,158,11,.12);}
+.light-controls label{grid-column:1/-1;display:grid;gap:4px;color:var(--muted);font-size:.7rem;}
+.light-controls input[type=range]{accent-color:var(--gold);width:100%;}
+.light-at{grid-column:1/-1;color:#64748b;font-size:.68rem;font-family:"JetBrains Mono",monospace;}
 .tool-feed{list-style:none; max-height:220px; overflow:auto;}
 .tool-feed li{display:flex; gap:8px; align-items:baseline; padding:7px 0; border-bottom:1px solid rgba(255,255,255,.05); font-size:.82rem;}
 .tool-feed li:last-child{border-bottom:none;}
@@ -170,6 +185,16 @@ header{
         <div class="stat"><b id="statBarge">0</b><span>controls</span></div>
         <div class="stat"><b id="statErrors">0</b><span>errors</span></div>
         <div class="stat"><b id="statUptime">-</b><span>uptime</span></div>
+      </div>
+    </div>
+    <div class="card light-card">
+      <div class="light-head"><h2>Simulated light</h2><span class="light-mode">LOCAL DEMO</span></div>
+      <div class="bulb-row"><div class="bulb" id="demoBulb">💡</div><div><div class="light-state" id="demoLightState">OFF</div><div class="light-meta" id="demoLightMeta">ME3 simulated light · room: all</div></div></div>
+      <div class="light-controls">
+        <button id="lightOn" type="button">Turn on</button><button id="lightOff" type="button">Turn off</button>
+        <label>Brightness <span id="lightBrightnessValue">100%</span><input id="lightBrightness" type="range" min="0" max="100" value="100"></label>
+        <select id="lightColor"><option>warm white</option><option>cool white</option><option>red</option><option>green</option><option>blue</option></select><button id="lightApplyColor" type="button">Set color</button>
+        <span class="light-at" id="lightUpdatedAt">Voice or UI actions update this same simulated device.</span>
       </div>
     </div>
     <div class="card runtime-error" id="runtimeErrorCard" hidden>
@@ -293,6 +318,7 @@ let smoothRms = 0, orbHue = 220, orbPhase = 0;
 let bargeFlashUntil = 0, seenBargeAt = null;
 let prevState = null, stateSince = 0, seenTranscriptAt = null, seenReplyAt = null;
 let audioSocket = null, audioContext = null, audioNextTime = 0, audioNodes = [], pendingMusicUrl = '';
+let lightState = null;
 
 setInterval(() => { $('clock').textContent = new Date().toLocaleTimeString('en-PH', {hour12:false}); }, 1000);
 $('clock').textContent = new Date().toLocaleTimeString('en-PH', {hour12:false});
@@ -346,6 +372,37 @@ function renderState(d){
     bargeFlashUntil = Date.now() + 1500;
   }
 }
+
+function renderDemoLight(d){
+  const x = d || {};
+  lightState = x;
+  const on = !!x.on;
+  $('demoBulb').classList.toggle('on', on);
+  $('demoLightState').textContent = on ? 'ON' : 'OFF';
+  $('demoLightMeta').textContent = (x.name || 'ME3 simulated light') + ' · room: ' + (x.room || 'all') + ' · ' + (x.color || 'warm white');
+  $('lightBrightness').value = Number.isFinite(Number(x.brightness)) ? Number(x.brightness) : 100;
+  $('lightBrightnessValue').textContent = String($('lightBrightness').value) + '%';
+  if(x.color && [...$('lightColor').options].some(o => o.value === x.color)) $('lightColor').value = x.color;
+  $('lightUpdatedAt').textContent = x.updated_at ? 'Last change ' + fmtTime(x.updated_at) + ' · voice/UI share state' : 'Voice or UI actions update this same simulated device.';
+}
+
+async function loadDemoLight(){
+  try { const r = await fetch('/api/demo/light', {cache:'no-store'}); if(r.ok) renderDemoLight(await r.json()); } catch(e) {}
+}
+async function setDemoLight(body){
+  const note = $('lightUpdatedAt');
+  try {
+    const r = await fetch('/api/demo/light', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
+    const d = await r.json();
+    if(!r.ok || d.ok === false) throw new Error(d.message || d.error || 'light control failed');
+    renderDemoLight(d.lights || {});
+    note.textContent = 'Updated by ME3 simulated-light control.';
+  } catch(e) { note.textContent = 'Light control unavailable: ' + e.message; }
+}
+$('lightOn').addEventListener('click', () => setDemoLight({action:'on', room:'all'}));
+$('lightOff').addEventListener('click', () => setDemoLight({action:'off', room:'all'}));
+$('lightBrightness').addEventListener('change', e => setDemoLight({action:'dim', room:'all', value:Number(e.target.value)}));
+$('lightApplyColor').addEventListener('click', () => setDemoLight({action:'color', room:'all', value:$('lightColor').value}));
 
 function renderTools(d){
   const tools = d.tools || {};
@@ -611,6 +668,8 @@ $('openMusic').addEventListener('click', () => {
 });
 loadAudioDevices();
 setInterval(loadAudioDevices, 2500);
+loadDemoLight();
+setInterval(loadDemoLight, 1000);
 
 function poll(){
   apiState()

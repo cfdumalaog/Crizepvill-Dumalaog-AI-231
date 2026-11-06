@@ -282,6 +282,8 @@ def main() -> int:
         audio_info=controller.audio_info, audio_select=controller.select,
         restart_agent=controller.restart,
         restart_service=schedule_systemd_restart,
+        demo_light_get=me2_commands.simulated_light_state,
+        demo_light_control=lambda payload: me2_commands.control_lights(**payload),
     )
     if not http.start():
         hub.stop()

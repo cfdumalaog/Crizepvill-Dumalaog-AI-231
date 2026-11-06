@@ -29,6 +29,22 @@ def test_media_and_device_commands_are_deterministic_demo_actions():
     assert thermostat["ok"] is True and thermostat["temperature_c"] == 24
 
 
+def test_simulated_light_state_is_shared_by_voice_tool_and_ui_adapter():
+    me2_commands.control_lights("off", "all")
+    initial = me2_commands.simulated_light_state()
+    assert initial["physical"] is False
+    assert initial["on"] is False
+
+    turned_on = me2_commands.control_lights("on", "all")
+    assert turned_on["lights"]["on"] is True
+    assert me2_commands.simulated_light_state()["on"] is True
+
+    dimmed = me2_commands.control_lights("dim", "all", 35)
+    assert dimmed["lights"]["brightness"] == 35
+    assert dimmed["lights"]["value"] == 35
+    assert dimmed["lights"]["on"] is True
+
+
 def test_music_handoff_supports_youtube_music_and_spotify(monkeypatch):
     events = []
     me2_commands.set_music_event_sink(events.append)

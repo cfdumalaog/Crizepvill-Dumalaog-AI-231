@@ -49,6 +49,7 @@ from .brain import (ToolBrain, build_system_prompt, build_tool_brain,
 from .config import load_config, project_root
 from .agent_status import LoopStatus, StatusServer, load_release_info
 from .vocalis import TurnState, VocalisOrchestrator
+from . import me2_commands
 
 log = logging.getLogger("me3.agent")
 
@@ -1353,6 +1354,8 @@ def main() -> None:
             get_state=lambda: loop.state,
             get_stats=lambda: loop.stats,
             port=args.status_port,
+            demo_light_get=me2_commands.simulated_light_state,
+            demo_light_control=lambda payload: me2_commands.control_lights(**payload),
         )
         if status_server.start():
             log.info("status UI: http://127.0.0.1:%d/ (roadmap: /roadmap)",

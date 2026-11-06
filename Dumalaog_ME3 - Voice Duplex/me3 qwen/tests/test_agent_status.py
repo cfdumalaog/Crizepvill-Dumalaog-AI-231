@@ -177,6 +177,37 @@ def test_status_server_can_dispatch_service_restart_callback():
         server.stop()
 
 
+def test_status_server_dispatches_simulated_light_endpoint():
+    st = LoopStatus()
+    state = {"on": False, "brightness": 100, "color": "warm white"}
+
+    def get_light():
+        return {"ok": True, "physical": False, **state}
+
+    def set_light(payload):
+        state.update({"on": payload.get("action") == "on"})
+        return {"ok": True, "lights": {"physical": False, **state}}
+
+    server = StatusServer(
+        st, html_dir=PROJECT / "web", get_state=lambda: "idle",
+        get_stats=lambda: _fake_stats(), port=0,
+        demo_light_get=get_light, demo_light_control=set_light,
+    )
+    assert server.start() is True
+    try:
+        base = f"http://127.0.0.1:{server.port}"
+        with urllib.request.urlopen(base + "/api/demo/light", timeout=5) as r:
+            assert json.loads(r.read())["physical"] is False
+        request = urllib.request.Request(
+            base + "/api/demo/light", data=b'{"action":"on"}',
+            headers={"Content-Type": "application/json"}, method="POST")
+        with urllib.request.urlopen(request, timeout=5) as r:
+            payload = json.loads(r.read())
+        assert payload["lights"]["on"] is True
+    finally:
+        server.stop()
+
+
 def test_load_release_info_reads_deployment_records():
     info = load_release_info(PROJECT)
     assert str(info["release"].get("release_id", "")).startswith("me3-")

@@ -30,6 +30,32 @@ _REMINDERS: dict[str, dict] = {}
 _SEQ = {"alarm": 0, "reminder": 0}
 
 
+def simulated_light_state(room: str = "all") -> dict:
+    """Return the persistent simulated bulb used by the ME3 demo UI.
+
+    The state is deliberately kept in the same deterministic command adapter
+    used by voice tool calls. A spoken command and a UI click therefore update
+    the exact same device state. It is not a claim that a physical GPIO or
+    Home Assistant light is connected.
+    """
+    room = str(room or "all").strip() or "all"
+    with _LOCK:
+        current = dict(_LIGHTS.get(room) or {})
+    return {
+        "id": "me3-demo-light-1",
+        "name": "ME3 simulated light",
+        "room": room,
+        "on": bool(current.get("on", False)),
+        "brightness": int(current.get("brightness", 100)),
+        "color": str(current.get("color", "warm white")),
+        "action": str(current.get("action", "off")),
+        "value": current.get("value", current.get("brightness", 100)),
+        "updated_at": current.get("updated_at"),
+        "mode": "local_demo",
+        "physical": False,
+    }
+
+
 def _next(kind: str) -> str:
     with _LOCK:
         _SEQ[kind] += 1
@@ -176,7 +202,7 @@ def get_weather(location: str) -> dict:
 
 
 def control_lights(action: str, room: str = "all", value: int | str | None = None) -> dict:
-    """Control demo light state; use Home Assistant variables for real lights."""
+    """Control the simulated bulb; Home Assistant can replace it later."""
     action = str(action or "").strip().lower().replace(" ", "_")
     if action not in {"on", "off", "dim", "color"}:
         return {"ok": False, "error": "light action must be on, off, dim, or color"}
@@ -189,13 +215,32 @@ def control_lights(action: str, room: str = "all", value: int | str | None = Non
     if action == "color" and not str(value or "").strip():
         return {"ok": False, "error": "color requires a color value"}
     with _LOCK:
-        _LIGHTS[room] = {"action": action, "value": value, "updated_at": _iso(dt.datetime.now().astimezone())}
-        state = dict(_LIGHTS[room])
+        prior = simulated_light_state(room)
+        state = {
+            "action": action,
+            "value": value,
+            "on": prior["on"],
+            "brightness": prior["brightness"],
+            "color": prior["color"],
+            "updated_at": _iso(dt.datetime.now().astimezone()),
+        }
+        if action == "on":
+            state["on"] = True
+        elif action == "off":
+            state["on"] = False
+        elif action == "dim":
+            state["brightness"] = int(value)
+            state["on"] = int(value) > 0
+        elif action == "color":
+            state["color"] = str(value).strip()
+        _LIGHTS[room] = state
+        device = simulated_light_state(room)
     live = bool(os.getenv("HOME_ASSISTANT_URL") and os.getenv("HOME_ASSISTANT_TOKEN"))
-    return {"ok": True, "room": room, "lights": state,
+    return {"ok": True, "room": room, "lights": device,
             "mode": "home_assistant_ready" if live else "local_demo",
             "live_integration": live,
-            "note": "Set HOME_ASSISTANT_URL, HOME_ASSISTANT_TOKEN, and entity mapping for physical lights."}
+            "note": ("Simulated bulb updated. Set HOME_ASSISTANT_URL, HOME_ASSISTANT_TOKEN, "
+                     "and entity mapping before controlling physical lights.")}
 
 
 def set_thermostat(temperature_c: float, room: str = "home") -> dict:
