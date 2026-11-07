@@ -1,63 +1,98 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Crizepvill F. Dumalaog</title>
-    <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            line-height: 1.6;
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-            background-color: #f4f4f9;
-            color: #333;
-        }
-        header {
-            text-align: center;
-            padding: 20px 0;
-            border-bottom: 2px solid #ddd;
-            margin-bottom: 20px;
-        }
-        h1 {
-            color: #2c3e50;
-            margin-bottom: 5px;
-        }
-        p {
-            font-size: 1.1em;
-            margin-bottom: 20px;
-        }
-        footer {
-            text-align: center;
-            padding: 20px 0;
-            border-top: 2px solid #ddd;
-            margin-top: 40px;
-            font-size: 0.9em;
-            color: #7f8c8d;
-        }
-    </style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Crizepvill F. Dumalaog — AI & Machine Learning</title>
+  <meta name="description" content="Personal website for Crizepvill F. Dumalaog, focused on AI and machine learning projects." />
+  <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-    <header>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="#home">CFD</a>
+      <nav class="site-nav" aria-label="Primary">
+        <a href="#about">About</a>
+        <a href="#projects">Projects</a>
+        <a href="#contact">Contact</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section id="home" class="hero">
+      <div class="container hero-inner">
+        <p class="eyebrow">AI &amp; Machine Learning</p>
         <h1>Crizepvill F. Dumalaog</h1>
-        <p>AI & Machine Learning Enthusiast</p>
-    </header>
+        <p class="lead">
+          Personal project website for AI, machine learning, and practical software experiments.
+        </p>
+        <div class="hero-actions">
+          <a class="button primary" href="#projects">View projects</a>
+          <a class="button" href="#contact">Contact</a>
+        </div>
+      </div>
+    </section>
 
-    <main>
+    <section id="about" class="section">
+      <div class="container">
+        <h2>About</h2>
         <p>
-            Crizepvill F. Dumalaog is a dedicated professional in the field of Artificial Intelligence and Machine Learning. With a strong passion for technology, he focuses on developing innovative solutions that leverage data and algorithms to solve complex real-world problems. His work reflects a commitment to advancing the capabilities of AI systems and their practical applications.
+          This site is a placeholder for Crizepvill F. Dumalaog’s AI and machine learning work.
+          Specific biography, education, employment, and contact details can be added here after
+          confirmation.
         </p>
-        <p>
-            As a pioneer in the AI community, Crizepvill is known for his hands-on approach to building intelligent systems. He is currently developing ME3, a full-duplex voice agent designed to provide seamless, natural, and professional customer support experiences. This project highlights his expertise in integrating speech recognition, reasoning, and text-to-speech technologies into a cohesive and responsive platform.
-        </p>
-        <p>
-            Beyond his technical projects, Crizepvill is committed to sharing knowledge and contributing to the growth of the AI community. He believes in the power of technology to enhance human interaction and improve efficiency across various industries. This website serves as a digital hub for his projects, insights, and ongoing contributions to the field of machine learning.
-        </p>
-    </main>
+        <ul class="skills">
+          <li>AI</li>
+          <li>Machine Learning</li>
+          <li>Web Projects</li>
+          <li>Automation</li>
+        </ul>
+      </div>
+    </section>
 
-    <footer>
-        <p>&copy; 2026 Crizepvill F. Dumalaog. All rights reserved.</p>
-    </footer>
+    <section id="projects" class="section alt">
+      <div class="container">
+        <h2>Projects</h2>
+        <div class="project-grid">
+          <article class="project-card">
+            <h3>ME3 Voice Assistant</h3>
+            <p>A full-duplex voice assistant pilot for customer support, built with ASR, LLM reasoning, and TTS.</p>
+            <span class="tag">AI</span>
+          </article>
+          <article class="project-card">
+            <h3>Machine Learning Experiments</h3>
+            <p>Placeholder section for future ML notebooks, datasets, and model demos.</p>
+            <span class="tag">ML</span>
+          </article>
+          <article class="project-card">
+            <h3>Web Apps</h3>
+            <p>Placeholder section for static and interactive web applications.</p>
+            <span class="tag">Web</span>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="contact" class="section">
+      <div class="container">
+        <h2>Contact</h2>
+        <p>
+          Contact details are intentionally left as placeholders. Add a verified email, GitHub,
+          LinkedIn, or other public links here.
+        </p>
+        <a class="button primary" href="https://github.com/cfdumalaog" target="_blank" rel="noreferrer">GitHub</a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <p>© <span id="year"></span> Crizepvill F. Dumalaog</p>
+      <p>AI &amp; Machine Learning</p>
+    </div>
+  </footer>
+
+  <script src="app.js"></script>
 </body>
 </html>
