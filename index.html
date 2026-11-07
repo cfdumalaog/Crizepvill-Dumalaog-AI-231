@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Insights | Understanding Artificial Intelligence</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: #f8f9fa;
+        }
+
+        /* Navigation */
+        nav {
+            background: #1a1a2e;
+            padding: 1rem 2rem;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        nav .logo {
+            color: #00d9ff;
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        nav ul {
+            display: flex;
+            list-style: none;
+            gap: 2rem;
+        }
+
+        nav a {
+            color: #fff;
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+
+        nav a:hover {
+            color: #00d9ff;
+        }
+
+        /* Hero */
+        .hero {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            color: #fff;
+            text-align: center;
+            padding: 6rem 2rem;
+        }
+
+        .hero h1 {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            background: linear-gradient(90deg, #00d9ff, #a855f7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero p {
+            font-size: 1.2rem;
+            max-width: 700px;
+            margin: 0 auto 2rem;
+            color: #ccc;
+        }
+
+        .hero .cta {
+            display: inline-block;
+            background: #00d9ff;
+            color: #1a1a2e;
+            padding: 0.8rem 2rem;
+            border-radius: 50px;
+            text-decoration: none;
+            font-weight: bold;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .hero .cta:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(0, 217, 255, 0.3);
+        }
+
+        /* Sections */
+        section {
+            padding: 4rem 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        section h2 {
+            text-align: center;
+            font-size: 2.2rem;
+            margin-bottom: 2rem;
+            color: #1a1a2e;
+        }
+
+        /* Cards */
+        .cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+        }
+
+        .card {
+            background: #fff;
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+        }
+
+        .card .icon {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .card h3 {
+            margin-bottom: 0.5rem;
+            color: #1a1a2e;
+        }
+
+        .card p {
+            color: #666;
+        }
+
+        /* Timeline */
+        .timeline {
+            position: relative;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 4px;
+            height: 100%;
+            background: linear-gradient(to bottom, #00d9ff, #a855f7);
+            border-radius: 2px;
+        }
+
+        .timeline-item {
+            position: relative;
+            width: 50%;
+            padding: 1rem 2rem;
+        }
+
+        .timeline-item:nth-child(odd) {
+            left: 0;
+            text-align: right;
+        }
+
+        .timeline-item:nth-child(even) {
+            left: 50%;
+        }
+
+        .timeline-item .year {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #00d9ff;
+        }
+
+        .timeline-item h3 {
+            margin: 0.5rem 0;
+            color: #1a1a2e;
+        }
+
+        .timeline-item p {
+            color: #666;
+            font-size: 0.95rem;
+        }
+
+        /* Stats */
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 2rem;
+            text-align: center;
+        }
+
+        .stat {
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            color: #fff;
+            padding: 2rem;
+            border-radius: 12px;
+        }
+
+        .stat .number {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #00d9ff;
+        }
+
+        .stat .label {
+            color: #ccc;
+            margin-top: 0.5rem;
+        }
+
+        /* Footer */
+        footer {
+            background: #1a1a2e;
+            color: #ccc;
+            text-align: center;
+            padding: 2rem;
+            margin-top: 4rem;
+        }
+
+        footer a {
+            color: #00d9ff;
+            text-decoration: none;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            nav ul {
+                display: none;
+            }
+
+            .hero h1 {
+                font-size: 2rem;
+            }
+
+            .timeline::before {
+                left: 10px;
+            }
+
+            .timeline-item {
+                width: 100%;
+                left: 0 !important;
+                text-align: left !important;
+                padding-left: 3rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <div class="logo">AI Insights</div>
+        <ul>
+            <li><a href="#about">About</a></li>
+            <li><a href="#branches">Branches</a></li>
+            <li><a href="#timeline">Timeline</a></li>
+            <li><a href="#impact">Impact</a></li>
+        </ul>
+    </nav>
+
+    <div class="hero">
+        <h1>Understanding Artificial Intelligence</h1>
+        <p>Explore the technology reshaping our world — from machine learning to neural networks, and everything in between.</p>
+        <a href="#about" class="cta">Learn More</a>
+    </div>
+
+    <section id="about">
+        <h2>What is AI?</h2>
+        <div class="cards">
+            <div class="card">
+                <div class="icon">🤖</div>
+                <h3>Definition</h3>
+                <p>Artificial Intelligence is the simulation of human intelligence by machines, enabling systems to learn, reason, and make decisions.</p>
+            </div>
+            <div class="card">
+                <div class="icon">🧠</div>
+                <h3>Machine Learning</h3>
+                <p>A subset of AI where systems improve through experience, learning patterns from data without explicit programming.</p>
+            </div>
+            <div class="card">
+                <div class="icon">🔮</div>
+                <h3>Deep Learning</h3>
+                <p>Uses multi-layered neural networks to model complex patterns, powering breakthroughs in vision, speech, and language.</p>
+            </div>
+        </div>
+    </section>
+
+    <section id="branches">
+        <h2>Branches of AI</h2>
+        <div class="cards">
+            <div class="card">
+                <div class="icon">💬</div>
+                <h3>Natural Language Processing</h3>
+                <p>Enables machines to understand, interpret, and generate human language — powering chatbots, translation, and voice assistants.</p>
+            </div>
+            <div class="card">
+                <div class="icon">👁️</div>
+                <h3>Computer Vision</h3>
+                <p>Allows systems to interpret and analyze visual information from the world, used in medical imaging, autonomous vehicles, and security.</p>
+            </div>
+            <div class="card">
+                <div class="icon">🚗</div>
+                <h3>Robotics</h3>
+                <p>Combines AI with mechanical systems to create autonomous robots capable of performing complex physical tasks.</p>
+            </div>
+            <div class="card">
+                <div class="icon">📊</div>
+                <h3>Predictive Analytics</h3>
+                <p>Uses historical data and statistical models to forecast future outcomes, aiding decision-making across industries.</p>
+            </div>
+        </div>
+    </section>
+
+    <section id="timeline">
+        <h2>AI Milestones</h2>
+        <div class="timeline">
+            <div class="timeline-item">
+                <div class="year">1950</div>
+                <h3>Turing Test</h3>
+                <p>Alan Turing proposes the "Imitation Game," laying the philosophical groundwork for AI.</p>
+            </div>
+            <div class="timeline-item">
+                <div class="year">1956</div>
+                <h3>Term Coined</h3>
+                <p>"Artificial Intelligence" is introduced at the Dartmouth Conference.</p>
+            </div>
+            <div class="timeline-item">
+                <div class="year">1997</div>
+                <h3>Deep Blue</h3>
+                <p>IBM's Deep Blue defeats world chess champion Garry Kasparov.</p>
+            </div>
+            <div class="timeline-item">
+                <div class="year">2012</div>
+                <h3>Deep Learning Breakthrough</h3>
+                <p>AlexNet wins ImageNet, igniting the modern deep learning revolution.</p>
+            </div>
+            <div class="timeline-item">
+                <div class="year">2016</div>
+                <h3>AlphaGo</h3>
+                <p>DeepMind's AlphaGo defeats Go champion Lee Sedol, a milestone in complex reasoning.</p>
+            </div>
+            <div class="timeline-item">
+                <div class="year">2022</div>
+                <h3>Generative AI</h3>
+                <p>Large language models like GPT-3 and DALL-E bring AI-generated content to the mainstream.</p>
+            </div>
+        </div>
+    </section>
+
+    <section id="impact">
+        <h2>AI's Impact</h2>
+        <div class="stats">
+            <div class="stat">
+                <div class="number">$1.8T</div>
+                <div class="label">Projected global AI market by 2030</div>
+            </div>
+            <div class="stat">
+                <div class="number">97M</div>
+                <div class="label">New jobs created by 2026</div>
+            </div>
+            <div class="stat">
+                <div class="number">40%</div>
+                <div class="label">Productivity gain in healthcare with AI</div>
+            </div>
+            <div class="stat">
+                <div class="number">24/7</div>
+                <div class="label">AI-powered customer support availability</div>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <p>&copy; 2025 AI Insights. Built to educate and inspire.</p>
+        <p><a href="#about">Back to top</a></p>
+    </footer>
+</body>
+</html>
