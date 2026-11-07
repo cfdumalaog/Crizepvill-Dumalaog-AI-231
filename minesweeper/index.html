@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Minesweeper</title>
+<style>
+  body { font-family: Arial, sans-serif; display: flex; flex-direction: column; align-items: center; background: #222; color: #fff; }
+  h1 { margin: 20px 0 10px; }
+  #status { margin-bottom: 10px; font-size: 18px; }
+  #board { display: grid; gap: 2px; background: #444; padding: 4px; }
+  .cell {
+    width: 32px; height: 32px; background: #555; border: 1px solid #333;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: bold; cursor: pointer; user-select: none;
+  }
+  .cell.revealed { background: #888; cursor: default; }
+  .cell.mine { background: #c0392b; }
+  .cell.flagged { background: #f1c40f; }
+  button { margin-top: 15px; padding: 8px 16px; font-size: 16px; cursor: pointer; }
+</style>
+</head>
+<body>
+<h1>Minesweeper</h1>
+<div id="status">Mines: 10 | Click to start</div>
+<div id="board"></div>
+<button onclick="init()">New Game</button>
+<script>
+const ROWS = 9, COLS = 9, MINES = 10;
+let board, revealed, flagged, gameOver, started;
+
+function init() {
+  board = Array.from({length: ROWS}, () => Array(COLS).fill(0));
+  revealed = Array.from({length: ROWS}, () => Array(COLS).fill(false));
+  flagged = Array.from({length: ROWS}, () => Array(COLS).fill(false));
+  gameOver = false;
+  started = false;
+  render();
+  document.getElementById('status').textContent = `Mines: ${MINES} | Click to start`;
+}
+
+function placeMines() {
+  let placed = 0;
+  while (placed < MINES) {
+    const r = Math.floor(Math.random() * ROWS);
+    const c = Math.floor(Math.random() * COLS);
+    if (board[r][c] !== -1) {
+      board[r][c] = -1;
+      placed++;
+    }
+  }
+  for (let r = 0; r < ROWS; r++)
+    for (let c = 0; c < COLS; c++)
+      if (board[r][c] !== -1)
+        board[r][c] = countMines(r, c);
+}
+
+function countMines(r, c) {
+  let count = 0;
+  for (let dr = -1; dr <= 1; dr++)
+    for (let dc = -1; dc <= 1; dc++) {
+      const nr = r + dr, nc = c + dc;
+      if (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS && board[nr][nc] === -1) count++;
+    }
+  return count;
+}
+
+function reveal(r, c) {
+  if (r < 0 || r >= ROWS || c < 0 || c >= COLS || revealed[r][c] || flagged[r][c]) return;
+  revealed[r][c] = true;
+  if (board[r][c] === -1) {
+    gameOver = true;
+    revealAll();
+  } else if (board[r][c] === 0) {
+    for (let dr = -1; dr <= 1; dr++)
+      for (let dc = -1; dc <= 1; dc++)
+        reveal(r + dr, c + dc);
+  }
+  checkWin();
+  render();
+}
+
+function revealAll() {
+  for (let r = 0; r < ROWS; r++)
+    for (let c = 0; c < COLS; c++)
+      if (board[r][c] === -1) revealed[r][c] = true;
+}
+
+function checkWin() {
+  let unrevealed = 0;
+  for (let r = 0; r < ROWS; r++)
+    for (let c = 0; c < COLS; c++)
+      if (!revealed[r][c]) unrevealed++;
+  if (unrevealed === MINES) {
+    gameOver = true;
+    document.getElementById('status').textContent = 'You win! 🎉';
+  }
+}
+
+function toggleFlag(r, c) {
+  if (revealed[r][c] || gameOver) return;
+  flagged[r][c] = !flagged[r][c];
+  render();
+}
+
+function handleCell(r, c, e) {
+  if (gameOver) return;
+  if (e.button === 2) {
+    toggleFlag(r, c);
+  } else {
+    if (!started) {
+      placeMines();
+      started = true;
+    }
+    if (!flagged[r][c]) reveal(r, c);
+  }
+}
+
+function render() {
+  const boardEl = document.getElementById('board');
+  boardEl.style.gridTemplateColumns = `repeat(${COLS}, 32px)`;
+  boardEl.innerHTML = '';
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      const cell = document.createElement('div');
+      cell.className = 'cell';
+      if (revealed[r][c]) {
+        cell.classList.add('revealed');
+        if (board[r][c] === -1) {
+          cell.classList.add('mine');
+          cell.textContent = '💣';
+        } else if (board[r][c] > 0) {
+          cell.textContent = board[r][c];
+          cell.style.color = ['#fff','#7fdbff','#fff','#ff7675','#b266ff','#fd79a8','#55efc4','#ffeaa7','#dfe6e9'][board[r][c]];
+        }
+      } else if (flagged[r][c]) {
+        cell.classList.add('flagged');
+        cell.textContent = '🚩';
+      }
+      cell.addEventListener('click', (e) => handleCell(r, c, e));
+      cell.addEventListener('contextmenu', (e) => { e.preventDefault(); handleCell(r, c, e); });
+      boardEl.appendChild(cell);
+    }
+  }
+  if (gameOver && !checkWin()) {
+    document.getElementById('status').textContent = 'Game Over! 💥';
+  }
+}
+
+init();
+</script>
+</body>
+</html>
