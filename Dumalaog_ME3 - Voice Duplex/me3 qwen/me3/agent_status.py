@@ -21,6 +21,7 @@ flags are recorded -- never tool arguments or results.
 from __future__ import annotations
 
 import json
+import ipaddress
 import logging
 import statistics
 import threading
@@ -29,7 +30,7 @@ from collections import deque
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import urlsplit
+from urllib.parse import parse_qs, urlsplit
 
 log = logging.getLogger("me3.agent_status")
 
@@ -319,7 +320,15 @@ class _StatusHandler(BaseHTTPRequestHandler):
     protocol_version = "HTTP/1.1"
 
     def log_message(self, fmt, *args):  # noqa: D102 - keep the console clean
-        log.debug("status: " + fmt, *args)
+        # OAuth callbacks contain single-use authorization codes and CSRF
+        # state in the request target. Keep only the URL path in access logs.
+        safe_args = list(args)
+        if safe_args and isinstance(safe_args[0], str):
+            parts = safe_args[0].split()
+            if len(parts) >= 2:
+                path = urlsplit(parts[1]).path
+                safe_args[0] = " ".join([parts[0], path, *parts[2:]])
+        log.debug("status: " + fmt, *safe_args)
 
     def _send(self, code: int, body: bytes, content_type: str) -> None:
         self.send_response(code)
@@ -330,9 +339,108 @@ class _StatusHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+    def _is_loopback_request(self) -> bool:
+        try:
+            return ipaddress.ip_address(self.client_address[0]).is_loopback
+        except (ValueError, IndexError, TypeError):
+            return False
+
+    def _oauth_result_page(self, provider: str, result: dict) -> None:
+        if result.get("ok"):
+            title, message, code = f"{provider} connected", f"{provider} is connected to ME3. Return to the assistant tab.", 200
+        else:
+            title, message, code = f"{provider} connection not completed", f"Return to ME3 and check the integration status before retrying.", 400
+        page = ("<!doctype html><meta charset='utf-8'><meta name='referrer' content='no-referrer'>"
+                "<title>" + title + "</title><main style='font:16px system-ui;max-width:620px;margin:12vh auto;padding:24px'>"
+                "<h1>" + title + "</h1><p>" + message + "</p></main>")
+        self._send(code, page.encode("utf-8"), "text/html; charset=utf-8")
+
     def do_GET(self):  # noqa: N802
         path = urlsplit(self.path).path
         status = self.server.status  # type: ignore[attr-defined]
+        if path == "/api/schedules":
+            callback = getattr(self.server, "schedules_get", None)
+            payload = callback() if callback is not None else {"ok": True, "items": []}
+            self._send(200, json.dumps(payload).encode("utf-8"),
+                       "application/json; charset=utf-8")
+            return
+        if path == "/api/spotify/status":
+            callback = getattr(self.server, "spotify_status", None)
+            payload = callback() if callback is not None else {
+                "configured": False, "missing": ["Spotify integration is not enabled"]}
+            self._send(200, json.dumps(payload).encode("utf-8"),
+                       "application/json; charset=utf-8")
+            return
+        if path == "/api/google/status":
+            callback = getattr(self.server, "google_status", None)
+            payload = callback() if callback is not None else {
+                "configured": False, "missing_env": ["Google Calendar is not enabled"]}
+            self._send(200, json.dumps(payload).encode("utf-8"),
+                       "application/json; charset=utf-8")
+            return
+        if path == "/api/telegram/status":
+            callback = getattr(self.server, "telegram_status", None)
+            payload = callback() if callback is not None else {
+                "configured": False, "bot_configured": False, "target_mapped": False}
+            self._send(200, json.dumps(payload).encode("utf-8"),
+                       "application/json; charset=utf-8")
+            return
+        if path == "/api/google/connect":
+            callback = getattr(self.server, "google_connect", None)
+            result = callback() if callback is not None else {
+                "ok": False, "error": "google_calendar_integration_not_enabled"}
+            if not isinstance(result, dict) or not result.get("ok") or not result.get("url"):
+                self._send(400, json.dumps(result or {"ok": False}).encode("utf-8"),
+                           "application/json; charset=utf-8")
+                return
+            self.send_response(302)
+            self.send_header("Location", result["url"])
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("Referrer-Policy", "no-referrer")
+            self.send_header("Content-Length", "0")
+            self.end_headers()
+            return
+        if path == "/api/spotify/connect":
+            callback = getattr(self.server, "spotify_connect", None)
+            result = callback() if callback is not None else {
+                "ok": False, "error": "spotify_integration_not_enabled"}
+            if not isinstance(result, dict) or not result.get("ok") or not result.get("url"):
+                self._send(400, json.dumps(result or {"ok": False}).encode("utf-8"),
+                           "application/json; charset=utf-8")
+                return
+            self.send_response(302)
+            self.send_header("Location", result["url"])
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("Referrer-Policy", "no-referrer")
+            self.send_header("Content-Length", "0")
+            self.end_headers()
+            return
+        if path == "/api/spotify/callback":
+            query = parse_qs(urlsplit(self.path).query)
+            if query.get("error"):
+                result = {"ok": False, "error": "spotify_authorization_denied"}
+            else:
+                callback = getattr(self.server, "spotify_callback", None)
+                result = callback(
+                    (query.get("code") or [""])[0],
+                    (query.get("state") or [""])[0],
+                ) if callback is not None else {
+                    "ok": False, "error": "spotify_integration_not_enabled"}
+            self._oauth_result_page("Spotify", result if isinstance(result, dict) else {})
+            return
+        if path == "/api/google/callback":
+            query = parse_qs(urlsplit(self.path).query)
+            if query.get("error"):
+                result = {"ok": False, "error": "google_authorization_denied"}
+            else:
+                callback = getattr(self.server, "google_callback", None)
+                result = callback(
+                    (query.get("code") or [""])[0],
+                    (query.get("state") or [""])[0],
+                ) if callback is not None else {
+                    "ok": False, "error": "google_calendar_integration_not_enabled"}
+            self._oauth_result_page("Google Calendar", result if isinstance(result, dict) else {})
+            return
         if path == "/api/demo/light":
             callback = getattr(self.server, "demo_light_get", None)
             if callback is None:
@@ -347,6 +455,12 @@ class _StatusHandler(BaseHTTPRequestHandler):
                     "ok": False, "error": type(exc).__name__,
                     "message": str(exc)[:300],
                 }).encode("utf-8"), "application/json; charset=utf-8")
+            return
+        if path == "/api/notifications/pending":
+            callback = getattr(self.server, "notifications_pending", None)
+            payload = callback() if callback is not None else {"ok": True, "notifications": []}
+            self._send(200, json.dumps(payload).encode("utf-8"),
+                       "application/json; charset=utf-8")
             return
         if path == "/api/audio/devices":
             callback = getattr(self.server, "audio_info", None)
@@ -404,6 +518,122 @@ class _StatusHandler(BaseHTTPRequestHandler):
 
     def do_POST(self):  # noqa: N802
         path = urlsplit(self.path).path
+        if path in {"/api/schedules", "/api/schedules/cancel"}:
+            callback = getattr(self.server, "schedule_cancel" if path.endswith("/cancel")
+                               else "schedule_create", None)
+            if callback is None:
+                self._send(404, b"clock actions are not enabled", "text/plain; charset=utf-8")
+                return
+            try:
+                length = int(self.headers.get("Content-Length", "0"))
+                if length <= 0 or length > 10000:
+                    raise ValueError("invalid JSON body")
+                payload = json.loads(self.rfile.read(length).decode("utf-8"))
+                argument = str(payload.get("id") or "") if path.endswith("/cancel") else payload
+                result = callback(argument)
+                code = 200 if result.get("ok") else 400
+                self._send(code, json.dumps(result).encode("utf-8"),
+                           "application/json; charset=utf-8")
+            except Exception as exc:  # noqa: BLE001
+                self._send(400, json.dumps({"ok": False, "error": type(exc).__name__}).encode("utf-8"),
+                           "application/json; charset=utf-8")
+            return
+        if path == "/api/integrations/google-config":
+            if not self._is_loopback_request():
+                self._send(403, b"use the local SSH tunnel to save credentials", "text/plain; charset=utf-8")
+                return
+            callback = getattr(self.server, "google_client_set", None)
+            if callback is None:
+                self._send(404, b"Google Calendar setup is not enabled", "text/plain; charset=utf-8")
+                return
+            try:
+                length = int(self.headers.get("Content-Length", "0"))
+                if length <= 0 or length > 10000:
+                    raise ValueError("invalid JSON body")
+                payload = json.loads(self.rfile.read(length).decode("utf-8"))
+                result = callback(str(payload.get("client_id") or ""),
+                                  str(payload.get("client_secret") or ""))
+                code = 200 if result.get("ok") else 400
+                self._send(code, json.dumps(result).encode("utf-8"),
+                           "application/json; charset=utf-8")
+            except Exception as exc:  # noqa: BLE001
+                self._send(400, json.dumps({"ok": False, "error": type(exc).__name__}).encode("utf-8"),
+                           "application/json; charset=utf-8")
+            return
+        if path == "/api/integrations/telegram-token":
+            if not self._is_loopback_request():
+                self._send(403, b"use the local SSH tunnel to save credentials", "text/plain; charset=utf-8")
+                return
+            callback = getattr(self.server, "telegram_token_set", None)
+            if callback is None:
+                self._send(404, b"Telegram setup is not enabled", "text/plain; charset=utf-8")
+                return
+            try:
+                length = int(self.headers.get("Content-Length", "0"))
+                if length <= 0 or length > 5000:
+                    raise ValueError("invalid JSON body")
+                payload = json.loads(self.rfile.read(length).decode("utf-8"))
+                result = callback(str(payload.get("bot_token") or ""))
+                code = 200 if result.get("ok") else 400
+                self._send(code, json.dumps(result).encode("utf-8"),
+                           "application/json; charset=utf-8")
+            except Exception as exc:  # noqa: BLE001
+                self._send(400, json.dumps({"ok": False, "error": type(exc).__name__}).encode("utf-8"),
+                           "application/json; charset=utf-8")
+            return
+        if path == "/api/telegram/connect-target":
+            if not self._is_loopback_request():
+                self._send(403, b"use the local SSH tunnel for Telegram setup", "text/plain; charset=utf-8")
+                return
+            callback = getattr(self.server, "telegram_connect_target", None)
+            if callback is None:
+                self._send(404, b"Telegram setup is not enabled", "text/plain; charset=utf-8")
+                return
+            try:
+                result = callback()
+                code = 200 if result.get("ok") else 409
+                self._send(code, json.dumps(result).encode("utf-8"),
+                           "application/json; charset=utf-8")
+            except Exception as exc:  # noqa: BLE001
+                self._send(400, json.dumps({"ok": False, "error": type(exc).__name__}).encode("utf-8"),
+                           "application/json; charset=utf-8")
+            return
+        if path == "/api/spotify/client-id":
+            callback = getattr(self.server, "spotify_client_id_set", None)
+            if callback is None:
+                self._send(404, b"Spotify setup is not enabled", "text/plain; charset=utf-8")
+                return
+            try:
+                length = int(self.headers.get("Content-Length", "0"))
+                if length <= 0 or length > 5000:
+                    raise ValueError("invalid JSON body")
+                payload = json.loads(self.rfile.read(length).decode("utf-8"))
+                result = callback(str(payload.get("client_id") or ""))
+                code = 200 if result.get("ok") else 400
+                self._send(code, json.dumps(result).encode("utf-8"),
+                           "application/json; charset=utf-8")
+            except Exception as exc:  # noqa: BLE001
+                self._send(400, json.dumps({"ok": False, "error": type(exc).__name__}).encode("utf-8"),
+                           "application/json; charset=utf-8")
+            return
+        if path == "/api/notifications/ack":
+            callback = getattr(self.server, "notification_ack", None)
+            if callback is None:
+                self._send(404, b"notifications are not enabled", "text/plain; charset=utf-8")
+                return
+            try:
+                length = int(self.headers.get("Content-Length", "0"))
+                if length <= 0 or length > 5000:
+                    raise ValueError("invalid JSON body")
+                payload = json.loads(self.rfile.read(length).decode("utf-8"))
+                result = callback(str(payload.get("id") or ""))
+                code = 200 if result.get("ok") else 409
+                self._send(code, json.dumps(result).encode("utf-8"),
+                           "application/json; charset=utf-8")
+            except Exception as exc:  # noqa: BLE001
+                self._send(400, json.dumps({"ok": False, "error": type(exc).__name__}).encode("utf-8"),
+                           "application/json; charset=utf-8")
+            return
         if path == "/api/demo/light":
             callback = getattr(self.server, "demo_light_control", None)
             if callback is None:
@@ -510,7 +740,15 @@ class StatusServer:
                  audio_info=None, audio_select=None, restart_agent=None,
                  restart_service=None, demo_light_get=None,
                  demo_light_control=None, duplex_mode_get=None,
-                 duplex_mode_set=None):
+                 duplex_mode_set=None, notifications_pending=None,
+                 notification_ack=None, spotify_status=None,
+                 spotify_connect=None, spotify_callback=None,
+                 spotify_client_id_set=None, google_status=None,
+                 google_connect=None, google_callback=None,
+                 google_client_set=None, telegram_status=None,
+                 telegram_token_set=None, telegram_connect_target=None,
+                 schedules_get=None, schedule_create=None,
+                 schedule_cancel=None):
         self.status = status
         self.html_dir = Path(html_dir)
         self.get_state = get_state
@@ -526,6 +764,22 @@ class StatusServer:
         self.demo_light_control = demo_light_control
         self.duplex_mode_get = duplex_mode_get
         self.duplex_mode_set = duplex_mode_set
+        self.notifications_pending = notifications_pending
+        self.notification_ack = notification_ack
+        self.spotify_status = spotify_status
+        self.spotify_connect = spotify_connect
+        self.spotify_callback = spotify_callback
+        self.spotify_client_id_set = spotify_client_id_set
+        self.google_status = google_status
+        self.google_connect = google_connect
+        self.google_callback = google_callback
+        self.google_client_set = google_client_set
+        self.telegram_status = telegram_status
+        self.telegram_token_set = telegram_token_set
+        self.telegram_connect_target = telegram_connect_target
+        self.schedules_get = schedules_get
+        self.schedule_create = schedule_create
+        self.schedule_cancel = schedule_cancel
         self._httpd: ThreadingHTTPServer | None = None
         self._thread: threading.Thread | None = None
 
@@ -551,6 +805,22 @@ class StatusServer:
         self._httpd.demo_light_control = self.demo_light_control
         self._httpd.duplex_mode_get = self.duplex_mode_get
         self._httpd.duplex_mode_set = self.duplex_mode_set
+        self._httpd.notifications_pending = self.notifications_pending
+        self._httpd.notification_ack = self.notification_ack
+        self._httpd.spotify_status = self.spotify_status
+        self._httpd.spotify_connect = self.spotify_connect
+        self._httpd.spotify_callback = self.spotify_callback
+        self._httpd.spotify_client_id_set = self.spotify_client_id_set
+        self._httpd.google_status = self.google_status
+        self._httpd.google_connect = self.google_connect
+        self._httpd.google_callback = self.google_callback
+        self._httpd.google_client_set = self.google_client_set
+        self._httpd.telegram_status = self.telegram_status
+        self._httpd.telegram_token_set = self.telegram_token_set
+        self._httpd.telegram_connect_target = self.telegram_connect_target
+        self._httpd.schedules_get = self.schedules_get
+        self._httpd.schedule_create = self.schedule_create
+        self._httpd.schedule_cancel = self.schedule_cancel
         self._httpd.release_refresher = (
             ReleaseInfoRefresher(self.project) if self.project is not None
             else None)

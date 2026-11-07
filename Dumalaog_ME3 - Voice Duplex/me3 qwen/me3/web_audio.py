@@ -6,10 +6,10 @@ mono PCM to the current browser client over a small WebSocket hub.  The
 browser is responsible for selecting its own physical speaker through the
 standard Web Audio output device picker.
 
-There is deliberately only one active browser audio client. A fan-out audio
-transport is unsafe for acoustic echo cancellation: two stale tabs can play
-the same response at different Web Audio offsets, so no single speaker
-reference can match what the Pi microphone hears.
+There is deliberately only one active audio output client. Additional
+device-only clients (for example, the Android companion used for phone calls)
+can register capabilities without receiving PCM, so they do not create extra
+speaker echoes at the Pi microphone.
 """
 from __future__ import annotations
 
@@ -27,7 +27,7 @@ log = logging.getLogger("me3.web_audio")
 
 
 class BrowserAudioHub:
-    """Thread-safe single-client WebSocket transport for raw PCM frames."""
+    """Thread-safe single-audio-sink WebSocket transport plus action clients."""
 
     def __init__(self, host: str = "0.0.0.0", port: int = 8127):
         self.host = str(host)
@@ -35,6 +35,7 @@ class BrowserAudioHub:
         self._server = None
         self._thread: threading.Thread | None = None
         self._clients: set = set()
+        self._audio_client = None
         self._lock = threading.RLock()
         self._send_lock = threading.Lock()
         self._started = threading.Event()
@@ -43,6 +44,9 @@ class BrowserAudioHub:
         self.sent_samples = 0
         self.dropped_frames = 0
         self._render_start_callback = None
+        self._client_info: dict = {}
+        self._action_lock = threading.Lock()
+        self._pending_actions: dict[str, tuple[threading.Event, dict | None]] = {}
         self.render_ack_count = 0
         self.last_render_delay_ms: float | None = None
 
@@ -79,18 +83,13 @@ class BrowserAudioHub:
 
     def _handler(self, conn) -> None:
         with self._lock:
-            previous = list(self._clients)
-            # Keep exactly one playback source. Closing stale tabs here is
-            # important: their independent Web Audio clocks would defeat the
-            # capture-side echo reference even if every tab received the same
-            # bytes.
-            self._clients = {conn}
-        for old in previous:
-            try:
-                old.close(code=4001, reason="replaced by newer ME3 audio client")
-            except Exception:  # noqa: BLE001 - stale browser close is normal
-                pass
-        log.info("browser audio client active; replaced=%d", len(previous))
+            self._clients.add(conn)
+            self._client_info[conn] = {
+                "client_type": "web", "capabilities": [], "audio_output": True,
+            }
+            if self._audio_client is None:
+                self._audio_client = conn
+        log.info("ME3 browser/device client connected; clients=%d", len(self._clients))
         try:
             for message in conn:
                 if isinstance(message, str):
@@ -120,58 +119,91 @@ class BrowserAudioHub:
                             except Exception:  # noqa: BLE001
                                 log.debug("browser render acknowledgement failed",
                                           exc_info=True)
+                    elif event == "client_info":
+                        caps = event_data.get("capabilities") or []
+                        info = {
+                            "client_type": str(event_data.get("client_type") or "web")[:40],
+                            "capabilities": [str(x)[:60] for x in caps[:20]],
+                            "audio_output": bool(event_data.get("audio_output", True)),
+                        }
+                        with self._lock:
+                            self._client_info[conn] = info
+                            if info["audio_output"]:
+                                self._audio_client = conn
+                            elif self._audio_client is conn:
+                                self._audio_client = next((
+                                    candidate for candidate in self._clients
+                                    if candidate is not conn and
+                                    self._client_info.get(candidate, {}).get("audio_output")
+                                ), None)
+                    elif event == "device_action_result":
+                        action_id = str(event_data.get("action_id") or "")
+                        with self._action_lock:
+                            pending = self._pending_actions.get(action_id)
+                            if pending:
+                                event_obj = pending[0]
+                                self._pending_actions[action_id] = (event_obj, {
+                                    "ok": bool(event_data.get("ok")),
+                                    "status": str(event_data.get("status") or "")[:80],
+                                    "error": str(event_data.get("error") or "")[:120] or None,
+                                })
+                                event_obj.set()
         except Exception:  # noqa: BLE001 - browser closes are normal
             pass
         finally:
             with self._lock:
                 self._clients.discard(conn)
+                self._client_info.pop(conn, None)
+                if self._audio_client is conn:
+                    self._audio_client = next((
+                        candidate for candidate in self._clients
+                        if self._client_info.get(candidate, {}).get("audio_output")
+                    ), None)
 
     def has_client(self) -> bool:
         with self._lock:
-            return bool(self._clients)
+            return self._audio_client is not None
 
     def publish(self, pcm: np.ndarray, playback_id: str | None = None) -> None:
         payload = np.asarray(pcm, dtype=np.int16).ravel().astype("<i2", copy=False).tobytes()
         if not payload:
             return
         with self._lock:
-            clients = list(self._clients)
-        if not clients:
+            client = self._audio_client
+        if client is None:
             self.dropped_frames += 1
             return
-        dead = []
         # Keep messages short enough that the websockets keepalive thread can
         # still service the connection while a long TTS response is queued.
         # The browser schedules these chunks back-to-back as one PCM stream.
         chunk_samples = 480  # 30 ms at the fixed 16-kHz browser output rate
         with self._send_lock:
-            for conn in clients:
-                try:
-                    if playback_id:
-                        conn.send(json.dumps({
-                            "event": "playback_start",
-                            "playback_id": str(playback_id),
-                            "sample_rate": 16000,
-                            "samples": int(np.asarray(pcm).size),
-                        }, separators=(",", ":")))
-                    for start in range(0, len(payload), chunk_samples * 2):
-                        conn.send(payload[start:start + chunk_samples * 2])
-                except Exception:  # noqa: BLE001
-                    dead.append(conn)
-        if dead:
-            with self._lock:
-                for conn in dead:
-                    self._clients.discard(conn)
+            try:
+                if playback_id:
+                    client.send(json.dumps({
+                        "event": "playback_start",
+                        "playback_id": str(playback_id),
+                        "sample_rate": 16000,
+                        "samples": int(np.asarray(pcm).size),
+                    }, separators=(",", ":")))
+                for start in range(0, len(payload), chunk_samples * 2):
+                    client.send(payload[start:start + chunk_samples * 2])
+            except Exception:  # noqa: BLE001
+                with self._lock:
+                    self._clients.discard(client)
+                    self._client_info.pop(client, None)
+                    if self._audio_client is client:
+                        self._audio_client = None
         self.sent_frames += (len(payload) + chunk_samples * 2 - 1) // (chunk_samples * 2)
         self.sent_samples += int(np.asarray(pcm).size)
 
     def clear(self) -> None:
         with self._lock:
-            clients = list(self._clients)
+            client = self._audio_client
         with self._send_lock:
-            for conn in clients:
+            if client is not None:
                 try:
-                    conn.send(json.dumps({"event": "clear"}))
+                    client.send(json.dumps({"event": "clear"}))
                 except Exception:  # noqa: BLE001
                     pass
 
@@ -182,22 +214,62 @@ class BrowserAudioHub:
         except (TypeError, ValueError):
             return
         with self._lock:
-            clients = list(self._clients)
-        dead = []
+            client = self._audio_client
+        if client is None:
+            return
         with self._send_lock:
-            for conn in clients:
-                try:
-                    conn.send(payload)
-                except Exception:  # noqa: BLE001 - browser disconnect is normal
-                    dead.append(conn)
-        if dead:
-            with self._lock:
-                for conn in dead:
-                    self._clients.discard(conn)
+            try:
+                client.send(payload)
+            except Exception:  # noqa: BLE001 - browser disconnect is normal
+                with self._lock:
+                    self._clients.discard(client)
+                    self._client_info.pop(client, None)
+                    if self._audio_client is client:
+                        self._audio_client = None
+
+    def request_action(self, action: dict, timeout_s: float = 20.0) -> dict:
+        """Request a bounded action from a connected capable browser client."""
+        action_name = str(action.get("action") or "")
+        required_capability = {"call_phone": "call_phone"}.get(action_name)
+        with self._lock:
+            target = next((
+                conn for conn, info in self._client_info.items()
+                if required_capability and
+                required_capability in info.get("capabilities", [])
+            ), None) if required_capability else self._audio_client
+            client = dict(self._client_info.get(target, {})) if target is not None else {}
+        if target is None:
+            return {"ok": False, "error": "browser_device_not_connected"}
+        action_id = uuid.uuid4().hex
+        waiter = threading.Event()
+        with self._action_lock:
+            self._pending_actions[action_id] = (waiter, None)
+        payload = json.dumps({"event": "device_action", "action_id": action_id,
+                              "action": action_name,
+                              "contact": str(action.get("contact") or "")[:160]},
+                             ensure_ascii=False, separators=(",", ":"))
+        try:
+            with self._send_lock:
+                target.send(payload)
+        except Exception:
+            with self._action_lock:
+                self._pending_actions.pop(action_id, None)
+            return {"ok": False, "error": "device_action_send_failed"}
+        if not waiter.wait(max(0.5, min(float(timeout_s), 45.0))):
+            with self._action_lock:
+                self._pending_actions.pop(action_id, None)
+            return {"ok": False, "error": "device_action_timeout"}
+        with self._action_lock:
+            _waiter, result = self._pending_actions.pop(action_id, (waiter, None))
+        return result or {"ok": False, "error": "empty_device_action_result"}
 
     def snapshot(self) -> dict:
         with self._lock:
             clients = len(self._clients)
+            client_info = dict(self._client_info.get(self._audio_client, {}))
+            call_clients = sum(
+                "call_phone" in info.get("capabilities", [])
+                for info in self._client_info.values())
         return {
             "enabled": True,
             "host": self.host,
@@ -207,7 +279,9 @@ class BrowserAudioHub:
             "sent_frames": self.sent_frames,
             "sent_samples": self.sent_samples,
             "dropped_frames": self.dropped_frames,
-            "client_policy": "single_active_client",
+            "client_policy": "single_audio_sink_with_device_action_clients",
+            "active_client": client_info,
+            "device_action_clients": call_clients,
             "chunk_samples": 480,
             "render_ack_count": self.render_ack_count,
             "last_render_delay_ms": self.last_render_delay_ms,

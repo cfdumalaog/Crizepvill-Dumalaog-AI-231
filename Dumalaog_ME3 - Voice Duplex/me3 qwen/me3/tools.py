@@ -292,8 +292,6 @@ def get_time() -> dict:
 
 _servers_lock = threading.Lock()
 _web_servers: dict[int, dict] = {}
-_timers: dict[str, dict] = {}
-_timer_seq = 0
 
 
 def _lan_ip() -> str:
@@ -431,36 +429,34 @@ def web_servers() -> dict:
 
 
 def set_timer(seconds: float, label: str = "") -> dict:
-    """Set a timer; the agent announces it."""
-    global _timer_seq
-    import datetime as dt
-    _timer_seq += 1
-    tid = f"t{_timer_seq}"
-    fires = time.time() + float(seconds)
-    _timers[tid] = {"id": tid, "label": label, "seconds": float(seconds),
-                    "fires_at": fires, "cancelled": False}
-    return {"ok": True, "id": tid, "label": label,
-            "fires_at": dt.datetime.fromtimestamp(
-                fires, dt.timezone.utc).isoformat()}
+    """Set a persistent timer; the Pi announces it through ME3 when due."""
+    return me2_commands.create_timer(seconds, label)
 
 
 def list_timers(include_cancelled: bool = False) -> dict:
-    """List active (and optionally cancelled) timers."""
-    return {"ok": True, "timers": [t for t in _timers.values()
-                                   if include_cancelled or not t["cancelled"]]}
+    return me2_commands.list_scheduled_timers(include_cancelled)
 
 
 def cancel_timer(timer_id: str) -> dict:
-    """Cancel a pending timer by id."""
-    t = _timers.get(timer_id)
-    if not t:
-        return {"ok": False, "error": "not_found"}
-    t["cancelled"] = True
-    return {"ok": True, "id": timer_id}
+    return me2_commands.cancel_scheduled_timer(timer_id)
 
 
 def git_status() -> dict:
     return run_command("git status --short --branch", cwd=".", timeout_s=20)
+
+
+def schedule_meeting(title: str, start: str, end: str,
+                     attendees: list[str] | None = None,
+                     timezone: str = "Asia/Manila", location: str = "",
+                     description: str = "", create_meet: bool = True,
+                     confirm: bool = False) -> dict:
+    """Create a calendar event only when the current user requested it."""
+    if not confirm:
+        return {"ok": False, "error": "explicit_schedule_request_required",
+                "provider_called": False}
+    return me2_commands.schedule_meeting(
+        title, start, end, attendees=attendees, timezone=timezone,
+        location=location, description=description, create_meet=create_meet)
 
 
 _FUNCTIONS = {
@@ -498,6 +494,7 @@ _FUNCTIONS = {
     "complete_reminder": me2_commands.complete_reminder,
     "call_contact": me2_commands.call_contact,
     "send_message": me2_commands.send_message,
+    "schedule_meeting": schedule_meeting,
     "channel_health": channels.channel_health,
     "send_email": channels.send_email,
     "send_telegram_message": channels.send_telegram_message,
@@ -582,17 +579,18 @@ def tool_definitions() -> list[dict]:
         spec("cancel_timer", "Cancel a pending timer by id.",
              {"timer_id": {"type": "string"}}, ("timer_id",)),
         spec("play_music", (
-            "Play music through a signed-in browser handoff. Google means YouTube "
-            "Music; Spotify is also supported. The UI requires one user click."), {
+            "Search Spotify and start the matching track on the user's active "
+            "Spotify Connect player. Report failure when credentials, Premium, "
+            "or an active player are unavailable; do not claim local state is playback."), {
             "query": {"type": "string"},
-            "service": {"type": "string", "enum": ["youtube_music", "spotify", "youtube", "local"], "default": "youtube_music"},
+            "service": {"type": "string", "enum": ["spotify"], "default": "spotify"},
         }, ("query",)),
         spec("media_control", (
             "Control current media: play, pause, stop, skip, volume_up, "
             "volume_down, or set_volume."), {
             "action": {"type": "string"}, "value": {"type": "integer"},
         }, ("action",)),
-        spec("music_state", "Return the current ME3 browser music handoff state.", {}),
+        spec("music_state", "Read the actual Spotify Connect player state.", {}),
         spec("get_weather", "Get current weather for a city or location.", {
             "location": {"type": "string"},
         }, ("location",)),
@@ -608,7 +606,7 @@ def tool_definitions() -> list[dict]:
             "unless a physical climate integration is configured."), {
             "temperature_c": {"type": "number"}, "room": {"type": "string", "default": "home"},
         }, ("temperature_c",)),
-        spec("set_alarm", "Set a next-occurrence alarm such as 7:30 AM or 19:30.", {
+        spec("set_alarm", "Set a persistent alarm; ME3 voice announces it when due.", {
             "time_text": {"type": "string"}, "label": {"type": "string", "default": ""},
         }, ("time_text",)),
         spec("list_alarms", "List active alarms.", {
@@ -617,7 +615,8 @@ def tool_definitions() -> list[dict]:
         spec("cancel_alarm", "Cancel an alarm by id.", {
             "alarm_id": {"type": "string"},
         }, ("alarm_id",)),
-        spec("create_reminder", "Create a reminder after a delay or at a local time.", {
+        spec("create_reminder", ("Write the reminder to Google Calendar and mirror its due time "
+            "to ME3's persistent voice/UI scheduler. Ask for a due time if missing."), {
             "text": {"type": "string"},
             "delay_seconds": {"type": "number"},
             "at_text": {"type": "string"},
@@ -629,20 +628,39 @@ def tool_definitions() -> list[dict]:
             "reminder_id": {"type": "string"},
         }, ("reminder_id",)),
         spec("call_contact", (
-            "Report that ordinary voice calls are not available through the "
-            "Telegram Bot API. Do not claim that a call was placed."), {
+            "Place a real phone call through the connected ME3 Android companion. "
+            "Use the user's explicit call request as authorization; Android may "
+            "ask once for CALL_PHONE and contact permissions. Never claim success "
+            "unless the Android device acknowledges that call launch."), {
             "contact": {"type": "string"}, "confirm": {"type": "boolean", "default": False},
         }, ("contact",)),
         spec("send_message", (
-            "Send Telegram text to a named contact or numeric chat ID. Ask "
-            "for explicit confirmation before confirm=true."), {
+            "Send a real Telegram text to the configured contact mapping through the bot. "
+            "The default personal target is @mncfrndz after it has started the bot. "
+            "For a clear "
+            "user instruction with recipient and message, set confirm=true and "
+            "execute it; ask only when recipient or content is missing or ambiguous."), {
             "contact": {"type": "string"}, "body": {"type": "string"},
             "channel": {"type": "string", "enum": ["telegram"], "default": "telegram"},
             "confirm": {"type": "boolean", "default": False},
         }, ("contact", "body")),
+        spec("schedule_meeting", (
+            "Create a real Google Calendar event, optionally with Google Meet. "
+            "Use Asia/Manila unless the user specifies a timezone. Ask for missing "
+            "title/start/end/attendee details, and report the returned event/Meet links."), {
+            "title": {"type": "string"},
+            "start": {"type": "string", "description": "ISO datetime"},
+            "end": {"type": "string", "description": "ISO datetime"},
+            "attendees": {"type": "array", "items": {"type": "string"}, "default": []},
+            "timezone": {"type": "string", "default": "Asia/Manila"},
+            "location": {"type": "string", "default": ""},
+            "description": {"type": "string", "default": ""},
+            "create_meet": {"type": "boolean", "default": True},
+            "confirm": {"type": "boolean", "default": False},
+        }, ("title", "start", "end")),
         spec("channel_health", (
-            "Report safe configuration status for Telegram text and optional email. "
-            "This does not contact providers or send anything."), {}),
+            "Report whether Spotify, Google Calendar, Telegram, and optional "
+            "email credentials are configured. This does not contact providers."), {}),
         spec("send_email", (
             "Send a transactional email through Resend. Ask the user for "
             "explicit confirmation before setting confirm=true; this has an "

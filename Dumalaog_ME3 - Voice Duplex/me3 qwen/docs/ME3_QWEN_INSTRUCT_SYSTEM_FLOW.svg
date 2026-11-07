@@ -172,11 +172,11 @@
     <text x="50" y="575" class="box-title">Transport and deployment plane</text>
     <line x1="50" y1="592" x2="560" y2="592" class="rule"/>
     <text x="50" y="621" class="body-strong">Raspberry Pi runtime</text>
-    <text x="50" y="642" class="body">`/home/dalmacio/Desktop/dandan-qwen` · HTTP 8136 · audio 8137</text>
+    <text x="50" y="642" class="body">`/home/dalmacio/Desktop/dandan` · HTTP 8126 · audio 8127</text>
     <text x="50" y="674" class="body-strong">Workstation browser</text>
     <text x="50" y="695" class="body">SSH local forwards: UI 8100 · audio 8101 · browser is the speaker sink</text>
     <text x="50" y="727" class="body-strong">Protected model route</text>
-    <text x="50" y="748" class="body">VPN workstation → SSH reverse tunnel → DGX Qwen ASR/TTS services</text>
+    <text x="50" y="748" class="body">Pi VPN → DGX direct; laptop reverse tunnel is optional fallback</text>
   </g>
 
   <g class="card safe">
@@ -224,8 +224,8 @@
     <text x="50" y="1071" class="body">• Fetch/research web pages; start local web servers; inspect system and Git state</text>
     <text x="50" y="1096" class="body">• Set/list/cancel timers; use ME2-compatible actions; report progress safely in the UI</text>
     <text x="50" y="1121" class="body">• Prepare Telegram Bot API text and optional email behind protected credentials and confirmation gates</text>
-    <text x="50" y="1152" class="small">Gmail/Google Meet note: the browser account is authenticated for the operator, but a dedicated ME3 Gmail/Meet connector is not yet wired.</text>
-    <text x="50" y="1170" class="small">Any future send/join action must remain explicit and confirmation-gated; browser sign-in alone is not tool authorization.</text>
+    <text x="50" y="1152" class="small">Calendar events and Meet links are wired; Pi OAuth setup is pending. Gmail sending is not integrated. Browser sign-in grants no API access.</text>
+    <text x="50" y="1170" class="small">External actions require a clear user request; Calendar OAuth and Telegram bot setup are pending. Browser sign-in alone grants no API access.</text>
   </g>
 
   <g class="card neutral">

@@ -39,6 +39,7 @@ INCLUDE = [
     "benchmarking/fd-benchmark",  # vendored MIT full-duplex benchmark + adapter
     "config",              # config/config.yaml (single source of truth)
     "web",                 # tracked presenter surface for local/Pi browser access
+    "launchers/pi",        # Pi desktop startup/check launcher and its desktop entry
     "data/DATASET.md",     # class-group shared benchmark dataset spec
     "install.sh",          # idempotent Pi installer
     "deploy",              # systemd units

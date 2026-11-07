@@ -134,6 +134,8 @@ def _required_presentable_files() -> list[str]:
         "scripts/local_ui_server.py",
         "scripts/Start-ME3-UI.ps1",
         "launchers/Start-ME3-UI.bat",
+        "launchers/pi/start-me3-qwen-demo.sh",
+        "launchers/pi/ME3-Qwen-Demo.desktop",
         "docs/CHANNEL_INTEGRATIONS.md",
         "docs/DEMO_RUNBOOK.md",
         "docs/VOCALIS_PROTOCOL.md",
@@ -157,6 +159,16 @@ def _required_presentable_files() -> list[str]:
 def validate_presentable_files() -> dict:
     missing = [rel for rel in _required_presentable_files()
                if not (PROJECT / rel).is_file()]
+    assistant = PROJECT / "web" / "assistant.html"
+    if assistant.is_file():
+        source = assistant.read_text(encoding="utf-8")
+        alarm_controls = (
+            'id="testAlarmSound"' in source
+            and "async function testAlarmSound()" in source
+            and "addEventListener('click', testAlarmSound)" in source
+        )
+        if not alarm_controls:
+            missing.append("web/assistant.html (laptop alarm sound test)")
     return {
         "name": "presentable_artifacts",
         "status": "pass" if not missing else "fail",

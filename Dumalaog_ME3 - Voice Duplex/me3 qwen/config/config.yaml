@@ -5,8 +5,9 @@ deployment:
   target: rpi                    # rpi | dev (dev = run on this Windows box for testing)
   promotion_policy: workstation_acceptance_required
   rpi_user: dalmacio
-  rpi_host: 192.168.254.105      # last verified on 2026-11-05; hostname was unavailable
-  rpi_path: /home/dalmacio/Desktop/dandan-qwen
+  rpi_host: cfdfnjrpi5.local    # current mDNS name on the laptop hotspot; DHCP address can change
+  rpi_hostkey_alias: 192.168.254.105 # verified against the previously trusted Pi host key
+  rpi_path: /home/dalmacio/Desktop/dandan
 
 # Filipino-market pilot profile. `fil` is ElevenLabs' language code for
 # Filipino; English is the spoken default while Filipino and Taglish remain

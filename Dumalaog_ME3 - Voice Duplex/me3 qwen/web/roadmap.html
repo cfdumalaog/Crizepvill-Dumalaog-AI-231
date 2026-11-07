@@ -99,9 +99,9 @@ footer code{font-family:"JetBrains Mono",monospace; font-size:.74rem; color:var(
     <div class="card"><div class="k">Voice loop</div><div class="v" id="lvLoop">-<small id="lvLoopNote"></small></div></div>
   </div>
 
-  <div class="section-title">Done &amp; verified (evidence-backed)</div>
+  <div class="section-title">Verified history and current evidence</div>
   <ul class="checks">
-    <li><span class="mark">&#10003;</span><div>Current Qwen workstation acceptance passed 10/10 with <b>84/84 pytest</b>. The authoritative release identifier and Pi promotion state are shown in the live strip above.<span class="when">2026-11-07 - deployment/workstation_acceptance.json</span></div></li>
+    <li><span class="mark">&#10003;</span><div>The latest workstation acceptance passed <b>99 tests</b> plus syntax, audio/MCP, paper-alignment, variant, benchmark-adapter, and artifact checks; that accepted Qwen release is deployed on the Pi.<span class="when">2026-11-07 - deployment/workstation_acceptance.json and deployment/last_pi_deployment.json</span></div></li>
     <li><span class="mark">&#10003;</span><div>Live thinking / task-progress panel added to the local console (<code>web/ui.html</code>), safe task summary only.<span class="when">2026-11-04 - web/ui.html</span></div></li>
     <li><span class="mark">&#10003;</span><div>Version hygiene: 46 historical release pairs + old presentation/build outputs archived; single canonical release in <code>dist/</code>.<span class="when">2026-11-04 - archive/README.md</span></div></li>
     <li><span class="mark">&#10003;</span><div>Bounded-retry fix in <code>ToolBrain._request()</code> (one retry on ReadTimeout/ConnectionError only) - recovered the 180 s VPN stall in a 487.5 s passing injection eval.<span class="when">2026-10-31 - me3/brain.py</span></div></li>
@@ -112,10 +112,12 @@ footer code{font-family:"JetBrains Mono",monospace; font-size:.74rem; color:var(
     <li><span class="mark">&#10003;</span><div>Historical local Qwen turns and tool-loop evidence are retained as development evidence; the active demo target is now the single Pi-hosted Qwen Instruct service.<span class="when">2026-10-31 evidence; Qwen-only policy 2026-11-06</span></div></li>
     <li><span class="mark">&#10003;</span><div>Presenter surface (8123) and Pi-tunnel web (8090) both HTTP 200; voice-built demo app created + served by the agent itself.<span class="when">2026-10-31</span></div></li>
     <li><span class="mark">&#10003;</span><div>Vocalis-Pi protocol: 5 states, event channels, sanitized harness progress, protocol + integration tests 4/4.<span class="when">me3/vocalis.py + tests</span></div></li>
-    <li><span class="mark">&#10003;</span><div>Qwen Pi promotion and direct audio-provider recovery: the accepted release is installed at <code>/home/dalmacio/Desktop/dandan-qwen</code>; <code>me3-agent.service</code> is active; SHARC OpenVPN restores <code>tun0</code> and the DGX route after restart; authenticated Qwen ASR/TTS probes return HTTP 200; direct Qwen ASR returns a non-empty transcript; the injection harness passes with zero errors; UI/audio ports 8126/8127 are healthy.<span class="when">2026-11-07 - direct SSH, VPN restart, model probes, and Pi injection evaluation</span></div></li>
-    <li><span class="mark">&#10003;</span><div>SHARC VPN is secured for the Pi: the profile directory is root-only, profile/auth files are root-owned mode 600, credentials are not cached, and <code>openvpn-client@sharchpc.service</code> is enabled for boot. A client restart restored the route, both Qwen probes, and ME3 health.<span class="when">2026-11-07 - docs/SHARC_VPN_PI_SETUP.md</span></div></li>
+    <li><span class="mark">&#10003;</span><div>The Pi is reachable by <code>cfdfnjrpi5.local</code>; its current hotspot DHCP address is <code>192.168.137.43</code>, not static. The only active ME3 service runs from <code>/home/dalmacio/Desktop/dandan</code>; the old deployment was moved to a dated hidden archive. The Pi desktop launcher restarts/checks the service, and the laptop launcher forwards HTTP/audio ports 8126/8127 to 8100/8101, including the Spotify callback.<span class="when">2026-11-07 - SSH, DHCP/mDNS, systemd, launcher, HTTP health, and WebSocket handshake verified</span></div></li>
+    <li><span class="mark">&#10003;</span><div>The Pi VPN profile remains protected and the OpenVPN service is enabled and running, but the current hotspot session is retrying after TLS handshake failures. There is no tunnel interface and the DGX route currently uses Wi-Fi, so Qwen endpoints are not reachable from the Pi at this check.<span class="when">2026-11-07 - live systemd, interface, route, and service log status</span></div></li>
     <li><span class="mark">&#10003;</span><div>Multi-turn voice continuity guard added: a rolling 16-message context is retained, and a short answer to an action-specific clarification is explicitly bound to the pending action instead of being treated as a new greeting. The UI reports conversation turns and pending follow-up state.<span class="when">2026-11-07 - me3/agent.py, me3/brain.py, web/assistant.html, tests</span></div></li>
-    <li><span class="mark">&#10003;</span><div>Operator-confirmed human spoken turn: Pi Fifine speech reaches Qwen ASR, the Qwen tool brain replies, and Qwen3-TTS plays through the connected browser speaker without an ASR error. This is separate from the physical-speaker automatic barge-in gate.<span class="when">2026-11-07 - operator confirmation; live Pi state reports completed turns and no ASR error</span></div></li>
+    <li><span class="mark">&#10003;</span><div>An operator-confirmed human spoken turn succeeded on the prior Pi release. On this newly promoted release, the Pi loop reports <code>loop=true</code>, the laptop health route is HTTP 200, the browser-audio WebSocket connects, and the UI timer create/cancel path works. A fresh human turn has not yet been repeated on this exact release.<span class="when">2026-11-07 - prior operator confirmation; current Pi and tunneled API checks</span></div></li>
+    <li><span class="mark">&#10003;</span><div>Class direct-feed stage benchmark completed with 30 planned trials; 29 produced replies and one no-reply was retained in the run count. All valid observations were aggregated; no best run was selected. Means: E2E 5.81 s, ASR 3.38 s, LLM TTFT 0.21 s, TTS TTFB 1.60 s, WER 29.3%. The run used the faster-whisper ASR fallback because DGX3 ASR port 8000 was unreachable; barge-in was not measured.<span class="when">2026-11-07 - docs/ME3_QWEN_STAGE_BENCHMARK_20261107.md</span></div></li>
+    <li><span class="mark">&#10003;</span><div>Clear ME2 voice commands now have a deterministic offline route when Qwen is unavailable, including a strict ISO-date meeting form. Open-ended questions and complex agent tasks still require model connectivity.<span class="when">2026-11-07 - me3/agent.py, me3/brain.py</span></div></li>
     <li><span class="mark">&#10003;</span><div>Docs set: ELI5/deep manual, channel API requirements, six-page two-column ACM PDF, system-flow infographic, and presentation deck.<span class="when">docs/</span></div></li>
   </ul>  <div class="section-title">What is left to do</div>
   <div class="todos">
@@ -140,14 +142,32 @@ footer code{font-family:"JetBrains Mono",monospace; font-size:.74rem; color:var(
     <div class="todo">
       <span class="owner operator">Operator</span>
       <h3>Telegram Bot API setup</h3>
-      <p>ME3 uses a Telegram bot, not the operator's personal Telegram login. The adapter and confirmation gate are implemented, but the Pi has no <code>TELEGRAM_BOT_TOKEN</code> or approved numeric Monica chat ID.</p>
-      <div class="next"><b>Next action</b>Create a bot with <code>@BotFather</code>, send it <code>/start</code> from the destination account, retrieve the numeric <code>chat_id</code>, place the protected bot token and <code>ME3_TELEGRAM_CHAT_MONICA_FERNANDEZ</code> on the Pi, restart ME3, then run one confirmed test message.</div>
+      <p>ME3 uses Telegram Bot API for text, not the operator's personal Telegram login. No bot token is configured. Bot API cannot place phone calls or send SMS.</p>
+      <div class="next"><b>Next action</b>Create a bot with <code>@BotFather</code>, securely enter its token in ME3, have @mncfrndz press <code>/start</code>, then use <b>Connect @mncfrndz</b> and send one requested test message. Use the Android companion for phone calls; SMS is not implemented yet.</div>
     </div>
     <div class="todo">
       <span class="owner group">Group</span>
-      <h3>Confirm the benchmark specification</h3>
-      <p>The draft benchmark plan (L1&ndash;T4, variables, stop-latency and response-latency timing equations) still needs group confirmation before the canonical run.</p>
-      <div class="next"><b>Next action</b>Review <code>docs/ME3_SPEC_AND_BENCHMARK_PLAN.md</code> in the group and mark it approved.</div>
+      <h3>Restore Qwen ASR and improve measured latency/accuracy</h3>
+      <p>The 30-trial run missed E2E (5.81 s vs 4.0), ASR final (3.38 s vs 0.8), TTS TTFB (1.60 s vs 0.6), and WER (29.3% vs 15%). LLM TTFT met its 1.5 s target at 0.21 s. ASR used faster-whisper fallback because DGX3 port 8000 was unreachable; barge-in was not measured.</p>
+      <div class="next"><b>Next action</b>Restore access to DGX3 ASR, rerun the same 10 phrases x 3 injected trials, keep every valid result, and run a separate overlap/barge-in evaluation. See <code>docs/ME3_QWEN_STAGE_BENCHMARK_20261107.md</code>.</div>
+    </div>
+    <div class="todo">
+      <span class="owner operator">Operator</span>
+      <h3>Connect Spotify playback</h3>
+      <p>The live Pi status reports no saved Client ID and no OAuth authorization. You confirmed the account is Free and Web API is enabled. Spotify playback through its API still requires Premium, so Free account access cannot authorize ME3 playback.</p>
+      <div class="next"><b>Next action</b>Upgrade the app owner's Spotify account to Premium, enter the already-created app Client ID in the tunneled ME3 UI, choose Connect Spotify, finish authorization, and keep a Spotify Connect player active. The PKCE flow does not need the app Client Secret.</div>
+    </div>
+    <div class="todo">
+      <span class="owner operator">Operator</span>
+      <h3>Authorize Google Calendar</h3>
+      <p>Calendar event and optional Google Meet adapters are implemented. Pi timers, alarms, and local reminders persist and announce through the running Pi loop; Google Calendar sync is not configured. Browser Gmail login alone does not authorize Calendar API calls.</p>
+      <div class="next"><b>Next action</b>Create a Google OAuth client, enable Calendar API, register <code>http://127.0.0.1:8100/api/google/callback</code>, enter the client values in ME3 through the Pi SSH tunnel, and authorize once.</div>
+    </div>
+    <div class="todo">
+      <span class="owner operator">Operator</span>
+      <h3>Connect Android calling; decide on SMS</h3>
+      <p>Voice calls use the Android companion, not Telegram; the companion must be connected and granted call/contact permissions. SMS is not implemented. Telegram Bot API sends Telegram text messages only.</p>
+      <div class="next"><b>Next action</b>Install/open the ME3 Android companion on a phone, grant <code>CALL_PHONE</code> and <code>READ_CONTACTS</code>, connect it to the Pi service on the same LAN, and run a requested call test. If cellular SMS is required, add Android <code>SEND_SMS</code> support and test on that phone.</div>
     </div>
     <div class="todo">
       <span class="owner group">Group / System</span>
@@ -164,8 +184,8 @@ footer code{font-family:"JetBrains Mono",monospace; font-size:.74rem; color:var(
     <div class="todo">
       <span class="owner you">You</span>
       <h3>Publish this continuity/roadmap revision</h3>
-      <p>Earlier Qwen/VPN work is already published. The multi-turn continuity guard, updated system policy, and this roadmap correction are the remaining local changes in the active Qwen tree.</p>
-      <div class="next"><b>Next action</b>Run the Qwen test suite, verify the Pi runtime, then commit and push only the active Qwen files; unrelated ME2 working-tree changes remain untouched.</div>
+      <p>The accepted release is deployed and the active Pi service uses the canonical path. The documentation/launcher revision still needs to be pushed to GitHub. The OpenVPN unit is active and enabled, but this hotspot session has no tunnel and DGX3 Qwen ports are unreachable.</p>
+      <div class="next"><b>Next action</b>Push only the active ME3 Qwen project files. Restore access through DILNET or a working VPN route before claiming live Qwen ASR/TTS; use <code>cfdfnjrpi5.local</code> on the same LAN instead of relying on a DHCP address.</div>
     </div>
   </div>
 </main>

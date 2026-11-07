@@ -9,14 +9,16 @@ Flow (mirrors ME2's deploy_latest_vcm.py):
 Usage:
   python scripts/deploy_to_pi.py                 # deploy latest prepared release
   python scripts/deploy_to_pi.py --host 192.168.1.70 --user dalmacio
-  python scripts/deploy_to_pi.py --rpi-path /home/dalmacio/Desktop/dandan-qwen
+  python scripts/deploy_to_pi.py --rpi-path /home/dalmacio/Desktop/dandan
   python scripts/deploy_to_pi.py --dry-run       # verify only, no transfer
 """
 from __future__ import annotations
 
 import argparse
+import base64
 import hashlib
 import json
+import re
 import shlex
 import subprocess
 import sys
@@ -63,6 +65,8 @@ def main() -> None:
     ap.add_argument("--user", default=None, help="Pi user (default: config)")
     ap.add_argument("--rpi-path", default=None,
                     help="override Pi install path (default: config)")
+    ap.add_argument("--hostkey-alias", default=None,
+                    help="SSH host-key identity already trusted in known_hosts")
     ap.add_argument("--dry-run", action="store_true",
                     help="verify release + connectivity only")
     args = ap.parse_args()
@@ -98,12 +102,15 @@ def main() -> None:
     dep = cfg.get("deployment", {})
     host = args.host or dep.get("rpi_host", "")
     user = args.user or dep.get("rpi_user", "dalmacio")
+    hostkey_alias = args.hostkey_alias or dep.get("rpi_hostkey_alias", "")
     rpi_path = args.rpi_path or dep.get(
         "rpi_path", "/home/dalmacio/Desktop/kiko/me3_voice_duplex")
     if not isinstance(rpi_path, str) or not rpi_path.startswith("/"):
         _die("--rpi-path/config deployment.rpi_path must be an absolute POSIX path")
     if not host:
         _die("no rpi_host configured (config.yaml deployment.rpi_host)")
+    if hostkey_alias and not re.fullmatch(r"[A-Za-z0-9._-]{1,255}", hostkey_alias):
+        _die("deployment.rpi_hostkey_alias must be a hostname or IP address")
     print(f"[3/5] target: {user}@{host}:{rpi_path}")
 
     if args.dry_run:
@@ -112,10 +119,14 @@ def main() -> None:
 
     # 4. connectivity + transfer
     remote = f"{user}@{host}"
+    ssh_options = ["-o", "BatchMode=yes", "-o", "ConnectTimeout=8"]
+    scp_options = ["-o", "BatchMode=yes"]
+    if hostkey_alias:
+        ssh_options += ["-o", f"HostKeyAlias={hostkey_alias}"]
+        scp_options += ["-o", f"HostKeyAlias={hostkey_alias}"]
     probe = subprocess.run(
-        ["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=8",
-         remote, "echo me3-ok"],
-        capture_output=True, text=True, timeout=30)
+        ["ssh", *ssh_options, remote, "echo me3-ok"],
+        capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=30)
     if probe.returncode != 0 or "me3-ok" not in probe.stdout:
         state = {
             "status": "pending_sync", "at": time.strftime("%Y-%m-%dT%H:%M:%SZ",
@@ -128,9 +139,9 @@ def main() -> None:
     print("[4/5] ssh OK")
 
     r = subprocess.run(
-        ["scp", "-o", "BatchMode=yes", str(zip_path),
+        ["scp", *scp_options, str(zip_path),
          f"{remote}:/tmp/me3-release.zip"],
-        capture_output=True, text=True, timeout=600)
+        capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=600)
     if r.returncode != 0:
         _die(f"scp failed: {r.stderr[:300]}",
              {"status": "pending_sync", "at": time.strftime(
@@ -151,8 +162,9 @@ def main() -> None:
         f"rm -rf {shlex.quote(stage_dir)} /tmp/me3-release.zip; "
         f"cd {shlex.quote(rpi_path)} && bash install.sh"
     )
-    r = subprocess.run(["ssh", "-o", "BatchMode=yes", remote, remote_cmd],
-                       capture_output=True, text=True, timeout=1800)
+    r = subprocess.run(["ssh", *ssh_options, remote, remote_cmd],
+                       capture_output=True, text=True, encoding="utf-8",
+                       errors="replace", timeout=1800)
     if r.returncode != 0:
         _die(f"remote install failed (rc={r.returncode}): {r.stderr[-500:]}",
              {"status": "pending_sync", "at": time.strftime(
@@ -169,8 +181,44 @@ def main() -> None:
     }
     (DEPLOY / "last_pi_deployment.json").write_text(
         json.dumps(state, indent=2) + "\n", encoding="utf-8")
+    # Synchronize only the safe status summary, never acceptance command
+    # output, credentials, or environment values, so the Pi UI can show the
+    # exact release and workstation gate that produced this deployment.
+    safe_acceptance = {
+        "acceptance_id": acceptance.get("acceptance_id"),
+        "status": acceptance.get("status"),
+        "created_utc": acceptance.get("created_utc"),
+        "checks": [{"name": row.get("name"), "status": row.get("status")}
+                   for row in acceptance.get("checks", [])
+                   if isinstance(row, dict)],
+        "failed_checks": list(acceptance.get("failed_checks") or []),
+    }
+    receipt_dir = f"{rpi_path}/deployment"
+    receipts = {
+        "latest_release.json": lr,
+        "workstation_acceptance.json": safe_acceptance,
+        "last_pi_deployment.json": state,
+    }
+    receipt_cmd = f"mkdir -p {shlex.quote(receipt_dir)}; "
+    for name, payload in receipts.items():
+        encoded = base64.b64encode(
+            (json.dumps(payload, indent=2) + "\n").encode("utf-8")
+        ).decode("ascii")
+        remote_file = f"{receipt_dir}/{name}"
+        receipt_cmd += (
+            f"printf %s {shlex.quote(encoded)} | base64 -d > "
+            f"{shlex.quote(remote_file)}; "
+        )
+    sync = subprocess.run(
+        ["ssh", *ssh_options, remote, receipt_cmd],
+        capture_output=True, text=True, encoding="utf-8", errors="replace",
+        timeout=30)
+    if sync.returncode != 0:
+        print("WARNING: release deployed, but safe UI receipt sync failed.")
+    else:
+        print("[6/6] sanitized release receipts synced to Pi")
     print(f"DEPLOYED {lr['release_id']} -> {remote}:{rpi_path}")
-    print("Next: on the Pi run  systemctl --user enable --now me3-agent")
+    print("Next: run systemctl --user restart me3-agent on the Pi, then verify its status.")
 
 
 if __name__ == "__main__":

@@ -99,6 +99,24 @@ header{
 .music-handoff{margin-top:10px;padding:9px;border:1px solid rgba(59,130,246,.3);border-radius:9px;background:rgba(59,130,246,.08);font-size:.74rem;line-height:1.35;}
 .music-handoff strong{display:block;color:#93c5fd;margin-bottom:3px;}
 .music-handoff button{margin-top:7px;width:auto;padding:6px 9px;}
+.notification-stack{position:fixed;z-index:80;top:72px;right:18px;width:min(380px,calc(100vw - 36px));display:grid;gap:9px;pointer-events:none;}
+.notification-card{pointer-events:auto;background:#101827;border:1px solid rgba(59,130,246,.45);box-shadow:0 12px 40px rgba(0,0,0,.45);border-radius:12px;padding:12px 14px;font-size:.82rem;line-height:1.4;}
+.notification-card.alarm{border-color:rgba(245,158,11,.65);box-shadow:0 0 22px rgba(245,158,11,.16);}
+.notification-card strong{display:block;color:#bfdbfe;margin-bottom:4px;}
+.notification-card.alarm strong{color:#fbbf24;}
+.notification-card button{margin-top:8px;background:#17243a;color:var(--text);border:1px solid var(--line);border-radius:7px;padding:5px 9px;cursor:pointer;}
+.spotify-setup{display:grid;gap:8px;border:1px solid var(--line);border-radius:10px;padding:10px;background:rgba(8,15,27,.65);}
+.spotify-setup input{width:100%;box-sizing:border-box;background:#080f1b;color:var(--text);border:1px solid var(--line);border-radius:7px;padding:9px;}
+.spotify-setup .setup-actions{display:flex;gap:8px;flex-wrap:wrap;}
+.spotify-setup button{background:#17243a;color:var(--text);border:1px solid var(--line);border-radius:7px;padding:7px 10px;cursor:pointer;}
+.spotify-setup-status{font-size:.78rem;color:var(--muted);line-height:1.4;}
+.clock-card .clock-face{font-size:1.8rem;font-variant-numeric:tabular-nums;letter-spacing:.06em;color:#dbeafe;font-weight:700;}
+.clock-card .clock-forms{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:8px;margin:10px 0;}
+.clock-card input{width:100%;box-sizing:border-box;background:#080f1b;color:var(--text);border:1px solid var(--line);border-radius:7px;padding:8px;}
+.clock-card button{background:#17243a;color:var(--text);border:1px solid var(--line);border-radius:7px;padding:7px 10px;cursor:pointer;}
+.clock-schedule-list{display:grid;gap:7px;margin-top:10px;}
+.clock-schedule{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px;border:1px solid var(--line);border-radius:8px;background:rgba(8,15,27,.65);font-size:.82rem;}
+.clock-schedule .countdown{font-variant-numeric:tabular-nums;color:#93c5fd;white-space:nowrap;}
 .light-card{border-color:rgba(245,158,11,.32);background:linear-gradient(145deg,rgba(245,158,11,.10),rgba(16,24,38,.72));}
 .light-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;}
 .light-head h2{margin:0;}
@@ -162,6 +180,7 @@ header{
 </style>
 </head><body>
 <div id="offlineBanner" hidden>Status server offline - reconnect the ME3 page or check the Pi tunnel/service.</div>
+<div class="notification-stack" id="notificationStack" aria-live="assertive"></div>
 <header>
   <div class="brand">
     <span class="dot" id="statusDot"></span>
@@ -197,6 +216,24 @@ header{
         <span class="light-at" id="lightUpdatedAt">Voice or UI actions update this same simulated device.</span>
       </div>
     </div>
+    <div class="card clock-card">
+      <div class="light-head"><h2>ME3 clock</h2><span class="light-mode">PI SCHEDULE</span></div>
+      <div class="clock-face" id="clockFace">--:--:--</div>
+      <div class="audio-note">Schedules persist on the Pi. For an audible laptop alarm, connect the browser speaker once and keep this tab open with the laptop awake at the due time. Browser audio cannot wake a sleeping laptop or ring after the tab closes.</div>
+      <div class="clock-forms">
+        <label>Alarm time<input type="time" id="alarmTime"></label>
+        <label>Alarm label<input type="text" id="alarmLabel" maxlength="80" placeholder="Alarm"></label>
+        <button id="setAlarmUi" type="button">Set alarm</button>
+      </div>
+      <div class="clock-forms">
+        <label>Timer minutes<input type="number" id="timerMinutes" min="0.1" max="43200" step="0.1" value="5"></label>
+        <label>Timer label<input type="text" id="timerLabel" maxlength="80" placeholder="Timer"></label>
+        <button id="setTimerUi" type="button">Start countdown</button>
+      </div>
+      <button id="testAlarmSound" type="button">Test laptop alarm sound</button>
+      <div class="audio-note" id="clockScheduleStatus">Loading Pi alarms and timers…</div>
+      <div class="clock-schedule-list" id="clockScheduleList"></div>
+    </div>
     <div class="card runtime-error" id="runtimeErrorCard" hidden>
       <h2>Provider error</h2>
       <div class="runtime-error-text" id="runtimeErrorText"></div>
@@ -216,7 +253,26 @@ header{
         <div class="restart-row"><button id="restartMe3" type="button">Restart ME3 loop</button><span class="audio-note" id="restartStatus">Audio-loop reset only; the UI and browser speaker stay online.</span></div>
         <div class="restart-row service"><button id="restartService" type="button">Restart ME3 service</button><span class="audio-note" id="serviceRestartStatus">Pi only: restarts the canonical systemd service and briefly reloads the UI.</span></div>
         <div class="audio-note" id="audioStatus">Pi audio controls appear when the LAN server is running. Browser output needs one click because browsers block autoplay.</div>
-        <div class="music-handoff" id="musicHandoff" hidden><strong id="musicProvider">Music handoff</strong><span id="musicDetails"></span><br><button id="openMusic" type="button">Open in browser</button></div>
+        <div class="audio-note" id="musicStatus">Spotify connection status is being checked.</div>
+        <div class="spotify-setup">
+          <label>Spotify app Client ID<input id="spotifyClientId" type="text" autocomplete="off" spellcheck="false" placeholder="Paste the Client ID after creating the Spotify app"></label>
+          <div class="setup-actions"><button id="saveSpotifyClientId" type="button">Save Client ID on Pi</button><button id="connectSpotify" type="button">Connect Spotify</button></div>
+          <div class="spotify-setup-status" id="spotifySetupStatus">One-time setup. OAuth uses the Pi service through the laptop's ME3 SSH tunnel.</div>
+        </div>
+        <div class="spotify-setup">
+          <strong>Google Calendar · reminders and meetings</strong>
+          <label>OAuth Client ID<input id="googleClientId" type="text" autocomplete="off" spellcheck="false" placeholder="Google Cloud OAuth client ID"></label>
+          <label>OAuth Client Secret<input id="googleClientSecret" type="password" autocomplete="new-password" placeholder="Stored only on Pi"></label>
+          <div class="setup-actions"><button id="saveGoogleConfig" type="button">Save Google setup</button><button id="connectGoogle" type="button">Connect Calendar</button></div>
+          <div class="spotify-setup-status" id="googleSetupStatus">Create a Google OAuth web client, enable Calendar API, and register the callback shown here.</div>
+        </div>
+        <div class="spotify-setup">
+          <strong>Telegram · messages to @mncfrndz</strong>
+          <label>BotFather token<input id="telegramBotToken" type="password" autocomplete="new-password" placeholder="Saved only on Pi"></label>
+          <div class="setup-actions"><button id="saveTelegramToken" type="button">Save bot token</button><button id="connectTelegramTarget" type="button">Connect @mncfrndz</button></div>
+          <div class="spotify-setup-status" id="telegramSetupStatus">Open @BotFather and send /newbot, then save its token here. @mncfrndz must open that bot and send /start once before ME3 can map the chat.</div>
+        </div>
+        <button id="enableNotifications" type="button">Enable desktop reminders and alarms</button>
       </div>
     </div>
     <div class="card talk">
@@ -321,9 +377,10 @@ let last = null, online = false;
 let smoothRms = 0, orbHue = 220, orbPhase = 0;
 let bargeFlashUntil = 0, seenBargeAt = null;
 let prevState = null, stateSince = 0, seenTranscriptAt = null, seenReplyAt = null;
-let audioSocket = null, audioContext = null, audioNextTime = 0, audioNodes = [], pendingMusicUrl = '';
+let audioSocket = null, audioContext = null, audioNextTime = 0, audioNodes = [];
 let currentPlaybackId = null, renderAckSent = false;
 let lightState = null;
+const seenNotifications = new Set(), alarmToneTimers = new Map();
 
 setInterval(() => { $('clock').textContent = new Date().toLocaleTimeString('en-PH', {hour12:false}); }, 1000);
 $('clock').textContent = new Date().toLocaleTimeString('en-PH', {hour12:false});
@@ -408,6 +465,65 @@ $('lightOn').addEventListener('click', () => setDemoLight({action:'on', room:'al
 $('lightOff').addEventListener('click', () => setDemoLight({action:'off', room:'all'}));
 $('lightBrightness').addEventListener('change', e => setDemoLight({action:'dim', room:'all', value:Number(e.target.value)}));
 $('lightApplyColor').addEventListener('click', () => setDemoLight({action:'color', room:'all', value:$('lightColor').value}));
+
+function countdownText(seconds){
+  const n=Math.max(0,Math.floor(seconds)), h=Math.floor(n/3600), m=Math.floor((n%3600)/60), s=n%60;
+  return (h ? String(h).padStart(2,'0')+':' : '') + String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+}
+async function loadClockSchedules(){
+  $('clockFace').textContent = new Date().toLocaleTimeString('en-PH',{hour12:false});
+  try {
+    const r=await fetch(STATUS_BASE+'/api/schedules',{cache:'no-store'});
+    if(!r.ok) throw new Error('Pi clock endpoint unavailable');
+    const data=await r.json(), items=data.items||[], now=Date.now()/1000;
+    const list=$('clockScheduleList'); list.replaceChildren();
+    if(!items.length){ $('clockScheduleStatus').textContent='No active alarms or timers.'; return; }
+    $('clockScheduleStatus').textContent='Pi clock active · '+items.length+' pending or due item(s).';
+    items.forEach(item=>{
+      const row=document.createElement('div'); row.className='clock-schedule';
+      const info=document.createElement('span');
+      const label=(item.payload||{}).label || item.kind;
+      info.textContent=String(item.kind).toUpperCase()+' · '+label;
+      const counter=document.createElement('span'); counter.className='countdown';
+      counter.textContent=item.state==='due'?'RINGING':countdownText(Number(item.due_at)-now);
+      row.append(info,counter);
+      if(item.state!=='due'){
+        const cancel=document.createElement('button'); cancel.type='button'; cancel.textContent='Cancel';
+        cancel.addEventListener('click',()=>cancelClockAction(item.id)); row.appendChild(cancel);
+      }
+      list.appendChild(row);
+    });
+  } catch(e) { $('clockScheduleStatus').textContent='Clock unavailable: '+e.message; }
+}
+async function createClockAction(body){
+  const label=$('clockScheduleStatus');
+  try {
+    const r=await fetch(STATUS_BASE+'/api/schedules',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const data=await r.json();
+    if(!r.ok||!data.ok) throw new Error(data.error||'schedule failed');
+    label.textContent=body.kind==='alarm'?'Alarm set on the Pi.':'Countdown started on the Pi.';
+    await loadClockSchedules();
+  } catch(e) { label.textContent='Could not set clock action: '+e.message; }
+}
+async function cancelClockAction(id){
+  try {
+    const r=await fetch(STATUS_BASE+'/api/schedules/cancel',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id})});
+    const data=await r.json(); if(!r.ok||!data.ok) throw new Error(data.error||'cancel failed');
+    await loadClockSchedules();
+  } catch(e) { $('clockScheduleStatus').textContent='Could not cancel: '+e.message; }
+}
+$('setAlarmUi').addEventListener('click',async()=>{
+  const value=$('alarmTime').value;
+  if(!value){ $('clockScheduleStatus').textContent='Choose an alarm time first.'; return; }
+  try { const Ctx=window.AudioContext||window.webkitAudioContext; if(Ctx){audioContext=audioContext||new Ctx();await audioContext.resume();} } catch(e) {}
+  createClockAction({kind:'alarm',time_text:value,label:$('alarmLabel').value||'ME3 alarm'});
+});
+$('setTimerUi').addEventListener('click',async()=>{
+  const minutes=Number($('timerMinutes').value);
+  if(!Number.isFinite(minutes)||minutes<=0){ $('clockScheduleStatus').textContent='Enter a timer duration above zero.'; return; }
+  try { const Ctx=window.AudioContext||window.webkitAudioContext; if(Ctx){audioContext=audioContext||new Ctx();await audioContext.resume();} } catch(e) {}
+  createClockAction({kind:'timer',seconds:minutes*60,label:$('timerLabel').value||'ME3 timer'});
+});
 
 function renderTools(d){
   const tools = d.tools || {};
@@ -612,7 +728,16 @@ async function connectBrowserAudio(){
     const scheme = location.protocol === 'https:' ? 'wss' : 'ws';
     audioSocket = new WebSocket(scheme + '://' + location.hostname + ':' + audioPort + '/audio');
     audioSocket.binaryType = 'arraybuffer';
-    audioSocket.onopen = () => { $('audioStatus').textContent = 'Browser speaker connected; TTS will play here.'; };
+    audioSocket.onopen = () => {
+      const nativePhone = !!window.Me3Native;
+      audioSocket.send(JSON.stringify({event:'client_info',
+        client_type:nativePhone ? 'android' : 'browser',
+        capabilities:nativePhone ? ['call_phone'] : [],
+        audio_output:!nativePhone}));
+      $('audioStatus').textContent = nativePhone
+        ? 'Android phone actions connected.'
+        : 'Browser speaker connected; TTS will play here.';
+    };
     audioSocket.onclose = () => { $('audioStatus').textContent = 'Browser speaker disconnected.'; };
     audioSocket.onerror = () => { $('audioStatus').textContent = 'Could not connect to Pi audio stream; check port ' + audioPort + '.'; };
     audioSocket.onmessage = ev => {
@@ -626,12 +751,14 @@ async function connectBrowserAudio(){
           } else if(event.event === 'playback_start') {
             currentPlaybackId = event.playback_id || null;
             renderAckSent = false;
-          } else if(event.event === 'music_action') {
-            pendingMusicUrl = event.url || '';
-            $('musicProvider').textContent = (event.provider || 'Music') + ' handoff';
-            $('musicDetails').textContent = event.query ? 'Request: ' + event.query + '. Click to open it in this browser.' : 'Click to open the active browser player.';
-            $('openMusic').hidden = !pendingMusicUrl;
-            $('musicHandoff').hidden = false;
+          } else if(event.event === 'device_action') {
+            if(event.action === 'call_phone' && window.Me3Native && typeof window.Me3Native.placeCall === 'function') {
+              window.Me3Native.placeCall(String(event.contact || ''), String(event.action_id || ''));
+            } else if(audioSocket && audioSocket.readyState === WebSocket.OPEN) {
+              audioSocket.send(JSON.stringify({event:'device_action_result',
+                action_id:String(event.action_id || ''), ok:false,
+                error:'android_call_device_unavailable'}));
+            }
           }
         } catch(e){}
         return;
@@ -654,6 +781,189 @@ async function connectBrowserAudio(){
 $('applyAudio').addEventListener('click', applyAudio);
 $('connectAudio').addEventListener('click', connectBrowserAudio);
 $('browserSinkSelect').addEventListener('change', () => { if(audioSocket && audioSocket.readyState === WebSocket.OPEN) connectBrowserAudio(); });
+
+window.me3CompleteDeviceAction = function(actionId, ok, status, error){
+  if(!audioSocket || audioSocket.readyState !== WebSocket.OPEN) return;
+  audioSocket.send(JSON.stringify({event:'device_action_result', action_id:String(actionId || ''),
+    ok:!!ok, status:String(status || ''), error:String(error || '')}));
+};
+
+function stopAlarmTone(id){
+  const timer = alarmToneTimers.get(id);
+  if(timer) clearInterval(timer);
+  alarmToneTimers.delete(id);
+}
+function startAlarmTone(id){
+  if(alarmToneTimers.has(id)) return;
+  const ring = () => {
+    try {
+      if(!audioContext || audioContext.state !== 'running') return;
+      const osc = audioContext.createOscillator(), gain = audioContext.createGain();
+      osc.type = 'sine'; osc.frequency.value = 880; gain.gain.value = 0.08;
+      osc.connect(gain); gain.connect(audioContext.destination);
+      osc.start(); osc.stop(audioContext.currentTime + 0.22);
+    } catch(e) {}
+  };
+  ring(); alarmToneTimers.set(id, setInterval(ring, 1200));
+}
+async function testAlarmSound(){
+  try {
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if(!Ctx) throw new Error('Web Audio is unavailable');
+    audioContext = audioContext || new Ctx();
+    await audioContext.resume();
+    const sink = $('browserSinkSelect').value;
+    if(sink !== 'default' && audioContext.setSinkId) await audioContext.setSinkId(sink);
+    [880, 1175, 880].forEach((frequency, index) => {
+      const start = audioContext.currentTime + index * 0.24;
+      const oscillator = audioContext.createOscillator(), gain = audioContext.createGain();
+      oscillator.type = 'sine'; oscillator.frequency.value = frequency;
+      gain.gain.setValueAtTime(0.0001, start);
+      gain.gain.exponentialRampToValueAtTime(0.12, start + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.19);
+      oscillator.connect(gain); gain.connect(audioContext.destination);
+      oscillator.start(start); oscillator.stop(start + 0.2);
+    });
+    $('clockScheduleStatus').textContent = 'Alarm test tone sent to the selected laptop browser speaker.';
+  } catch(e) {
+    $('clockScheduleStatus').textContent = 'Alarm sound test failed: ' + e.message;
+  }
+}
+$('testAlarmSound').addEventListener('click', testAlarmSound);
+async function dismissScheduledAction(itemId){
+  stopAlarmTone(itemId);
+  try { await fetch(STATUS_BASE + '/api/notifications/ack', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:itemId})}); } catch(e) {}
+  document.querySelectorAll('.notification-card').forEach(card => {
+    if(card.dataset.notificationId === itemId) card.remove();
+  });
+  seenNotifications.delete(itemId);
+}
+function showScheduledAction(item){
+  if(!item || !item.id || seenNotifications.has(item.id)) return;
+  seenNotifications.add(item.id);
+  const kind = String(item.kind || 'reminder'), payload = item.payload || {};
+  const text = kind === 'timer'
+    ? 'Your timer' + (payload.label ? ': ' + payload.label : '') + ' is finished.'
+    : kind === 'alarm' ? 'Alarm: ' + (payload.label || 'your alarm') + '.'
+    : 'Reminder: ' + (payload.text || 'your reminder') + '.';
+  const card = document.createElement('div');
+  card.className = 'notification-card' + (kind === 'alarm' ? ' alarm' : '');
+  card.dataset.notificationId = item.id;
+  const title = document.createElement('strong'); title.textContent = kind.toUpperCase();
+  const message = document.createElement('div'); message.textContent = text;
+  const button = document.createElement('button'); button.type = 'button'; button.textContent = 'Dismiss';
+  button.addEventListener('click', () => dismissScheduledAction(item.id));
+  card.append(title, message, button); $('notificationStack').appendChild(card);
+  if(kind === 'alarm' || kind === 'timer') startAlarmTone(item.id);
+  if('Notification' in window && Notification.permission === 'granted') {
+    try { new Notification(kind === 'alarm' ? 'ME3 alarm' : 'ME3 reminder', {body:text}); } catch(e) {}
+  }
+}
+async function pollNotifications(){
+  try {
+    const r = await fetch(STATUS_BASE + '/api/notifications/pending', {cache:'no-store'});
+    if(!r.ok) return;
+    const data = await r.json();
+    (data.notifications || []).forEach(showScheduledAction);
+  } catch(e) {}
+}
+$('enableNotifications').addEventListener('click', async () => {
+  const button = $('enableNotifications');
+  if(!('Notification' in window)) { button.textContent = 'In-page alerts enabled'; return; }
+  try {
+    const permission = await Notification.requestPermission();
+    button.textContent = permission === 'granted' ? 'Desktop alerts enabled' : 'In-page alerts enabled';
+  } catch(e) { button.textContent = 'In-page alerts enabled'; }
+});
+
+async function loadSpotifyStatus(){
+  try {
+    const r = await fetch(STATUS_BASE + '/api/spotify/status', {cache:'no-store'});
+    const d = await r.json();
+    if(d.client_id_configured) $('spotifyClientId').placeholder = 'Client ID saved securely on Pi';
+    $('connectSpotify').disabled = !d.client_id_configured;
+    $('musicStatus').textContent = d.connected
+      ? 'Spotify connected. Playback requires Spotify Premium and an active Spotify Connect player.'
+      : d.client_id_configured ? 'Client ID saved. Connect your Spotify account once to enable playback.'
+      : 'Create the Spotify app, then paste its Client ID here once.';
+    $('spotifySetupStatus').textContent = d.missing && d.missing.length
+      ? d.missing.join(' · ') + ' · Callback: ' + (d.redirect_uri || '')
+      : 'Connected. The refresh token is stored on the Pi with private file permissions.';
+  } catch(e) { $('musicStatus').textContent = 'Spotify setup status unavailable: ' + e.message; }
+}
+$('saveSpotifyClientId').addEventListener('click', async () => {
+  const button = $('saveSpotifyClientId'), label = $('spotifySetupStatus');
+  button.disabled = true;
+  try {
+    const r = await fetch(STATUS_BASE + '/api/spotify/client-id', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({client_id:$('spotifyClientId').value})});
+    const d = await r.json();
+    if(!r.ok || !d.ok) throw new Error(d.error || 'Client ID was not saved');
+    $('spotifyClientId').value = '';
+    label.textContent = 'Client ID saved securely on the Pi.';
+    await loadSpotifyStatus();
+  } catch(e) { label.textContent = 'Spotify Client ID setup failed: ' + e.message; }
+  finally { button.disabled = false; }
+});
+$('connectSpotify').addEventListener('click', () => {
+  window.location.href = STATUS_BASE + '/api/spotify/connect';
+});
+async function loadGoogleStatus(){
+  try {
+    const r = await fetch(STATUS_BASE + '/api/google/status', {cache:'no-store'}), d = await r.json();
+    $('connectGoogle').disabled = !d.client_configured;
+    $('googleSetupStatus').textContent = d.authorized
+      ? 'Google Calendar is connected. Reminders and meeting events will be written to Calendar.'
+      : 'Missing: ' + (d.missing_env || []).join(' · ') + ' · callback: ' + (d.redirect_uri || '');
+  } catch(e) { $('googleSetupStatus').textContent = 'Google Calendar status unavailable: ' + e.message; }
+}
+$('saveGoogleConfig').addEventListener('click', async () => {
+  const button = $('saveGoogleConfig'), label = $('googleSetupStatus'); button.disabled = true;
+  try {
+    const r = await fetch(STATUS_BASE + '/api/integrations/google-config', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({client_id:$('googleClientId').value,client_secret:$('googleClientSecret').value})});
+    const d = await r.json();
+    if(!r.ok || !d.ok) throw new Error(d.error || 'Google credentials were not saved');
+    $('googleClientId').value = ''; $('googleClientSecret').value = '';
+    label.textContent = 'Google OAuth settings saved securely on the Pi.';
+    await loadGoogleStatus();
+  } catch(e) { label.textContent = 'Google setup failed: ' + e.message; }
+  finally { button.disabled = false; }
+});
+$('connectGoogle').addEventListener('click', () => {
+  window.location.href = STATUS_BASE + '/api/google/connect';
+});
+async function loadTelegramStatus(){
+  try {
+    const r = await fetch(STATUS_BASE + '/api/telegram/status', {cache:'no-store'}), d = await r.json();
+    $('connectTelegramTarget').disabled = !d.bot_configured;
+    $('telegramSetupStatus').textContent = d.configured
+      ? 'Telegram bot connected and @mncfrndz is mapped. Clear voice requests send directly through Telegram.'
+      : d.bot_configured ? 'Bot token saved. Ask @mncfrndz to press Start in your bot, then connect the target.'
+      : 'Create a bot with BotFather, save its token, then have @mncfrndz press Start once.';
+  } catch(e) { $('telegramSetupStatus').textContent = 'Telegram setup status unavailable: ' + e.message; }
+}
+$('saveTelegramToken').addEventListener('click', async () => {
+  const button = $('saveTelegramToken'), label = $('telegramSetupStatus'); button.disabled = true;
+  try {
+    const r = await fetch(STATUS_BASE + '/api/integrations/telegram-token', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({bot_token:$('telegramBotToken').value})});
+    const d = await r.json();
+    if(!r.ok || !d.ok) throw new Error(d.error || 'Telegram bot token was not saved');
+    $('telegramBotToken').value = '';
+    label.textContent = 'Telegram bot token saved privately on the Pi.';
+    await loadTelegramStatus();
+  } catch(e) { label.textContent = 'Telegram setup failed: ' + e.message; }
+  finally { button.disabled = false; }
+});
+$('connectTelegramTarget').addEventListener('click', async () => {
+  const button = $('connectTelegramTarget'), label = $('telegramSetupStatus'); button.disabled = true;
+  try {
+    const r = await fetch(STATUS_BASE + '/api/telegram/connect-target', {method:'POST'}), d = await r.json();
+    if(!r.ok || !d.ok) throw new Error(d.error || 'Target not found; have @mncfrndz press Start in the bot first.');
+    label.textContent = 'Connected @mncfrndz. ME3 can now send Telegram messages to this account.';
+    await loadTelegramStatus();
+  } catch(e) { label.textContent = 'Telegram target setup: ' + e.message; }
+  finally { button.disabled = false; }
+});
+
 async function loadDuplexMode(){
   try {
     const r = await fetch(STATUS_BASE + '/api/duplex-mode', {cache:'no-store'});
@@ -700,18 +1010,22 @@ $('restartService').addEventListener('click', async () => {
     button.disabled = false;
   }
 });
-$('openMusic').addEventListener('click', () => {
-  if(!pendingMusicUrl) return;
-  // Deliberately no `noreferrer`: YouTube's embedded/player policy requires
-  // the browser to retain the normal referrer and its own signed-in session.
-  window.open(pendingMusicUrl, '_blank');
-});
 loadAudioDevices();
 setInterval(loadAudioDevices, 2500);
 loadDuplexMode();
 setInterval(loadDuplexMode, 5000);
 loadDemoLight();
 setInterval(loadDemoLight, 1000);
+loadClockSchedules();
+setInterval(loadClockSchedules, 1000);
+loadSpotifyStatus();
+setInterval(loadSpotifyStatus, 15000);
+loadGoogleStatus();
+setInterval(loadGoogleStatus, 15000);
+loadTelegramStatus();
+setInterval(loadTelegramStatus, 15000);
+pollNotifications();
+setInterval(pollNotifications, 2500);
 
 function poll(){
   apiState()

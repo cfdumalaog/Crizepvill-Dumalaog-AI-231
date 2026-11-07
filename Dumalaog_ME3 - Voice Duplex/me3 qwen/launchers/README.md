@@ -9,7 +9,8 @@ Double-click these Windows launchers from File Explorer:
 | `Start-ME3-UI.bat` | Interactive local agent console | Opens `http://127.0.0.1:8124/`; Qwen + tools, GPT-5.6 Luna + tools, or offline stub, tool events, and hard-disabled Telegram/Resend side effects. |
 | `Start-ME3-Web.bat` | Local browser preview | Serves the tracked `web\` presenter surface on `http://127.0.0.1:8123/` and reports LAN URLs. Pass `-Path agent_workspace\voice_webapp` for a generated app. |
 | `Start-ME3-Pi-Web.bat` | ME2-style Pi browser tunnel | Starts the Pi static preview when available, forwards it to `http://127.0.0.1:8090/`, and opens the browser. `Ctrl+C` closes the tunnel. |
-| `Start-ME3-Pi-Qwen.bat` | **Named Qwen Instruct Pi launcher** | Connects to the canonical systemd service at `/home/dalmacio/Desktop/dandan-qwen` on Pi ports 8126/8127 and opens the workstation tunnel at `http://127.0.0.1:8100/`; it does not start a duplicate listener. |
+| `Start-ME3-Pi-Qwen.bat` | **Named Qwen Instruct laptop launcher** | Connects to the Pi by stable mDNS name (`cfdfnjrpi5.local`) and forwards Pi ports 8126/8127 to laptop ports 8100/8101, including the Spotify OAuth callback on port 8100. It does not start a second ME3 server. |
+| `pi/ME3-Qwen-Demo.desktop` | **Pi desktop launcher** | Restarts/enables the Pi's `me3-agent.service`, checks the web/audio service and voice loop, and displays current Pi addresses for the laptop launcher. |
 | `Start-Pi-Injection-Demo.bat` | The deployed Pi Qwen/tool demo | Uses reviewed WAV fixtures and a virtual sink; recommended when the physical Fifine input is occupied or the speaker path is not ready. |
 
 It uses the single shared workspace `.venv` (same as the ME2 launchers).

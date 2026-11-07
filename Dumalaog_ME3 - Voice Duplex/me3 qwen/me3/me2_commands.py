@@ -9,20 +9,23 @@ credentials turn the device adapters into live integrations.
 from __future__ import annotations
 
 import datetime as dt
+import json
 import os
 import re
 import threading
 import time
 from urllib.parse import quote
+from zoneinfo import ZoneInfo
 
-from . import channels
+from . import channels, google_calendar, scheduled_actions, secure_config, spotify_player
 
 _LOCK = threading.RLock()
 _MEDIA = {
     "state": "stopped", "track": "", "volume": 50,
-    "service": "youtube_music", "browser_url": "",
+    "service": "spotify", "browser_url": "",
 }
 _MUSIC_EVENT_SINK = None
+_DEVICE_ACTION_DISPATCHER = None
 _LIGHTS: dict[str, dict] = {}
 _THERMOSTATS: dict[str, float] = {}
 _ALARMS: dict[str, dict] = {}
@@ -73,6 +76,32 @@ def set_music_event_sink(sink) -> None:
         _MUSIC_EVENT_SINK = sink if callable(sink) else None
 
 
+def set_device_action_dispatcher(dispatcher) -> None:
+    """Attach the active browser client as an execution device endpoint."""
+    global _DEVICE_ACTION_DISPATCHER
+    with _LOCK:
+        _DEVICE_ACTION_DISPATCHER = dispatcher if callable(dispatcher) else None
+
+
+def _store() -> scheduled_actions.ScheduledActionStore:
+    return scheduled_actions.default_store()
+
+
+def configure_schedule_delivery(on_due=None) -> scheduled_actions.ScheduledActionRunner:
+    """Start the durable scheduler and route due items into voice output."""
+    runner = scheduled_actions.ScheduledActionRunner(_store(), on_due=on_due)
+    runner.start()
+    return runner
+
+
+def pending_notifications() -> dict:
+    return {"ok": True, "notifications": _store().pending_notifications()}
+
+
+def acknowledge_notification(action_id: str) -> dict:
+    return _store().acknowledge(action_id)
+
+
 def _emit_music(event: dict) -> None:
     with _LOCK:
         sink = _MUSIC_EVENT_SINK
@@ -85,96 +114,42 @@ def _emit_music(event: dict) -> None:
 
 
 def music_state() -> dict:
-    """Return the deterministic media state and browser handoff URL."""
-    with _LOCK:
-        return {"ok": True, "media": dict(_MEDIA)}
+    """Read the actual Spotify player state from the connected account."""
+    return spotify_player.state()
 
 
-def play_music(query: str, service: str = "youtube_music") -> dict:
-    """Prepare a browser music handoff for YouTube Music or Spotify.
-
-    Google Play Music no longer exists as a separate service; the Google
-    choice is YouTube Music.  The Pi never reads browser cookies or credentials.
-    The UI opens the returned URL only after the operator clicks its button, so
-    an already-authenticated browser session can be used safely.
-    """
-    query = str(query or "").strip()
-    if not query:
-        return {"ok": False, "error": "music query is required"}
-    requested = str(service or "youtube_music").strip().lower().replace("-", "_")
-    aliases = {
-        "browser": "youtube_music", "google": "youtube_music",
-        "google_music": "youtube_music", "youtube_music": "youtube_music",
-        "youtube": "youtube", "spotify": "spotify", "local": "local",
-    }
-    service = aliases.get(requested)
-    if service is None:
-        return {"ok": False, "error": "unsupported music service"}
-    if service == "youtube_music":
-        browser_url = "https://music.youtube.com/search?q=" + quote(query)
-        provider = "YouTube Music"
-    elif service == "youtube":
-        browser_url = "https://www.youtube.com/results?search_query=" + quote(query)
-        provider = "YouTube"
-    elif service == "spotify":
-        browser_url = "https://open.spotify.com/search/" + quote(query, safe="")
-        provider = "Spotify"
-    else:
-        browser_url = ""
-        provider = "local demo"
-    with _LOCK:
-        _MEDIA.update({"state": "playing", "track": query, "service": service,
-                       "browser_url": browser_url})
-        state = dict(_MEDIA)
-    event = {"action": "play", "provider": provider, "query": query,
-             "url": browser_url, "media": state,
-             "requires_user_click": bool(browser_url)}
-    _emit_music(event)
-    return {"ok": True, "action": "play_music", "provider": provider,
-            "media": state, "browser_url": browser_url,
-            "requires_user_click": bool(browser_url),
-            "note": ("Click Open in browser in the ME3 UI to use the existing signed-in "
-                      "browser session; ME3 does not copy cookies or credentials.")}
+def play_music(query: str, service: str = "spotify") -> dict:
+    """Find a track and start it on the user's active Spotify Connect device."""
+    requested = str(service or "spotify").strip().lower().replace("-", "_")
+    if requested in {"google", "google_music", "youtube", "youtube_music"}:
+        return {"ok": False, "error": "provider_has_no_supported_autoplay_api",
+                "provider": "YouTube Music",
+                "note": "Use Spotify for autonomous playback; browser search handoff is disabled."}
+    result = spotify_player.play(query, service="spotify")
+    if result.get("ok"):
+        with _LOCK:
+            _MEDIA.update({"state": "playing", "track": result.get("track", query),
+                           "service": "spotify", "browser_url": ""})
+    return result
 
 
 def media_control(action: str, value: int | None = None) -> dict:
-    """Handle pause/stop/skip and volume commands used by the ME2 demo."""
+    """Control the real active Spotify player, returning the provider result."""
     action = str(action or "").strip().lower().replace(" ", "_")
-    aliases = {"next": "skip", "louder": "volume_up", "quieter": "volume_down",
-               "volumeup": "volume_up", "volumedown": "volume_down"}
-    action = aliases.get(action, action)
-    allowed = {"play", "pause", "stop", "skip", "volume_up", "volume_down", "set_volume"}
-    if action not in allowed:
-        return {"ok": False, "error": f"unsupported media action: {action}"}
-    with _LOCK:
-        if action in {"play", "pause", "stop"}:
-            _MEDIA["state"] = {"play": "playing", "pause": "paused", "stop": "stopped"}[action]
-        elif action == "skip":
-            _MEDIA["state"] = "playing"
-            _MEDIA["track"] = "next track"
-        else:
-            current = int(_MEDIA["volume"])
-            if action == "volume_up":
-                current += 10
-            elif action == "volume_down":
-                current -= 10
-            else:
-                if value is None:
-                    return {"ok": False, "error": "value is required for set_volume"}
-                current = int(value)
-            _MEDIA["volume"] = max(0, min(100, current))
-        state = dict(_MEDIA)
-    provider = {"youtube_music": "YouTube Music", "youtube": "YouTube",
-                "spotify": "Spotify", "local": "local demo"}.get(
-                    state.get("service"), state.get("service", "browser"))
-    _emit_music({"action": action, "provider": provider,
-                 "query": state.get("track", ""),
-                 "url": state.get("browser_url", ""), "media": state,
-                 "requires_user_click": bool(state.get("browser_url"))})
-    return {"ok": True, "action": action, "media": state,
-            "provider": provider,
-            "browser_url": state.get("browser_url", ""),
-            "requires_user_click": bool(state.get("browser_url"))}
+    action = {
+        "louder": "volume_up", "increase_volume": "volume_up",
+        "quieter": "volume_down", "decrease_volume": "volume_down",
+        "next_track": "next", "next_song": "next",
+    }.get(action, action)
+    result = spotify_player.control(action, value)
+    if result.get("ok"):
+        with _LOCK:
+            state = str((result.get("playback") or {}).get("playing", ""))
+            if action in {"pause", "stop"}:
+                _MEDIA["state"] = "paused" if action == "pause" else "stopped"
+            elif action in {"play", "skip", "next"}:
+                _MEDIA["state"] = "playing"
+    return result
 
 
 def get_weather(location: str) -> dict:
@@ -235,12 +210,9 @@ def control_lights(action: str, room: str = "all", value: int | str | None = Non
             state["color"] = str(value).strip()
         _LIGHTS[room] = state
         device = simulated_light_state(room)
-    live = bool(os.getenv("HOME_ASSISTANT_URL") and os.getenv("HOME_ASSISTANT_TOKEN"))
     return {"ok": True, "room": room, "lights": device,
-            "mode": "home_assistant_ready" if live else "local_demo",
-            "live_integration": live,
-            "note": ("Simulated bulb updated. Set HOME_ASSISTANT_URL, HOME_ASSISTANT_TOKEN, "
-                     "and entity mapping before controlling physical lights.")}
+            "mode": "local_demo", "live_integration": False,
+            "note": "Simulated bulb updated. This project has no physical light controller connected."}
 
 
 def set_thermostat(temperature_c: float, room: str = "home") -> dict:
@@ -254,11 +226,9 @@ def set_thermostat(temperature_c: float, room: str = "home") -> dict:
     room = str(room or "home").strip() or "home"
     with _LOCK:
         _THERMOSTATS[room] = temperature_c
-    live = bool(os.getenv("HOME_ASSISTANT_URL") and os.getenv("HOME_ASSISTANT_TOKEN"))
     return {"ok": True, "room": room, "temperature_c": temperature_c,
-            "mode": "home_assistant_ready" if live else "local_demo",
-            "live_integration": live,
-            "note": "Set HOME_ASSISTANT_URL, HOME_ASSISTANT_TOKEN, and climate entity mapping for a physical thermostat."}
+            "mode": "local_demo", "live_integration": False,
+            "note": "Simulated thermostat state updated; no physical climate controller is connected."}
 
 
 def _parse_alarm_time(time_text: str) -> dt.datetime | None:
@@ -275,7 +245,8 @@ def _parse_alarm_time(time_text: str) -> dt.datetime | None:
         hour = hour % 12 + (12 if meridian == "pm" else 0)
     elif hour > 23:
         return None
-    now = dt.datetime.now().astimezone()
+    zone = ZoneInfo("Asia/Manila")
+    now = dt.datetime.now(zone)
     candidate = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
     if candidate <= now:
         candidate += dt.timedelta(days=1)
@@ -283,31 +254,22 @@ def _parse_alarm_time(time_text: str) -> dt.datetime | None:
 
 
 def set_alarm(time_text: str, label: str = "") -> dict:
-    """Create a next-occurrence local alarm (e.g. ``7:30 AM``)."""
+    """Create a persistent next-occurrence alarm announced by ME3 when due."""
     when = _parse_alarm_time(time_text)
     if when is None:
         return {"ok": False, "error": "use an alarm time such as 7:30 AM or 19:30"}
-    alarm_id = _next("alarm")
-    item = {"id": alarm_id, "time": _iso(when), "label": str(label or ""), "cancelled": False}
-    with _LOCK:
-        _ALARMS[alarm_id] = item
-    return {"ok": True, "alarm": dict(item),
-            "note": "The agent stores the alarm; connect a platform notification scheduler for audible firing."}
+    item = _store().create("alarm", {"label": str(label or "")}, when.timestamp())
+    item["time"] = dt.datetime.fromtimestamp(item["due_at"], ZoneInfo("Asia/Manila")).isoformat(timespec="seconds")
+    return {"ok": True, "alarm": item, "delivery": "persistent_me3_voice_and_ui"}
 
 
 def list_alarms(include_cancelled: bool = False) -> dict:
-    with _LOCK:
-        return {"ok": True, "alarms": [dict(v) for v in _ALARMS.values()
-                                         if include_cancelled or not v["cancelled"]]}
+    rows = _store().list("alarm", include_finished=include_cancelled)
+    return {"ok": True, "alarms": rows}
 
 
 def cancel_alarm(alarm_id: str) -> dict:
-    with _LOCK:
-        item = _ALARMS.get(str(alarm_id))
-        if not item:
-            return {"ok": False, "error": "alarm_not_found"}
-        item["cancelled"] = True
-    return {"ok": True, "id": str(alarm_id)}
+    return _store().finish(alarm_id, "cancelled")
 
 
 def create_reminder(text: str, delay_seconds: float | None = None,
@@ -328,42 +290,132 @@ def create_reminder(text: str, delay_seconds: float | None = None,
         try:
             when = dt.datetime.fromisoformat(str(at_text).strip())
             if when.tzinfo is None:
-                when = when.astimezone()
+                when = when.replace(tzinfo=ZoneInfo("Asia/Manila"))
         except ValueError:
             when = _parse_alarm_time(at_text)
     if when is None:
         return {"ok": False, "error": "provide delay_seconds or at_text"}
-    reminder_id = _next("reminder")
-    item = {"id": reminder_id, "text": text, "at": _iso(when), "completed": False}
-    with _LOCK:
-        _REMINDERS[reminder_id] = item
-    return {"ok": True, "reminder": dict(item),
-            "note": "The agent stores the reminder; connect a notification scheduler for delivery."}
+    calendar_event = google_calendar.create_reminder_event(text, when)
+    calendar_synced = bool(calendar_event.get("ok"))
+    item = _store().create("reminder", {
+        "text": text,
+        "calendar_event_id": calendar_event.get("event_id") if calendar_synced else None,
+        "calendar_event_url": calendar_event.get("event_url") if calendar_synced else None,
+    }, when.timestamp())
+    item["at"] = dt.datetime.fromtimestamp(item["due_at"], ZoneInfo("Asia/Manila")).isoformat(timespec="seconds")
+    return {"ok": True, "reminder": item,
+            "calendar_synced": calendar_synced,
+            "calendar_sync_error": (None if calendar_synced else calendar_event.get("error")),
+            "calendar_event_id": calendar_event.get("event_id") if calendar_synced else None,
+            "calendar_event_url": calendar_event.get("event_url") if calendar_synced else None,
+            "delivery": "persistent_me3_voice_and_ui",
+            "note": ("Also added to Google Calendar." if calendar_synced else
+                     "Local reminder is active; Google Calendar is not connected or did not confirm sync.")}
 
 
 def list_reminders(include_completed: bool = False) -> dict:
-    with _LOCK:
-        return {"ok": True, "reminders": [dict(v) for v in _REMINDERS.values()
-                                             if include_completed or not v["completed"]]}
+    return {"ok": True, "reminders": _store().list(
+        "reminder", include_finished=include_completed)}
 
 
 def complete_reminder(reminder_id: str) -> dict:
-    with _LOCK:
-        item = _REMINDERS.get(str(reminder_id))
-        if not item:
-            return {"ok": False, "error": "reminder_not_found"}
-        item["completed"] = True
-    return {"ok": True, "id": str(reminder_id)}
+    item = _store().get(reminder_id)
+    if not item or item.get("kind") != "reminder":
+        return {"ok": False, "error": "reminder_not_found"}
+    event_id = str((item.get("payload") or {}).get("calendar_event_id") or "")
+    if event_id:
+        deleted = google_calendar.delete_event(event_id)
+        if not deleted.get("ok"):
+            return deleted
+    return _store().finish(reminder_id, "completed")
+
+
+def create_timer(seconds: float, label: str = "") -> dict:
+    try:
+        seconds = float(seconds)
+    except (TypeError, ValueError):
+        return {"ok": False, "error": "seconds_must_be_numeric"}
+    if seconds <= 0 or seconds > 30 * 24 * 3600:
+        return {"ok": False, "error": "timer_must_be_between_0_and_30_days"}
+    item = _store().create("timer", {"label": str(label or "")}, time.time() + seconds)
+    return {"ok": True, "id": item["id"], "label": str(label or ""),
+            "fires_at": dt.datetime.fromtimestamp(item["due_at"], dt.timezone.utc).isoformat(),
+            "delivery": "persistent_me3_voice_and_ui"}
+
+
+def list_scheduled_timers(include_finished: bool = False) -> dict:
+    return {"ok": True, "timers": _store().list("timer", include_finished)}
+
+
+def cancel_scheduled_timer(timer_id: str) -> dict:
+    return _store().finish(timer_id, "cancelled")
+
+
+def clock_schedule_snapshot() -> dict:
+    rows = [item for item in _store().list(include_finished=False)
+            if item.get("kind") in {"timer", "alarm"}]
+    return {"ok": True, "now": time.time(), "items": rows}
+
+
+def create_clock_action(payload: dict) -> dict:
+    if not isinstance(payload, dict):
+        return {"ok": False, "error": "schedule_payload_required"}
+    kind = str(payload.get("kind") or "").strip().lower()
+    if kind == "timer":
+        try:
+            seconds = float(payload.get("seconds"))
+        except (TypeError, ValueError):
+            return {"ok": False, "error": "timer_seconds_required"}
+        return create_timer(seconds, str(payload.get("label") or "web timer"))
+    if kind == "alarm":
+        return set_alarm(str(payload.get("time_text") or ""),
+                         str(payload.get("label") or "ME3 alarm"))
+    return {"ok": False, "error": "schedule_kind_must_be_timer_or_alarm"}
+
+
+def cancel_clock_action(action_id: str) -> dict:
+    item = _store().get(action_id)
+    if not item or item.get("kind") not in {"timer", "alarm"}:
+        return {"ok": False, "error": "clock_action_not_found"}
+    return _store().finish(action_id, "cancelled")
+
+
+def schedule_meeting(title: str, start: str, end: str,
+                     attendees: list[str] | None = None,
+                     timezone: str = "Asia/Manila", location: str = "",
+                     description: str = "", create_meet: bool = True) -> dict:
+    """Create a Google Calendar event and optional Google Meet conference."""
+    return google_calendar.create_event(
+        title, start, end, attendees=attendees, timezone=timezone,
+        location=location, description=description, create_meet=create_meet)
 
 
 def call_contact(contact: str, confirm: bool = False) -> dict:
-    """Report that ordinary voice calls are not available in Telegram-only mode."""
+    """Place a phone call through a connected ME3 Android companion device."""
     raw = str(contact or "").strip()
     if not raw:
         return {"ok": False, "error": "contact is required"}
-    return {"ok": False, "error": "voice_calls_unsupported_in_telegram_bot_api_mode",
-            "contact": raw, "network_called": False,
-            "note": "Telegram Bot API text is supported; ordinary voice calls require a separately reviewed MTProto/TDLib bridge."}
+    if not confirm:
+        return {"ok": False, "error": "confirmation_required", "contact": raw,
+                "network_called": False}
+    with _LOCK:
+        dispatcher = _DEVICE_ACTION_DISPATCHER
+    if dispatcher is None:
+        return {"ok": False, "error": "android_call_device_not_connected",
+                "contact": raw, "network_called": False}
+    try:
+        result = dispatcher({"action": "call_phone", "contact": raw}, timeout_s=30)
+    except TypeError:
+        result = dispatcher({"action": "call_phone", "contact": raw})
+    except Exception as exc:  # noqa: BLE001
+        return {"ok": False, "error": "android_call_dispatch_failed",
+                "error_type": type(exc).__name__}
+    if not isinstance(result, dict):
+        return {"ok": False, "error": "invalid_android_action_result"}
+    return {"ok": bool(result.get("ok")), "contact": raw,
+            "status": result.get("status"),
+            "error": result.get("error"),
+            "device": "ME3 Android companion"}
 
 
 def send_message(contact: str, body: str, channel: str = "telegram",
@@ -378,8 +430,91 @@ def send_message(contact: str, body: str, channel: str = "telegram",
     if channel != "telegram":
         return {"ok": False, "error": "telegram_only_channel", "channel": channel,
                 "network_called": False}
-    chat_id = raw if re.fullmatch(r"-?\d+", raw) else os.getenv("ME3_TELEGRAM_CHAT_" + slug, "")
+    aliases = {"WIFE": "MNCFRNDZ", "WIFEY": "MNCFRNDZ", "WIFEEY": "MNCFRNDZ",
+               "WIFEEYY_DUMALAOG_FERNANDEZ": "MNCFRNDZ",
+               "MCFRNDZ": "MNCFRNDZ", "MNCFRNDZ": "MNCFRNDZ"}
+    mapping_key = "ME3_TELEGRAM_CHAT_" + aliases.get(slug, slug)
+    chat_id = raw if re.fullmatch(r"-?\d+", raw) else secure_config.get(mapping_key)
     if not chat_id:
         return {"ok": False, "error": "telegram_contact_not_configured", "contact": raw}
     return channels.send_telegram_message(chat_id, body, confirm=confirm)
+
+
+def telegram_status() -> dict:
+    token_ready = bool(secure_config.get("TELEGRAM_BOT_TOKEN"))
+    mapped = bool(secure_config.get("ME3_TELEGRAM_CHAT_MNCFRNDZ"))
+    return {"configured": token_ready and mapped, "bot_configured": token_ready,
+            "target_mapped": mapped, "target": "@mncfrndz"}
+
+
+def phone_call_status() -> dict:
+    with _LOCK:
+        dispatcher = _DEVICE_ACTION_DISPATCHER
+    owner = getattr(dispatcher, "__self__", None) if dispatcher else None
+    try:
+        snapshot = owner.snapshot() if owner and hasattr(owner, "snapshot") else {}
+        connected = int(snapshot.get("device_action_clients", 0))
+    except Exception:
+        connected = 0
+    return {"provider": "android_companion", "configured": connected > 0,
+            "connected_android_clients": connected,
+            "requires_connected_android_client": True,
+            "telegram_voice_calls": "unsupported_by_telegram_bot_api"}
+
+
+def save_telegram_bot_token(token: str) -> dict:
+    return secure_config.set_values({"TELEGRAM_BOT_TOKEN": token})
+
+
+def connect_telegram_target(username: str = "mncfrndz") -> dict:
+    """Map @mncfrndz to its Bot API chat ID after the user starts the bot."""
+    import requests
+
+    username = str(username or "mncfrndz").strip().lstrip("@").lower()
+    if username != "mncfrndz":
+        return {"ok": False, "error": "only_the_configured_target_is_supported"}
+    token = secure_config.get("TELEGRAM_BOT_TOKEN")
+    if not token:
+        return {"ok": False, "error": "telegram_bot_token_required"}
+    try:
+        response = requests.get(
+            f"https://api.telegram.org/bot{token}/getUpdates",
+            params={"limit": 100, "allowed_updates": json.dumps(["message"])},
+            timeout=15,
+        )
+        if response.status_code != 200:
+            return {"ok": False, "error": "telegram_get_updates_rejected",
+                    "status_code": response.status_code}
+        data = response.json()
+        if data.get("ok") is not True:
+            return {"ok": False, "error": "telegram_get_updates_rejected"}
+        chat_id = None
+        for update in data.get("result") or []:
+            message = update.get("message") or {}
+            chat = message.get("chat") or {}
+            sender = message.get("from") or {}
+            candidates = (chat, sender)
+            if any(str(candidate.get("username") or "").lower() == username
+                   for candidate in candidates):
+                found = chat.get("id")
+                if isinstance(found, (int, str)) and re.fullmatch(r"-?\d+", str(found)):
+                    chat_id = str(found)
+                    break
+        if not chat_id:
+            return {"ok": False, "error": "target_must_start_the_me3_bot_once",
+                    "target": "@mncfrndz"}
+        aliases = {
+            "ME3_TELEGRAM_CHAT_MNCFRNDZ": chat_id,
+            "ME3_TELEGRAM_CHAT_WIFE": chat_id,
+            "ME3_TELEGRAM_CHAT_WIFEY": chat_id,
+            "ME3_TELEGRAM_CHAT_WIFEEY": chat_id,
+            "ME3_TELEGRAM_CHAT_WIFEEYY_DUMALAOG_FERNANDEZ": chat_id,
+        }
+        saved = secure_config.set_values(aliases)
+        if not saved.get("ok"):
+            return saved
+        return {"ok": True, "mapped": True, "target": "@mncfrndz"}
+    except Exception as exc:  # noqa: BLE001 - never expose token or response body
+        return {"ok": False, "error": "telegram_connect_failed",
+                "error_type": type(exc).__name__}
 

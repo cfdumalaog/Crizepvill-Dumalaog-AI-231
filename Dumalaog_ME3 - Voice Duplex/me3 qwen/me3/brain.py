@@ -38,8 +38,8 @@ def _direct_me2_request(text: str) -> tuple[str, dict] | None:
     if not raw or low in {"stop processing", "skip", "steer"}:
         return None
 
-    # Play music / song / track.  Google maps to YouTube Music; the operator
-    # can choose Spotify explicitly and the UI opens the signed-in browser.
+    # Music commands always go through the Spotify player adapter.  Browser
+    # search URLs are not treated as completed playback.
     play = re.search(r"\b(?:play|start)\b", low)
     play_tail = low[play.end():].strip() if play else ""
     if play and (
@@ -55,8 +55,7 @@ def _direct_me2_request(text: str) -> tuple[str, dict] | None:
             r"\s+(?:on|in|using|from)\s+(?:spotify|youtube(?:\s+music)?)\s*$",
             "", query, flags=re.IGNORECASE,
         ).strip(" .,!?:")
-        service = "spotify" if "spotify" in low else "youtube_music"
-        return "play_music", {"query": query or "music", "service": service}
+        return "play_music", {"query": query or "music", "service": "spotify"}
 
     # Media controls are deliberately checked before generic search phrases.
     media = {
@@ -120,29 +119,72 @@ def _direct_me2_request(text: str) -> tuple[str, dict] | None:
         if match:
             return "set_alarm", {"time_text": match.group(1), "label": "voice alarm"}
 
+    # A strict ISO-date form keeps calendar scheduling available when Qwen is
+    # offline. Natural-language date interpretation remains with the model.
+    meeting = re.match(
+        r"^(?:please\s+)?(?:schedule|book|create|set up)\s+(?:a\s+)?meeting"
+        r"(?:\s+(?:called|titled))?\s+(.+?)\s+(?:on|for)\s+"
+        r"(\d{4}-\d{2}-\d{2})\s+(?:at\s+)?(\d{1,2}:\d{2})"
+        r"(?:\s+(?:to|until)\s+(\d{1,2}:\d{2}))?$",
+        raw, flags=re.IGNORECASE)
+    if meeting:
+        from datetime import datetime, timedelta
+        title, date_text, start_text, end_text = meeting.groups()
+        start = datetime.fromisoformat(f"{date_text}T{start_text}")
+        end = (datetime.fromisoformat(f"{date_text}T{end_text}")
+               if end_text else start + timedelta(minutes=30))
+        return "schedule_meeting", {
+            "title": title.strip(), "start": start.isoformat(),
+            "end": end.isoformat(), "timezone": "Asia/Manila",
+            "create_meet": True,
+        }
+
     # Reminders and lists.
     if "reminder" in low or "remind me" in low:
         if re.search(r"\b(?:what are|list|show)\b.*\breminders?\b", low):
             return "list_reminders", {"include_completed": False}
+        match = re.search(
+            r"\bremind me to\s+(.+?)\s+in\s+(\d+(?:\.\d+)?)\s*(seconds?|secs?|minutes?|mins?|hours?|hrs?|days?)\b",
+            raw, flags=re.IGNORECASE)
+        if match:
+            amount = float(match.group(2))
+            unit = match.group(3).lower()
+            factor = (86400 if unit.startswith("d") else 3600 if unit.startswith("h")
+                      else 60 if unit.startswith("m") else 1)
+            return "create_reminder", {
+                "text": match.group(1).strip(), "delay_seconds": amount * factor}
+        match = re.search(
+            r"\bremind me to\s+(.+?)\s+at\s+(\d{1,2}(?::\d{2})?\s*(?:a\.?m\.?|p\.?m\.?)?)\s*$",
+            raw, flags=re.IGNORECASE)
+        if match:
+            return "create_reminder", {
+                "text": match.group(1).strip(), "at_text": match.group(2).strip()}
         match = re.search(r"\bremind me to\s+(.+)$", raw, flags=re.IGNORECASE)
         if match:
-            return "create_reminder", {"text": match.group(1).strip(), "delay_seconds": None}
+            return "create_reminder", {"text": match.group(1).strip()}
 
-    # Telegram text and the intentionally unsupported voice-call tool still
-    # produce a tool event and a safe, explicit result.
-    if re.search(r"\bcall\b", low):
-        match = re.search(r"\bcall\s+(.+)$", raw, flags=re.IGNORECASE)
+    # Direct, complete communication commands execute through configured
+    # provider/device adapters. Missing details are left for Qwen to clarify.
+    if re.match(r"^(?:please\s+)?(?:can you\s+|could you\s+)?(?:call|phone|dial)\s+", low):
+        match = re.match(
+            r"^(?:please\s+)?(?:can you\s+|could you\s+)?(?:call|phone|dial)\s+(.+)$",
+            raw, flags=re.IGNORECASE)
         if match:
-            contact = re.sub(r"\s+(?:on|via)\s+.*$", "", match.group(1), flags=re.IGNORECASE)
-            return "call_contact", {"contact": contact.strip(), "confirm": False}
-    if re.search(r"\b(?:send|message|text|telegram)\b", low):
-        contact_match = re.search(r"\bto\s+([^,:]+)", raw, flags=re.IGNORECASE)
-        body_match = re.search(r"\b(?:saying|that says|message)\s+(.+)$", raw, flags=re.IGNORECASE)
-        if contact_match:
+            contact = re.sub(r"\s+(?:on|via|using)\s+.*$", "", match.group(1), flags=re.IGNORECASE)
+            contact = re.sub(r"\s+please\s*$", "", contact, flags=re.IGNORECASE)
+            return "call_contact", {"contact": contact.strip(), "confirm": True}
+    if re.search(r"\b(?:send|text|message)\b", low):
+        contact_match = re.search(
+            r"\bto\s+(.+?)(?=\s+\b(?:saying|that says|with (?:the )?message|message is)\b|[,;:]|$)",
+            raw, flags=re.IGNORECASE)
+        body_match = re.search(
+            r"\b(?:saying|that says|with (?:the )?message|message is)\s*[:,-]?\s*(.+)$",
+            raw, flags=re.IGNORECASE)
+        if contact_match and body_match:
             return "send_message", {
                 "contact": contact_match.group(1).strip(),
-                "body": body_match.group(1).strip() if body_match else "",
-                "channel": "telegram", "confirm": False,
+                "body": body_match.group(1).strip(),
+                "channel": "telegram", "confirm": True,
             }
 
     # Questions/search/weather.  Open-ended questions remain with Qwen unless
@@ -165,14 +207,18 @@ def _direct_tool_reply(name: str, args: dict, result) -> str:
     if not isinstance(result, dict):
         return "The requested command completed."
     if not result.get("ok"):
+        if (name == "create_reminder"
+                and result.get("error") == "provide delay_seconds or at_text"):
+            return f"When should I remind you to {args.get('text', 'do that')}?"
         error = str(result.get("error") or "the tool reported an error").replace("_", " ")
         return f"I could not complete that command because {error}."
     if name == "play_music":
-        return (f"I prepared {result.get('provider', 'the music service')} for "
-                f"{args.get('query', 'music')}. Please click Open in browser "
-                "in the ME3 UI to start playback using your signed-in session.")
+        artists = ", ".join(result.get("artists") or [])
+        track = str(result.get("track") or args.get("query", "the requested music"))
+        device = str(result.get("device") or "your Spotify player")
+        return f"Started {track}{' by ' + artists if artists else ''} on {device}."
     if name == "media_control":
-        return f"Media control completed: {args.get('action', 'updated')}."
+        return f"Spotify playback updated: {args.get('action', 'media control')}."
     if name == "control_lights":
         light = result.get("lights") or {}
         state = "on" if light.get("on") else "off"
@@ -188,15 +234,28 @@ def _direct_tool_reply(name: str, args: dict, result) -> str:
         rows = result.get("results") or []
         return f"I found {len(rows)} web result(s) for {args.get('query', 'your search')}."
     if name == "set_timer":
-        return "The timer has been set."
+        return "The timer is set. ME3 will announce it when it finishes."
     if name == "set_alarm":
-        return "The alarm has been set."
+        return "The alarm is set. ME3 will announce it at the scheduled time."
     if name == "create_reminder":
-        return "The reminder has been created."
+        if result.get("calendar_synced") is False:
+            return "I set a local reminder. It is not synced to Google Calendar yet."
+        return "The reminder is set. ME3 will announce it when due."
     if name == "list_reminders":
         return f"There are {len(result.get('reminders') or [])} active reminder(s)."
-    if name in {"call_contact", "send_message"}:
-        return "I checked the requested communication action. " + str(result.get("message") or result.get("error") or "Confirmation is required.")
+    if name == "call_contact":
+        if result.get("ok"):
+            return f"Calling {result.get('contact', args.get('contact', 'the contact'))} now."
+        return "I could not place the call: " + str(result.get("error") or "the Android phone did not confirm the call.")
+    if name == "send_message":
+        if result.get("ok"):
+            return f"Telegram message sent to {args.get('contact', 'the recipient')}."
+        return "I could not send the Telegram message: " + str(result.get("error") or "the provider did not confirm delivery.")
+    if name == "schedule_meeting":
+        if result.get("ok"):
+            meet = result.get("meet_url")
+            return "Meeting scheduled in Google Calendar." + (f" Google Meet link: {meet}." if meet else "")
+        return "I could not schedule the meeting: " + str(result.get("error") or "the calendar did not confirm it.")
     return "The requested command completed successfully."
 
 
@@ -460,6 +519,59 @@ class ToolBrain:
             return content.strip()
         return "I completed the available actions. I can continue from the current state if you require another step."
 
+    @staticmethod
+    def _explicit_action_request(tool_name: str, text: str,
+                                 history: list[dict] | None = None) -> bool:
+        low = " ".join(str(text or "").lower().split())
+        explicit = False
+        if tool_name in {"send_message", "send_telegram_message", "send_email"}:
+            explicit = bool(re.match(
+                r"^(?:please\s+)?(?:(?:can|could)\s+you\s+)?(?:send|text|message|email|telegram)\b", low))
+        elif tool_name == "call_contact":
+            explicit = bool(re.match(
+                r"^(?:please\s+)?(?:can you\s+|could you\s+)?(?:call|phone|dial)\b", low))
+        elif tool_name == "schedule_meeting":
+            explicit = (bool(re.search(r"\b(?:schedule|book|set up|create)\b", low))
+                        and bool(re.search(r"\b(?:meeting|meet|appointment)\b", low)))
+        if explicit:
+            return True
+
+        # Permit a short answer to an agent clarification only when the most
+        # recent user turn clearly requested this same action and the agent
+        # then asked for its missing details. This keeps multi-turn voice use
+        # smooth without allowing an old request to authorize a later action.
+        history = history or []
+        user_indexes = [i for i, item in enumerate(history)
+                        if item.get("role") == "user"]
+        if not user_indexes or len(low) > 220:
+            return False
+        prior_index = user_indexes[-1]
+        prior_text = str(history[prior_index].get("content") or "")
+        prior_low = " ".join(prior_text.lower().split())
+        assistant_followup = " ".join(
+            str(item.get("content") or "") for item in history[prior_index + 1:]
+            if item.get("role") == "assistant").lower()
+        if tool_name in {"send_message", "send_telegram_message", "send_email"}:
+            requested = bool(re.search(r"\b(?:send|text|message|email|telegram)\b", prior_low))
+            asked = bool(re.search(r"\b(?:what|which|who).{0,100}\b(?:message|say|content|recipient|email|send)\b", assistant_followup))
+        elif tool_name == "call_contact":
+            requested = bool(re.match(r"^(?:please\s+)?(?:can you\s+|could you\s+)?(?:call|phone|dial)\b", prior_low))
+            asked = bool(re.search(r"\b(?:who|which|what).{0,80}\b(?:call|contact|number)\b", assistant_followup))
+        elif tool_name == "schedule_meeting":
+            requested = (bool(re.search(r"\b(?:schedule|book|set up|create)\b", prior_low))
+                         and bool(re.search(r"\b(?:meeting|meet|appointment)\b", prior_low)))
+            asked = bool(re.search(r"\b(?:when|what time|which date|attendee|who).{0,100}\b(?:meeting|meet|calendar|invite|schedule|time|date)\b", assistant_followup))
+        else:
+            return False
+        return requested and asked
+
+    @staticmethod
+    def _recent_user_request(history: list[dict], current: str) -> str:
+        recent = [str(item.get("content") or "") for item in history
+                  if item.get("role") == "user"][-2:]
+        recent.append(str(current or ""))
+        return " ".join(recent)
+
     def chat(self, history: list[dict], user_text: str) -> str:
         self.metrics = {
             "t0": time.perf_counter(),
@@ -550,6 +662,10 @@ class ToolBrain:
                     self._progress("tool", f"Running tool: {name}")
                     log.info("tool call: %s", name)
                     t_call = time.perf_counter()
+                    if name in {"send_message", "send_telegram_message", "send_email",
+                                "call_contact", "schedule_meeting"}:
+                        args["confirm"] = self._explicit_action_request(
+                            name, user_text, history)
                     result = self.dispatch_fn(name, args)
                     tool_ms = (time.perf_counter() - t_call) * 1e3
                     self.metrics["tool_calls"].append({

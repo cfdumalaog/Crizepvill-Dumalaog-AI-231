@@ -1,7 +1,8 @@
 # SHARC VPN setup for the ME3 Qwen Raspberry Pi
 
-This document records the deployment procedure used for the active Pi at
-`/home/dalmacio/Desktop/dandan-qwen`. It intentionally contains no VPN
+This document records the deployment procedure for the active Qwen ME3 Pi at
+`/home/dalmacio/Desktop/dandan`. The Pi is reached by `cfdfnjrpi5.local` on a
+shared local network; its DHCP address changes with the network. It intentionally contains no VPN
 username, password, API key, or `.ovpn` profile body. Keep those values outside
 the repository.
 
@@ -67,10 +68,21 @@ systemctl list-dependencies multi-user.target --plain | \
   grep openvpn-client@sharchpc.service
 ```
 
-The named client was restarted after hardening on 2026-11-07 and restored
-`tun0`, the DGX route, authenticated HTTP 200 probes to both Qwen services, and
-ME3 health `loop:true`. This was a service-restart validation rather than a
-full Pi reboot, so no remote session was unnecessarily interrupted.
+An earlier 2026-11-07 service check restored `tun0`, the DGX route,
+authenticated HTTP 200 probes to both Qwen services, and ME3 health
+`loop:true`. The later hotspot check below found TLS handshake failures and no
+tunnel, so that earlier success does not describe the current hotspot state.
+
+### Latest hotspot check (2026-11-07)
+
+The Pi is reachable from the laptop hotspot as `cfdfnjrpi5.local` and currently
+has DHCP address `192.168.137.43` (`ipv4.method=auto`). Do not treat that address
+as static. The OpenVPN unit remains enabled and running, but current logs show
+repeated TLS handshake failures; no tunnel interface is present and the route
+to DGX3 uses the hotspot Wi-Fi gateway. Qwen ASR/TTS reachability is therefore
+not verified in this state. The next VPN check should use an allowed network or
+an administrator-provided transport that the hotspot uplink permits; do not
+change the protected profile based on an assumed transport.
 
 Do not place credentials on the command line. Supply them through the
 root-only auth file or an equivalent protected secret-management mechanism.

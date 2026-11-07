@@ -3,8 +3,8 @@
 The source template remains untouched.  The output is a new two-page, 960x540
 PDF that keeps the template's hierarchy, palette, spacing, table structure,
 and footer treatment while replacing placeholders with verified Qwen Instruct
-details.  Mean/p95 cells are deliberately blank until the updated direct-feed
-class benchmark is run.
+details. Mean/p95 cells are populated from the recorded 2026-11-07 direct-feed
+class benchmark. ASR fallback and the unmeasured barge-in metric are identified.
 """
 from __future__ import annotations
 
@@ -182,7 +182,7 @@ def prompt_box(c: canvas.Canvas, x: float, y: float, w: float, h: float) -> None
     content = (
         "Filipino / English / Taglish voice assistant for a Philippines customer-support pilot.\n"
         "Formal, respectful, concise spoken replies; never flirtatious or suggestive.\n"
-        "Use bounded project tools when asked; confirm calls, SMS, Telegram, or email first.\n"
+        "Execute clear user requests with bounded tools; ask only for missing details.\n"
         "Never expose credentials or claim an external action succeeded without tool evidence.\n"
         "For long work: \"I am processing your request now.\""
     )
@@ -262,7 +262,7 @@ def build() -> Path:
 
     # Page 1
     header(c, "Full-Duplex Voice Agent on a Raspberry Pi",
-           "QWEN INSTRUCT BUILD | 06 NOV 2026",
+           "QWEN INSTRUCT BUILD | 07 NOV 2026",
            "MACHINE EXERCISE - ME3 QWEN INSTRUCT")
     section(c, "1", "SYSTEM DIAGRAM", "input -> Pi -> agent -> laptop speaker", 48, 418)
     diagram(c, 48, 255, 430, 145)
@@ -270,7 +270,7 @@ def build() -> Path:
         "Fifine mic is captured by the Pi service; laptop browser is the speaker sink in the intended demo route.",
         "Pi owns echo guard, Silero VAD, MCP servers, task safety, and duplex state; Qwen services are reached over VPN.",
         "Qwen2-Audio ASR -> Qwen ToolBrain / MCP -> Qwen3-TTS Aiden; output is 16-kHz PCM to the browser.",
-        "The agent supports web/file/build tools and confirmation-gated channels; no model training is required.",
+        "The agent supports web/file/build tools and direct voice commands; no model training is required.",
         "Protected overlap keeps listening open: matched echo is rejected; genuine speech is queued; stop, skip, and steer are explicit controls.",
     ], 500, 395, 410, size=8.8, leading=12.5, gap=2)
     c.setFillColor(NAVY)
@@ -295,11 +295,11 @@ def build() -> Path:
     section(c, "4", "MCP SERVICES", "+ model serving: one table, one truth", 48, 428)
     rows = [
         ["Component", "MCP server / transport", "Tools", "Model", "Served where / notes"],
-        ["ASR", "me3-asr / FastMCP", "transcribe(audio) -> text", "Qwen2-Audio-7B-Instruct", "Pi service; Qwen vLLM over VPN; final at VAD endpoint"],
+        ["ASR", "me3-asr / FastMCP", "transcribe(audio) -> text", "Qwen2-Audio-7B-Instruct", "Pi service; benchmark used faster-whisper fallback"],
         ["TTS", "me3-tts / FastMCP", "speak(text) -> audio", "Qwen3-TTS-12Hz-1.7B-CustomVoice; Aiden", "Pi service; Qwen vLLM over VPN; one formal voice"],
         ["LLM", "ToolBrain / MCP client", "function calling", "Qwen/Qwen3.8-27B", "Remote vLLM; fast_mode=true; hidden thinking=false"],
         ["VAD", "me3-vad / FastMCP", "detect_speech(frames)", "Silero ONNX", "On-device Pi CPU; 16 kHz mono; endpointing"],
-        ["Task + channels", "me3-tasks / FastMCP + REST", "files, web, build, timers, ME2 parity, channels", "n/a / provider APIs", "Pi-owned tools; live IoT/provider effects require confirmation"],
+        ["Task + channels", "me3-tasks / FastMCP + REST", "files, web, build, timers, ME2 parity, channels", "n/a / provider APIs", "Pi-owned tools; lights/thermostat simulated; APIs need setup"],
     ]
     draw_table(c, 48, 405, [63, 150, 165, 160, 326], rows, 18, font_size=6.8)
 
@@ -313,30 +313,30 @@ def build() -> Path:
 
     metrics = [
         ["Metric", "Definition", "Target", "Mean", "p95"],
-        ["E2E latency", "end of speech -> audio out", "4.0 s", "", ""],
-        ["ASR final", "VAD end -> transcript", "0.8 s", "", ""],
-        ["LLM TTFT", "transcript -> first token", "1.5 s", "", ""],
-        ["TTS TTFB", "text -> first audio chunk", "0.6 s", "", ""],
-        ["Barge-in", "speech -> playback stopped", "0.8 s", "", ""],
-        ["WER", "ASR accuracy on test set", "15%", "", ""],
+        ["E2E latency", "end of speech -> audio out", "4.0 s", "5.81 s", "7.87 s"],
+        ["ASR final", "VAD end -> transcript", "0.8 s", "3.38 s", "4.92 s"],
+        ["LLM TTFT", "transcript -> first token", "1.5 s", "0.21 s", "0.21 s"],
+        ["TTS TTFB", "text -> first audio chunk", "0.6 s", "1.60 s", "2.98 s"],
+        ["Barge-in", "speech -> playback stopped", "0.8 s", "n/m", "n/m"],
+        ["WER", "ASR accuracy on test set", "15%", "29.3%", "n/a"],
     ]
     draw_table(c, 507, 262, [83, 160, 52, 47, 47], metrics, 17, font_size=6.9)
 
     panel(c, 48, 37, 277, 96, "DEMO (deck 2)", [
-        "Available now: injected Qwen voice/tool turn, web-app creation, and ME2 parity tools for music, weather, media, IoT state, timers, reminders, and channels.",
-        "The intended physical demo is Fifine mic on Pi -> Pi ME3 -> browser -> laptop speaker.",
-        "Not claimed here: a clean human Pi spoken turn and physical speaker observation.",
+        "Operator confirmed Pi Fifine speech -> ME3 -> laptop browser speaker.",
+        "Direct commands work without Qwen; complex tasks need model access.",
+        "Barge-in was not measured in the injection-only benchmark (n/m).",
     ])
     panel(c, 339, 37, 277, 96, "RESULTS (deck 2)", [
-        "Workstation acceptance: 70 tests passed; all four MCP health checks passed; Qwen injected voice/tool path passed with zero errors.",
-        "Qwen fixture evidence: ASR 431.9 ms and TTS first-byte 851.6 ms on the recorded comparison run.",
-        "Class mean/p95 cells above remain blank until the updated upstream direct-feed run is executed.",
+        "30 planned; 29 replies and one no-reply. All valid trials aggregated; no best run selected.",
+        "LLM TTFT met target; E2E, ASR, TTS, and WER missed.",
+        "ASR used faster-whisper: DGX3 port 8000 was unreachable.",
     ])
     panel(c, 630, 37, 282, 96, "CHALLENGES & REFERENCES", [
-        "Pi audio: restore Fifine ALSA capture; run a human overlap/echo check.",
-        "Benchmark: run commit 57eaddb; attach stage marks and latency chart.",
-        "Telegram text is implemented; ordinary voice calls need a separately reviewed MTProto/TDLib bridge.",
-        "Refs: MCP, Pipecat, Qwen vLLM, upstream fd-benchmark, ME3 repo/logs.",
+        "Restore DGX3 ASR; rerun the benchmark and measure barge-in.",
+        "Spotify needs API access, Premium, and PKCE; current account lacks API access.",
+        "Calendar OAuth, Telegram bot setup, and Android call permissions remain.",
+        "Lights/thermostat are simulated. See the benchmark report.",
     ])
     footer(c, 2)
     c.save()

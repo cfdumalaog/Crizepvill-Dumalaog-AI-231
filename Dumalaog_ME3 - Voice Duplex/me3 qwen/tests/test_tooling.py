@@ -45,9 +45,11 @@ def test_repeated_voice_history_cannot_swallow_play_music_tool_call(monkeypatch)
         calls.append((name, args))
         return {
             "ok": True,
-            "provider": "YouTube Music",
-            "media": {"state": "playing"},
-            "browser_url": "https://music.youtube.com/search?q=music",
+            "provider": "Spotify",
+            "track": "Requested track",
+            "artists": [],
+            "device": "Laptop speaker",
+            "playback_verified": True,
         }
 
     b = brain.ToolBrain(
@@ -63,9 +65,9 @@ def test_repeated_voice_history_cannot_swallow_play_music_tool_call(monkeypatch)
         {"role": "assistant", "content": "I am ready for your next request."},
     ]
     reply = b.chat(history, "play music")
-    assert calls == [("play_music", {"query": "music", "service": "youtube_music"})]
+    assert calls == [("play_music", {"query": "music", "service": "spotify"})]
     assert b.metrics["tool_calls"][0]["name"] == "play_music"
-    assert "Open in browser" in reply
+    assert "Started Requested track" in reply
 
 
 def test_command_policy_blocks_shell_and_external_access():

@@ -30,6 +30,13 @@ The browser UI below is
 a secondary text and diagnostic console for inspection; it is not the
 definition of the voice agent.
 
+The Pi web UI also executes clock, Spotify, Google Calendar, Telegram message,
+and Android call actions through their provider/device adapters. See
+[`docs/CHANNEL_INTEGRATIONS.md`](docs/CHANNEL_INTEGRATIONS.md) for the exact
+account setup and current execution limits. Local alarms and reminders do not
+need Google; laptop-speaker ringing needs the browser connected and laptop
+awake.
+
 ### Single active audio profile: Qwen Instruct
 
 The active ME3 release is **ME3 QWEN INSTRUCT**. It uses local Silero VAD plus
@@ -142,27 +149,29 @@ viewing the UI. This is the intended path when the operator wants the sound to
 play through the PC while the microphone remains attached to the Pi.
 
 ```bash
-# On the Pi, from the active /home/dalmacio/Desktop/dandan-qwen release:
-python scripts/me3_pi_server.py --host 0.0.0.0 --port 8126 --audio-port 8127 \
-  --brain remote --variant qwen_instruct
+# Start the Pi service with /home/dalmacio/Desktop/ME3 Qwen Demo.desktop.
+The Pi desktop launcher enables/restarts the service and checks the voice loop.
 ```
 
-Open `http://<PI-IP>:8126/` from a PC on the same network. In the **Pi audio
-routing** card, select the Pi microphone and either **This browser / connected
-PC speaker** or a Pi output device, apply the route, and click **Connect
-browser speaker** once. The browser speaker dropdown selects the PC's local
-audio output when the browser supports `AudioContext.setSinkId`. The same
-server is installed by `deploy/me3-agent.service`; the Windows ME2-style
-launcher `launchers/Start-ME3-Pi-Web.bat` starts it and forwards both HTTP and
-audio ports through SSH.
+Use the paired launchers for a demo: click **ME3 Qwen Demo** on the Pi desktop,
+then run **ME3 Qwen Laptop Demo** on the laptop. The Pi keeps the Fifine mic;
+SSH forwards Pi HTTP/audio ports `8126/8127` to laptop `8100/8101`, where the
+browser speaker plays the response. Spotify's OAuth callback at
+`http://127.0.0.1:8100/api/spotify/callback` is carried by the same HTTP
+tunnel. Calendar and Telegram calls are outbound from the Pi and need their
+own account setup.
 
-For the current deployment, use the Windows SSH alias:
+The Pi address uses DHCP and changes when it joins another hotspot or Wi-Fi
+network. Use its stable local hostname instead of saving an IP:
 
 ```powershell
-ssh me3-pi
+ssh -o HostKeyAlias=192.168.254.105 dalmacio@cfdfnjrpi5.local
 ```
 
-It resolves to `dalmacio@192.168.254.105`. `localhost` is this PC, not the Pi.
+The laptop launcher resolves `cfdfnjrpi5.local` automatically when both devices
+are on the same network and mDNS/client isolation permits it. `localhost` is
+this PC, not the Pi. If the network blocks mDNS, create a DHCP reservation for
+the Pi's Wi-Fi MAC address in that network's router.
 The live Pi page serves `/`, `/roadmap`, and `/console` from the same origin;
 navigation deliberately uses relative links so a browser opened through a
 tunnel does not jump to the viewer's unavailable `127.0.0.1:8124`.
@@ -199,9 +208,10 @@ the institutional VPN. Use `-UsePiBrainCredential` only when the routed
 endpoint accepts the Pi's existing Qwen brain credential.
 
 The canonical Qwen service is the Pi user unit on 8126/8127. Do not start a
-second 8136/8137 listener while it is active. The named launcher is retained
-for an explicit tunnel/start workflow, but `ssh me3-pi` is the direct
-diagnostic route.
+second listener. The laptop launcher opens the local forwards on 8100/8101;
+the Pi's DHCP address is resolved by `cfdfnjrpi5.local` on the shared network.
+For a direct diagnostic SSH session use
+`ssh -o HostKeyAlias=192.168.254.105 dalmacio@cfdfnjrpi5.local`.
 
 If ASR reports an empty transcript even though the Fifine signal is nonzero,
 check the SHARC VPN route and the protected Qwen audio provider before changing
@@ -229,6 +239,23 @@ again because browsers close WebSocket audio on service restarts.
 The LAN server is intentionally not public hosting. Use the SSH tunnel or a
 firewall/VPN boundary for remote access, and do not expose the raw audio port
 to the Internet.
+
+## Android companion APK
+
+The `android/` subproject builds `ME3-Qwen-Android-debug.apk`, a small native
+Android companion for the active Qwen Instruct Pi service. It opens the same
+Assistant HTML/WebSocket surface in an Android WebView, remembers an editable
+Pi endpoint, requests Android audio permission when a page asks for capture,
+and allows the phone to act as the browser PCM speaker. Build instructions,
+the LAN/security boundary, and the exact server-side/runtime split are in
+[`android/README.md`](android/README.md).
+
+This APK does not package the Python voice loop, Qwen models, Pi microphone
+capture, or protected provider credentials onto Android. The Pi remains the
+ME3 runtime; Android is the operator console and browser-audio client over a
+trusted LAN/VPN. The existing Assistant page still expects its authoritative
+microphone on the Pi, so installing the APK is not evidence of an Android
+microphone-to-Pi spoken turn.
 
 ## ME2 relationship
 
@@ -366,15 +393,13 @@ ME3 now has an explicit browser path. On Windows, double-click
 `launchers\Start-ME3-Web.bat` to serve the tracked `web/` presenter surface at
 `http://127.0.0.1:8123/`; pass `-Path agent_workspace\voice_webapp` when you
 want to serve a generated Qwen web app. The launcher also
-prints LAN URLs for another device on the same network. For the Pi, double-click
-`launchers\Start-ME3-Pi-Qwen.bat` to start/check the named Qwen Instruct
-deployment at `/home/dalmacio/Desktop/dandan-qwen` and forward it through SSH
-to `http://127.0.0.1:8100/`, matching the ME2 tunnel experience. The Own
-variant has its own `Start-ME3-Pi-Own.bat` at `/home/dalmacio/Desktop/dandan`
-and `http://127.0.0.1:8090/`. The deployments are isolated, but only one
-full-duplex listener should own the physical Fifine capture device at a time;
-launch one voice variant at a time unless separate input devices are selected.
-Both paths are local-network/tunnel access, not public Internet hosting.
+prints LAN URLs for another device on the same network. For the Pi, click
+**ME3 Qwen Demo** on its desktop to restart the systemd service. On Windows,
+use `launchers\Start-ME3-Qwen-Laptop-Demo.bat` to open the SSH tunnel and UI at
+`http://127.0.0.1:8100/`. This keeps ME3 on the Pi and uses the laptop browser
+as the speaker. Both devices must be on the same network; the hostname survives
+DHCP address changes, but network client isolation or disabled mDNS can block
+discovery. This is private LAN/tunnel access, not public Internet hosting.
 
 ### Interactive local UI (diagnostic console)
 
@@ -398,9 +423,10 @@ is running, **Show task progress (not model reasoning)** displays the current ta
 progress stages such as model inference, tool planning, tool execution, and
 completion. It does not expose private chain-of-thought or credentials. The UI
 also shows model timing, tool identities, channel readiness, and safe errors.
-The authoritative physical audio path remains `Start-ME3.bat`; Telegram text
-and optional email remain confirmation-gated, while phone calls and SMS are not
-part of the active project. No phone-provider account is required.
+The active physical audio path is the Pi Qwen service; the laptop browser is the
+speaker/UI. Telegram text and optional email require a clear user request and
+protected provider setup. Phone calls use the optional Android companion; SMS
+and ordinary Telegram voice calls are outside the active project.
 
 ## Functional Requirements Checklist
 | # | Requirement | Status | Where |
@@ -424,7 +450,7 @@ part of the active project. No phone-provider account is required.
 | FR17 | Optional ElevenLabs adapter | ✅ implemented, inactive in the single-voice demo path | `me3/elevenlabs_tts.py`; active profiles stay on one fixed voice |
 | FR18 | Telegram text integration | ✅ implemented, credential-gated | `me3/channels.py` (`send_telegram_message`) + Telegram Bot API `sendMessage` |
 | FR19 | Optional transactional email integration | ✅ implemented, credential-gated | `me3/channels.py` (`send_email`) + Resend Send Email API |
-| FR20 | Telephone calls / SMS | ⛔ intentionally out of scope | Telegram Bot API text is the supported communication path; ordinary voice calls and SMS are not enabled |
+| FR20 | Telephone calls / SMS | ⚠️ Android call path implemented; SMS out of scope | `call_contact` through the connected Android companion; no Twilio or SMS provider |
 | FR21 | Optional Qwen Instruct audio variant | ✅ live ASR/TTS + shared tool loop verified over VPN | `me3/qwen_audio.py`, `--variant qwen_instruct`, `scripts/compare_audio_variants.py` |
 
 ## Tool brain (agentic capabilities)
@@ -432,12 +458,12 @@ part of the active project. No phone-provider account is required.
 The complete Qwen Instruct path is shown in the [ME3 Qwen Instruct system-flow
 infographic](docs/ME3_QWEN_INSTRUCT_SYSTEM_FLOW.svg). It covers the Pi Fifine
 capture path, echo guard, Silero endpointing, Qwen2-Audio transcription,
-streaming Qwen ToolBrain, owned MCP servers, confirmation-gated channels,
+streaming Qwen ToolBrain, owned MCP servers, Telegram and Calendar connectors,
 Qwen3-TTS Aiden output, browser speaker transport, barge-in feedback,
-deployment/VPN layers, safety controls, and observability. The Gmail session
-opened in the operator's browser is intentionally documented as an authenticated
-operator surface only; it is not yet a ME3 Gmail/Google Meet tool connector, so
-future send/join actions must remain explicitly authorized and confirmation-gated.
+deployment/VPN layers, safety controls, and observability. Google Calendar
+event/Meet creation is implemented but needs an OAuth client and one-time
+authorization on the Pi. Gmail sending is not integrated; browser sign-in alone
+does not grant ME3 mailbox access.
 
 The ToolBrain (`me3/brain.py`) is a provider-neutral OpenAI-compatible
 function-calling loop. Qwen/vLLM remains the default; GPT-5.6 Luna can be
@@ -454,9 +480,9 @@ Available tools include file ops (`list_files`, `read_file`, `write_file`,
 (`start_web_server`, `stop_web_server`, `web_servers`), research
 (`fetch_url`, `web_search`), system (`system_info`, `git_status`), and
 timers (`set_timer`, `list_timers`, `cancel_timer`). The channel tools are
-`channel_health`, `send_telegram_message`, and the optional `send_email`; all
-external side-effect tools require explicit confirmation and protected provider
-configuration. Telegram Bot API text is supported. Ordinary Telegram
+`channel_health`, `send_telegram_message`, and the optional `send_email`; a
+clear user request is passed as the explicit authorization flag, and protected
+provider configuration is required. Telegram Bot API text is supported. Ordinary Telegram
 voice-call initiation is not exposed by the Bot API, so ME3 reports voice calls
 as unsupported instead of routing them through another provider.
 
@@ -471,13 +497,17 @@ so repeated conversation history cannot turn an actionable command into a
 generic readiness reply. The guard still emits the same named tool event and
 uses the same dispatcher.
 
-For music, the default Google route is **YouTube Music** because Google Play
-Music was discontinued. `play_music` sends a visible browser handoff event to
-the Pi UI; click **Open in browser** to use the already signed-in YouTube Music
-or Spotify session on the operator's computer. ME3 never copies browser cookies
-to the Pi. Fully automatic pause/skip/volume control would require a provider
-player bridge and OAuth/SDK setup, so the current safe demo boundary is the
-visible browser handoff.
+When no model credential is available, the offline brain still dispatches
+recognized direct commands through the same bounded tools, including media,
+weather/time/search, simulated lights/thermostat, timers/alarms/reminders,
+Telegram messages, Android calls, and strict ISO-date meeting requests.
+Open-ended questions and complex agent tasks still require Qwen or Luna.
+
+For music, ME3 uses Spotify Web API on the active Spotify Connect player.
+Playback and media controls require Spotify API access, Premium, a one-time
+PKCE authorization through the Pi UI, and an active Connect player. ME3 does
+not treat a browser handoff as successful playback and never copies browser
+cookies to the Pi.
 
 Safety: all file paths are confined to the ME3 project; commands run
 tokenized (no shell) against an allowlist; secret-looking files are refused;
@@ -521,9 +551,9 @@ transcripts, endpoints, or audio bytes.
 ## Telegram text and optional email integrations
 
 ME3 uses Telegram Bot API text as its active outbound communication channel.
-The optional Resend email adapter remains separate. Both are deliberately
-credential-gated and confirmation-gated: the agent must identify the target and
-content, receive explicit confirmation, and only then pass `confirm=true`. The
+The optional Resend email adapter remains separate. Both are credential-gated;
+a clear user request is passed as `confirm=true`, and missing recipient/content
+details are requested before execution. The
 tools never return credential material or provider response bodies. The
 Telegram setup checklist is in
 [`docs/CHANNEL_INTEGRATIONS.md`](docs/CHANNEL_INTEGRATIONS.md).
@@ -531,13 +561,14 @@ Telegram setup checklist is in
 Current implementation status is “adapter tested, live side effect not yet
 placed.” `channel_health` is network-free and reports only configured/missing
 environment names. The active Telegram adapter sends one Bot API
-`sendMessage` request after confirmation. Ordinary Telegram voice calls are
+`sendMessage` request for a clear user instruction; a bot token and target that
+has started the bot are still required. Ordinary Telegram voice calls are
 not available through the Bot API; a future voice-call feature would require a
 separately reviewed MTProto/TDLib user-account bridge.
 
 Telegram uses the Bot API `sendMessage` method and requires
-`TELEGRAM_BOT_TOKEN`; the operator must provide the approved `chat_id` and
-confirm the message. No phone-provider account, phone number, or SMS provider
+`TELEGRAM_BOT_TOKEN`; the operator must provide the numeric `chat_id`. No
+phone-provider account, phone number, or SMS provider
 is required by the active project.
 
 ### Class benchmark protocol update

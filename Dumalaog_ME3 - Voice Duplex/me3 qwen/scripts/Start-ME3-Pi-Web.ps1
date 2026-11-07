@@ -2,12 +2,14 @@
 param(
     [ValidatePattern('^[A-Za-z0-9_.@:-]+$')]
     [string]$SshTarget = 'dalmacio@cfdfnjrpi5.local',
+    [ValidatePattern('^[A-Za-z0-9_.-]+$')]
+    [string]$HostKeyAlias = '192.168.254.105',
     [ValidatePattern('^/[A-Za-z0-9_./-]+$')]
-    [string]$RemoteProject = '/home/dalmacio/Desktop/dandan-qwen',
+    [string]$RemoteProject = '/home/dalmacio/Desktop/dandan',
     [ValidateRange(1024, 65535)]
-    [int]$LocalPort = 8090,
+    [int]$LocalPort = 8100,
     [ValidateRange(1024, 65535)]
-    [int]$LocalAudioPort = 8091,
+    [int]$LocalAudioPort = 8101,
     [ValidateRange(1024, 65535)]
     [int]$RemotePort = 8126,
     [ValidateRange(1024, 65535)]
@@ -26,15 +28,15 @@ param(
 $ErrorActionPreference = 'Stop'
 if ($StartServer -and $StopServer) { throw 'Choose only one of -StartServer or -StopServer.' }
 
-# This is the selected ME3 deployment. The protected Kiko tree is user-owned
-# and is intentionally not touched by the ME3 launcher. The Own and Qwen
-# launchers pass different directories so they can run side by side.
+# Qwen Instruct is the sole active ME3 deployment. The protected Kiko tree is
+# user-owned and is intentionally not touched by this launcher.
 $pidFile = "agent_workspace/.servers/me3-pi-server-$RemotePort.pid"
 $logFile = "agent_workspace/.servers/me3-pi-server-$RemotePort.log"
 $localUrl = "http://127.0.0.1:$LocalPort/"
 
 Write-Host 'ME3 Pi web + browser audio (ME2-style SSH tunnel)'
 Write-Host "Target       : $SshTarget"
+Write-Host "Host key ID  : $HostKeyAlias"
 Write-Host "Remote path  : $RemoteProject"
 Write-Host "Remote UI    : 0.0.0.0:$RemotePort"
 Write-Host "Remote audio : 0.0.0.0:$RemoteAudioPort"
@@ -70,12 +72,12 @@ if ($DryRun) {
 }
 
 if ($StopServer) {
-    & ssh -T -o BatchMode=yes -o ConnectTimeout=10 $SshTarget $stopRemote
+    & ssh -T -o BatchMode=yes -o ConnectTimeout=10 -o "HostKeyAlias=$HostKeyAlias" $SshTarget $stopRemote
     exit $LASTEXITCODE
 }
 
 if ($StartServer) {
-    & ssh -T -o BatchMode=yes -o ConnectTimeout=10 $SshTarget $startRemote
+    & ssh -T -o BatchMode=yes -o ConnectTimeout=10 -o "HostKeyAlias=$HostKeyAlias" $SshTarget $startRemote
     if ($LASTEXITCODE -ne 0) { throw "Pi ME3 web/audio server did not start (exit $LASTEXITCODE)." }
 }
 
@@ -83,7 +85,8 @@ if ($OpenBrowser) { Start-Process $localUrl }
 Write-Host 'Stop       : Ctrl+C closes the tunnel; use -StopServer to stop the Pi process.'
 $sshArgs = @(
     '-T', '-o', 'BatchMode=yes', '-o', 'ExitOnForwardFailure=yes',
-    '-o', 'ServerAliveInterval=30', '-o', 'ConnectTimeout=10', '-N',
+    '-o', 'ServerAliveInterval=30', '-o', 'ConnectTimeout=10',
+    '-o', "HostKeyAlias=$HostKeyAlias", '-N',
     '-L', "$LocalPort`:127.0.0.1`:$RemotePort",
     '-L', "$LocalAudioPort`:127.0.0.1`:$RemoteAudioPort"
 )

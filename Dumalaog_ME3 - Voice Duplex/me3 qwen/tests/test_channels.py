@@ -18,17 +18,20 @@ def _clear_channel_env(monkeypatch):
         monkeypatch.delenv(name, raising=False)
 
 
-def test_channel_health_is_network_free_and_telegram_first(monkeypatch):
+def test_channel_health_is_network_free_and_redacts_credentials(monkeypatch):
     _clear_channel_env(monkeypatch)
+    sentinel = "telegram-token-health-sentinel"
+    monkeypatch.setenv("TELEGRAM_BOT_TOKEN", sentinel)
     result = channels.channel_health()
     assert result["ok"] is True
     assert result["side_effects_require_confirm"] is True
-    assert set(result["channels"]) == {"telegram", "email"}
-    assert result["channels"]["telegram"]["configured"] is False
+    assert set(result["channels"]) == {
+        "telegram", "email", "calendar", "music", "phone_calls",
+    }
+    assert result["channels"]["telegram"]["configured"] is True
     assert result["channels"]["email"]["configured"] is False
-    assert "TELEGRAM_BOT_TOKEN" in result["channels"]["telegram"]["missing_env"]
     assert "phone-provider" not in str(result).lower()
-    assert "secret" not in str(result).lower()
+    assert sentinel not in str(result)
 
 
 def test_external_side_effects_stop_before_network_without_confirmation():

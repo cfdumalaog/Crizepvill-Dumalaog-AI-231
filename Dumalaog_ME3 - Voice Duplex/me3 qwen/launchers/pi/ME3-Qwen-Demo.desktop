@@ -1,0 +1,9 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=ME3 Qwen Demo
+Comment=Restart and check the ME3 Qwen voice service on this Raspberry Pi
+Exec=bash /home/dalmacio/Desktop/dandan/launchers/pi/start-me3-qwen-demo.sh
+Icon=utilities-terminal
+Terminal=true
+Categories=AudioVideo;Utility;

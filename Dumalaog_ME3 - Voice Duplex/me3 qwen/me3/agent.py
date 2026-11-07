@@ -213,14 +213,56 @@ class VoiceDuplexAgent:
 # LLM brains
 # ---------------------------------------------------------------------------
 class StubBrain:
-    """Canned-response brain so the full voice pipeline runs without an LLM."""
+    """Offline brain with deterministic ME2 command execution when possible.
+
+    General conversation and open-ended planning still require an LLM. Clear
+    supported commands can use the same bounded tool dispatcher while Qwen is
+    unreachable, so losing VPN/model access does not disable local timers,
+    simulated controls, or configured provider adapters.
+    """
 
     name = "stub"
 
+    def __init__(self, on_tool=None, dispatch_fn=None):
+        self.on_tool = on_tool
+        self.dispatch_fn = dispatch_fn
+        self.metrics = {"tool_calls": [], "first_tool_ms": None,
+                        "n_llm_calls": 0, "prompt_tokens": 0,
+                        "completion_tokens": 0}
+
     def chat(self, history: list[dict], user_text: str) -> str:
+        self.metrics = {"tool_calls": [], "first_tool_ms": None,
+                        "n_llm_calls": 0, "prompt_tokens": 0,
+                        "completion_tokens": 0}
+        try:
+            # Imported lazily to avoid the agent <-> brain module import cycle.
+            from .brain import _direct_me2_request, _direct_tool_reply
+            from .tools import dispatch
+            direct = _direct_me2_request(user_text)
+            if direct is not None:
+                name, args = direct
+                import time
+                started = time.perf_counter()
+                if self.on_tool:
+                    self.on_tool("start", name, args)
+                try:
+                    result = (self.dispatch_fn or dispatch)(name, args)
+                except Exception as exc:  # noqa: BLE001 - report safe failure
+                    result = {"ok": False, "error": type(exc).__name__}
+                self.metrics["first_tool_ms"] = (time.perf_counter() - started) * 1e3
+                self.metrics["tool_calls"].append({
+                    "name": name, "ms": round(self.metrics["first_tool_ms"]),
+                    "ok": bool(result.get("ok")) if isinstance(result, dict) else True,
+                })
+                if self.on_tool:
+                    self.on_tool("finish", name, result)
+                return _direct_tool_reply(name, args, result)
+        except Exception as exc:  # noqa: BLE001 - keep offline voice loop alive
+            return f"I could not complete that command because {type(exc).__name__}."
         return ("No paid or remote LLM key is configured, so I am using the "
-                "offline stub brain. Set VLLM_API_KEY for Qwen or "
-                "OPENAI_API_KEY for GPT-5.6 Luna. I heard: "
+                "offline assistant. I can still run a clear supported local "
+                "command, but general questions and complex tasks need Qwen "
+                "or GPT-5.6 Luna. I heard: "
                 f"{user_text}")
 
 
@@ -337,6 +379,11 @@ class LocalVoiceLoop:
             a["input_device"] = device
             self.cfg = {**self.cfg, "audio": a}
         self.audio = audio if audio is not None else FullDuplexAudio(self.cfg)
+        self._scheduled_announcements: deque[str] = deque(maxlen=64)
+        self._scheduled_announcement_lock = threading.Lock()
+        action_hub = getattr(self.audio, "hub", None)
+        if action_hub is not None and callable(getattr(action_hub, "request_action", None)):
+            me2_commands.set_device_action_dispatcher(action_hub.request_action)
         self.brain = brain
         self.history: list[dict] = []
         self._pending_followup: dict[str, str] | None = None
@@ -590,6 +637,30 @@ class LocalVoiceLoop:
             self._speak_text(self._engines[4], text, t_start, asr_ms, 0.0,
                              count_e2e=False, voice_role="announcer")
             return
+
+    def queue_announcement(self, text: str) -> None:
+        """Queue a reminder/alarm/timer voice alert for the next safe boundary."""
+        message = " ".join(str(text or "").split()).strip()[:1000]
+        if not message:
+            return
+        with self._scheduled_announcement_lock:
+            self._scheduled_announcements.append(message)
+
+    def _announce_scheduled_if_idle(self) -> None:
+        if (not self._engines or self.state not in ("idle", "awaiting")
+                or not self.audio.playback_done()):
+            return
+        with self._scheduled_announcement_lock:
+            text = self._scheduled_announcements.popleft() if self._scheduled_announcements else None
+        if not text:
+            return
+        now = time.perf_counter()
+        if self.status is not None:
+            self.status.report_reply(text, "scheduled_alert")
+            self.status.report_progress("notification", "Delivering a scheduled alert")
+        self.orchestrator.on_assistant_text_delta(text, final=True)
+        self._speak_text(self._engines[4], text, now, 0.0, 0.0,
+                         count_e2e=False, voice_role="announcer")
 
     # ---- Engine loading -----------------------------------------------------
     def _load_engines(self) -> None:
@@ -1157,6 +1228,7 @@ class LocalVoiceLoop:
                 self._emit_long_task_heartbeats()
                 self._refresh_background_status()
                 self._announce_progress_if_idle()
+                self._announce_scheduled_if_idle()
                 self._announce_completed_if_idle()
                 self._dispatch_deferred_if_ready()
                 frame = self.audio.read_frame(timeout=0.5)
@@ -1366,7 +1438,7 @@ def main() -> None:
     log.info("audio variant: %s", cfg.get("runtime_variant", "current"))
 
     if args.brain == "stub":
-        brain = StubBrain()
+        brain = StubBrain(on_tool=_tool_event)
     else:
         try:
             selection = "qwen" if args.brain == "remote" else args.brain
@@ -1378,7 +1450,7 @@ def main() -> None:
         except RuntimeError as exc:
             if args.brain != "auto":
                 raise SystemExit(str(exc))
-            brain = StubBrain()
+            brain = StubBrain(on_tool=_tool_event)
 
     if args.text is not None:
         try:

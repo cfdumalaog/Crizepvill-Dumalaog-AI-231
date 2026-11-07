@@ -1,7 +1,9 @@
 [CmdletBinding()]
 param(
     [ValidatePattern('^[A-Za-z0-9_.@:-]+$')]
-    [string]$SshTarget = 'dalmacio@192.168.254.105',
+    [string]$SshTarget = 'dalmacio@cfdfnjrpi5.local',
+    [ValidatePattern('^[A-Za-z0-9_.-]+$')]
+    [string]$HostKeyAlias = '192.168.254.105',
     [ValidatePattern('^(?:\d{1,3}\.){3}\d{1,3}$')]
     [string]$DgxIp = '10.153.60.233',
     [switch]$UsePiBrainCredential,
@@ -57,7 +59,7 @@ if ($UsePiBrainCredential) {
 # installer may rewrite me3.env during upgrades; this file is intentionally
 # outside that generated file and is loaded only by the Qwen launcher.
 $remoteWrite = if ($UsePiBrainCredential) {
-    'set -e; umask 077; set -a; . "$HOME/.config/me3/me3.env"; set +a; test -n "$VLLM_API_KEY"; mkdir -p "$HOME/.config/me3"; { printf "%s\\n" "QWEN_INSTRUCT_ASR_BASE_URL=http://202.92.159.240:8000/v1"; printf "%s\\n" "QWEN_INSTRUCT_TTS_BASE_URL=http://202.92.159.240:8001/v1"; printf "%s\\n" "QWEN_INSTRUCT_API_KEY=$VLLM_API_KEY"; } > "$HOME/.config/me3/qwen-instruct.env"; chmod 600 "$HOME/.config/me3/qwen-instruct.env"; echo QWEN_ENV_PROVISIONED'
+    'set -e; umask 077; set -a; . "$HOME/.config/me3/me3.env"; set +a; test -n "$VLLM_API_KEY"; mkdir -p "$HOME/.config/me3"; { printf "%s\\n" "QWEN_INSTRUCT_ASR_BASE_URL=http://10.153.60.233:8000/v1"; printf "%s\\n" "QWEN_INSTRUCT_TTS_BASE_URL=http://10.153.60.233:8001/v1"; printf "%s\\n" "QWEN_INSTRUCT_API_KEY=$VLLM_API_KEY"; } > "$HOME/.config/me3/qwen-instruct.env"; chmod 600 "$HOME/.config/me3/qwen-instruct.env"; echo QWEN_ENV_PROVISIONED'
 } else {
     'set -e; umask 077; mkdir -p "$HOME/.config/me3"; cat > "$HOME/.config/me3/qwen-instruct.env"; chmod 600 "$HOME/.config/me3/qwen-instruct.env"; echo QWEN_ENV_PROVISIONED'
 }
@@ -68,6 +70,8 @@ $null = $psi.ArgumentList.Add('-o')
 $null = $psi.ArgumentList.Add('BatchMode=yes')
 $null = $psi.ArgumentList.Add('-o')
 $null = $psi.ArgumentList.Add('ConnectTimeout=10')
+$null = $psi.ArgumentList.Add('-o')
+$null = $psi.ArgumentList.Add("HostKeyAlias=$HostKeyAlias")
 $null = $psi.ArgumentList.Add($SshTarget)
 $null = $psi.ArgumentList.Add($remoteWrite)
 $psi.UseShellExecute = $false

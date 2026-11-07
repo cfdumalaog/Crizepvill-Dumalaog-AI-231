@@ -35,11 +35,15 @@ RequestFn = Callable[..., Any]
 
 
 def _present(name: str) -> bool:
-    return bool(os.environ.get(name, "").strip())
+    return bool(_env(name))
 
 
 def _env(name: str) -> str:
-    return os.environ.get(name, "").strip()
+    value = os.environ.get(name, "").strip()
+    if value:
+        return value
+    from . import secure_config
+    return secure_config.get(name)
 
 
 def _missing(names: list[str]) -> list[str]:
@@ -101,6 +105,7 @@ def channel_health() -> dict:
     """Report safe, network-free configuration status for all channels."""
     resend = _missing(["RESEND_API_KEY", "RESEND_FROM_EMAIL"])
     telegram = _missing(["TELEGRAM_BOT_TOKEN"])
+    from . import google_calendar, me2_commands, spotify_player
     return {
         "ok": True,
         "channels": {
@@ -116,8 +121,14 @@ def channel_health() -> dict:
                 "text": "sendMessage",
                 "voice_calls": "unsupported_by_telegram_bot_api",
             },
+            "calendar": google_calendar.health(),
+            "music": spotify_player.health(),
+            "phone_calls": me2_commands.phone_call_status(),
         },
+        # `confirm` is derived from a clear user command or its direct answer
+        # to a missing-detail question, not from a separate UI click.
         "side_effects_require_confirm": True,
+        "side_effects_require_user_request": True,
     }
 
 
@@ -165,7 +176,7 @@ def send_telegram_message(chat_id: str, text: str, *,
                           confirm: bool = False,
                           bot_token: str | None = None,
                           request_fn: RequestFn | None = None) -> dict:
-    """Send one Telegram Bot API text message after explicit confirmation.
+    """Send one Telegram Bot API text message after a clear user request.
 
     The Bot API supports text messages but does not expose ordinary Telegram
     voice-call initiation; this adapter deliberately does not pretend that

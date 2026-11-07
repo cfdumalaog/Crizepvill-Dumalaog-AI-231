@@ -29,7 +29,8 @@ from me3.agent_status import LoopStatus, StatusServer, load_release_info  # noqa
 from me3.audio_io import FullDuplexAudio  # noqa: E402
 from me3.brain import build_system_prompt, build_tool_brain  # noqa: E402
 from me3.config import load_config  # noqa: E402
-from me3 import me2_commands  # noqa: E402
+from me3 import (google_calendar, me2_commands, scheduled_actions,
+                 spotify_player)  # noqa: E402
 from me3.web_audio import BrowserAudioHub, BrowserOutputAudio  # noqa: E402
 
 log = logging.getLogger("me3.pi_server")
@@ -130,6 +131,14 @@ class AgentController:
             running = bool(self.thread and self.thread.is_alive())
         return {"loop_running": running,
                 "variant": self.cfg.get("runtime_variant", "qwen_instruct")}
+
+    def announce_scheduled(self, item: dict) -> None:
+        """Queue a durable reminder/alarm/timer on the live Qwen voice loop."""
+        from me3.scheduled_actions import due_announcement
+        with self.lock:
+            loop = self.loop
+        if loop is not None:
+            loop.queue_announcement(due_announcement(item))
 
     def duplex_mode_info(self) -> dict:
         with self.lock:
@@ -311,10 +320,6 @@ def main() -> int:
     )
     hub = BrowserAudioHub(args.host, args.audio_port)
     hub.start()
-    # Tool calls can notify the same browser tab that receives PCM.  The
-    # browser opens a provider URL only after a user click, preserving the
-    # browser's own authenticated session and keeping cookies off the Pi.
-    me2_commands.set_music_event_sink(hub.publish_event)
     controller = AgentController(
         cfg, brain, status, hub,
         input_device=args.input_device,
@@ -333,11 +338,29 @@ def main() -> int:
          duplex_mode_set=controller.set_duplex_mode,
         demo_light_get=me2_commands.simulated_light_state,
         demo_light_control=lambda payload: me2_commands.control_lights(**payload),
+        notifications_pending=me2_commands.pending_notifications,
+        notification_ack=me2_commands.acknowledge_notification,
+        spotify_status=spotify_player.health,
+        spotify_connect=lambda: _spotify_connect_result(),
+        spotify_callback=spotify_player.complete_oauth,
+        spotify_client_id_set=spotify_player.configure_client_id,
+        google_status=google_calendar.health,
+        google_connect=lambda: _google_connect_result(),
+        google_callback=google_calendar.complete_oauth,
+        google_client_set=google_calendar.configure_client,
+        telegram_status=me2_commands.telegram_status,
+        telegram_token_set=me2_commands.save_telegram_bot_token,
+        telegram_connect_target=me2_commands.connect_telegram_target,
+        schedules_get=me2_commands.clock_schedule_snapshot,
+        schedule_create=me2_commands.create_clock_action,
+        schedule_cancel=me2_commands.cancel_clock_action,
     )
     if not http.start():
         hub.stop()
         return 2
     controller.start()
+    scheduled_runner = me2_commands.configure_schedule_delivery(
+        controller.announce_scheduled)
     print(f"ME3 LAN UI      : http://<PI-IP>:{http.port}/", flush=True)
     print(f"Browser audio   : ws://<PI-IP>:{hub.port}/audio", flush=True)
     print("Pi microphone   : selected through the UI or --input-device", flush=True)
@@ -348,11 +371,26 @@ def main() -> int:
     except KeyboardInterrupt:
         pass
     finally:
-        me2_commands.set_music_event_sink(None)
+        scheduled_runner.stop()
+        me2_commands.set_device_action_dispatcher(None)
         controller.stop()
         http.stop()
         hub.stop()
     return 0
+
+
+def _spotify_connect_result() -> dict:
+    url, error = spotify_player.begin_oauth()
+    if error:
+        return error
+    return {"ok": True, "url": url}
+
+
+def _google_connect_result() -> dict:
+    url, error = google_calendar.begin_oauth()
+    if error:
+        return error
+    return {"ok": True, "url": url}
 
 
 if __name__ == "__main__":

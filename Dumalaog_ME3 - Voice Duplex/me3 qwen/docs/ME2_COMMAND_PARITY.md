@@ -1,39 +1,61 @@
-# ME2 command parity in ME3
+# ME2 command parity in ME3 Qwen
 
-ME3 keeps the ME2 user-facing command set, but replaces the trained ME2
-classifier with model inference plus explicit tools. The Qwen Instruct model
-selects the tool from Filipino, English, or Taglish speech; the deterministic
-adapter performs validation and records the action. The same registry is
-available to the direct ToolBrain and the owned `me3-tasks` MCP server.
+ME3 uses Qwen inference and deterministic tools instead of training the ME2
+command classifier. A clear spoken request dispatches the matching tool
+automatically. If required details or a provider connection are missing, ME3
+states the specific blocker or asks for the missing detail.
 
-| ME2 command family | ME3 tool(s) | Current behavior | Live requirement |
-|---|---|---|---|
-| Play music | `play_music`, `music_state` | Sends a browser handoff event and search URL; Google maps to YouTube Music and Spotify is supported | One operator click in the signed-in browser; full programmatic control needs a provider player/OAuth bridge |
-| Ask/search/weather | `web_search`, `fetch_url`, `get_weather`, `get_time` | Public web search, no-key current-weather lookup, and local time | Internet access for web/weather; verify results before acting |
-| Lights on/off | `control_lights` | Validated local demo state | Home Assistant URL/token/entity mapping or another IoT adapter |
-| Dim/color lights | `control_lights` | Percent/color validation and local state | Same physical-light connector |
-| Set a timer | `set_timer`, `set_alarm` | Timer and next-occurrence alarm records | Platform notification scheduler for audible firing |
-| Set an alarm | `set_alarm`, `list_alarms`, `cancel_alarm` | Alarm lifecycle is available to voice and MCP | Platform notification scheduler |
-| Thermostat | `set_thermostat` | Celsius validation and local demo state | Home Assistant climate entity or vendor API |
-| Media controls | `media_control` | Pause, stop, skip, play, volume up/down/set | Browser/player adapter for physical playback |
-| Reminders and lists | `create_reminder`, `list_reminders`, `complete_reminder` | Reminder lifecycle and delay/time parsing | Platform notification scheduler for delivery |
-| Calls and messaging | `call_contact`, `send_message`, `send_telegram_message` | Telegram Bot API text with confirmation; ordinary voice calls reported unsupported | Protected bot token and approved numeric chat-ID mapping; Telegram Bot API does not initiate ordinary voice calls |
+| ME2 command | Tool and execution path | Current boundary / one-time setup |
+|---|---|---|
+| Play music | `play_music` searches Spotify and starts the track through Spotify Web API on the active Spotify Connect device. `music_state` reads back playback. | Spotify app ID supplied; save it in the Pi UI, authorize once, keep a Spotify Connect player active, and use Premium. The current Spotify dashboard session showed a Free account with Web API access disabled, so playback is not live-verified. No browser handoff is counted as playback. |
+| Ask/search/weather/time | `web_search`, `fetch_url`, `get_weather`, `get_time` call their actual network or host-time adapters. | Requires network access for web/weather. |
+| Lights on/off | `control_lights` updates the simulated bulb shown in the UI. | Demo-only. No physical light entity or Home Assistant service is connected. |
+| Dim/color lights | `control_lights` updates simulated brightness/color and the same UI bulb. | Demo-only. |
+| Set a timer | `set_timer` writes a durable Pi schedule; ME3 speaks when due and the connected web UI rings and shows a dismissible alert. The clock card shows the countdown. | The Pi service must be running. A browser must remain open with an enabled audio context for the laptop ring; scheduled state survives a Pi service restart. |
+| Set an alarm | `set_alarm` writes the next Asia/Manila occurrence to the durable Pi schedule; voice and UI alert when due. | The Pi service must be running. Laptop sound requires the ME3 UI open and browser audio enabled. |
+| Adjust thermostat | `set_thermostat` stores a simulated Celsius value. | Demo-only. No physical thermostat or climate service is connected. |
+| Media control | `media_control` uses Spotify Web API for play/pause/stop/skip/volume on the active player. | Same Spotify OAuth, Premium, and active-player requirements as music playback. |
+| Reminders and lists | `create_reminder` creates a Google Calendar event and a durable Pi voice/UI reminder. `list_reminders` and `complete_reminder` use the local reminder index; completion removes the associated Calendar event. | Connector and OAuth flow are implemented. Google OAuth client values and one-time authorization are still needed on the Pi. ME3 handles the due-time voice/ring alert; the Calendar event is the persistent calendar record. |
+| Meetings and invites | `schedule_meeting` creates a Google Calendar event, attendee invitations, and optional Google Meet link. | Connector is implemented. Google OAuth client values, Calendar API enablement, and one-time authorization are still needed on the Pi. Clear requests execute; ME3 asks only for missing title/time/attendee information. |
+| Calls | `call_contact` sends a call action to the connected ME3 Android companion, which uses the phone SIM/contacts and Android `CALL_PHONE` permission. | Install/open the updated companion and allow call permission; allow Contacts permission if using a saved contact name. The phone must be connected to the Pi service over LAN/VPN. Telegram Bot API cannot initiate voice calls. |
+| Messages / SMS replacement | `send_message` sends a real Telegram text using Bot API to the configured numeric chat ID for `@mncfrndz` (Wifeeyy Dumalaog Fernandez+). | Create a Telegram bot with BotFather, save its token in the ME3 UI through the SSH tunnel, and have `@mncfrndz` press Start once. ME3 then discovers and stores the numeric chat mapping. Telegram cannot send a private message to an unstarted bot recipient or initiate voice calls; no Twilio or SMS provider is used. |
+
+## Provider setup in the web UI
+
+- Spotify: register the exact loopback redirect URI
+  `http://127.0.0.1:8100/api/spotify/callback`, save the app, save the supplied
+  Client ID in the Pi UI, then use **Connect Spotify**. OAuth uses PKCE and stores the
+  refresh token privately on the Pi. The laptop SSH local-forward tunnel must
+  be active during authorization; after authorization, Pi service restarts do
+  not need the callback tunnel to refresh the token.
+- Google Calendar: create a Google OAuth web client, enable Calendar API, and
+  register `http://127.0.0.1:8100/api/google/callback`. Enter the client ID and
+  secret in the UI through the SSH tunnel, then choose **Connect Calendar**.
+  The Pi stores credentials in a mode-0600 file. Browser Gmail sign-in alone
+  does not grant ME3 Calendar API access.
+- Telegram: create the bot, paste its bot token in the UI through the SSH
+  tunnel, then have the target open the bot and press **Start**. Use
+  **Connect @mncfrndz** to discover and store the numeric chat mapping.
+- Phone calls: open the ME3 Android companion in addition to the laptop UI;
+  the browser audio hub keeps the laptop as its single audio sink and routes
+  call actions to the Android device capability.
+
+Secret-setting endpoints reject non-loopback requests. Use the SSH tunnel
+(`127.0.0.1:8100` to Pi port `8126`) for provider credentials. The Pi service
+continues to own the inference loop and tools; the laptop browser provides the
+speaker/UI, and the Android companion provides the phone-call endpoint.
 
 ## Safety and demo boundary
 
-- Benchmark mode disables all tool calls, agent/harness dispatch, fillers, and
-  backchannels; it remains direct-feed/injection-only as required by the class
-  benchmark.
-- Demo-state tools do not claim that a physical lamp, thermostat, player, or
-  notification scheduler is connected. Their result explicitly reports
-  `local_demo` until the corresponding connector is configured.
-- External communication tools require explicit confirmation. Contact names
-  resolve only through protected `ME3_CONTACT_<NAME>` or
-  `ME3_TELEGRAM_CHAT_<NAME>` environment mappings.
-- The Pi never reads or copies browser cookies. YouTube Music and Spotify use a
-  visible browser handoff so the operator's existing login stays in that
-  browser. Google Play Music itself is discontinued; use YouTube Music.
-- Clear short commands are routed through a bounded voice-command guard before
-  Qwen planning. This is still a tool call through the same dispatcher; it only
-  prevents repeated conversation history from swallowing an unambiguous ME2
-  command. Open-ended requests continue through normal Qwen tool inference.
+- Benchmark mode still disables tools, agent/harness dispatch, fillers, and
+  backchannels; class benchmark runs remain injected-audio measurements.
+- A clear voice instruction is the authorization to execute that requested
+  action. The agent does not require a second UI confirmation. It asks only for
+  missing information and never reports provider success unless the adapter
+  returns a success result.
+- The Pi does not read browser cookies or use the laptop's signed-in sessions
+  as API credentials.
+- Current physical-device limitations are explicit: lights and thermostat
+  remain simulated; Spotify requires API access, Premium, and a Connect player;
+  Telegram requires a bot token and a target that started the bot; calls
+  require a connected Android phone.

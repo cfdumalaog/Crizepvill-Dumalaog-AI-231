@@ -1,6 +1,6 @@
 # ME3 Voice Duplex: ELI5 Manual and Deep Technical Explanation
 
-Version: 0.8, 5 November 2026
+Version: 0.9, 7 November 2026
 
 ## What this project is
 
@@ -10,9 +10,10 @@ box: the user can speak while the agent is speaking, and can use explicit
 voice controls to stop, skip, or steer playback. The agent can use tools to do
 work rather than only generate an answer.
 
-The language-model brain is provider-selectable. Qwen served through the
-configured OpenAI-compatible vLLM API remains the default, and GPT-5.6 Luna
-(`gpt-5.6-luna`, reasoning effort `medium`) is an optional OpenAI backend.
+The active Pi demo uses the Qwen text/tool brain through the configured
+OpenAI-compatible vLLM API. GPT-5.6 Luna remains an optional code path, but it
+is not the deployed demo brain. The Qwen Instruct release is inference and
+tool orchestration; no task-specific model training is required.
 Speech input remains on the device: our VAD detects speech and our ASR server
 transcribes it. TTS can speak through a Pi output device or stream raw PCM to
 the connected browser so the operator's PC plays the reply.
@@ -23,7 +24,7 @@ The most important new behavior is tool use. A spoken request such as:
 
 > Build me a small web app that shows the Pi assistant status.
 
-can cause Qwen or GPT-5.6 Luna to call the project file tools, write HTML/CSS/JavaScript,
+can cause Qwen to call the project file tools, write HTML/CSS/JavaScript,
 start a background build or test when needed, read the result, and give a
 short spoken summary. The voice loop and the text test mode use the same brain
 and the same tool registry.
@@ -34,7 +35,7 @@ Imagine five helpers standing in a line:
 
 1. **Ear helper (VAD):** notices when somebody is speaking.
 2. **Word helper (ASR):** turns the sound into words.
-3. **Thinking helper (Qwen or GPT-5.6 Luna):** decides what the words mean and whether a tool
+3. **Thinking helper (Qwen):** decides what the words mean and whether a tool
    is needed.
 4. **Hands helper (tools):** reads files, writes files, searches, runs a safe
    build command, or starts a longer task.
@@ -73,10 +74,11 @@ Training changes model weights. ME3 does not need that step for its agent
 behavior. It uses:
 
 - the Pipecat-bundled Silero CPU ONNX model for speech activity;
-- a pretrained faster-whisper model for speech recognition;
-- one fixed profile voice for speech synthesis: Piper `en_GB-alba-medium` in
-  Own or Qwen3-TTS `aiden` in Qwen; and
-- the remote Qwen model or GPT-5.6 Luna for reasoning and tool selection.
+- Qwen2-Audio-7B-Instruct for remote ASR, with the configured multilingual
+  faster-whisper fallback when the ASR service cannot be reached;
+- Qwen3-TTS-12Hz-1.7B-CustomVoice using the fixed `aiden` voice for every
+  reply, backchannel, and announcement; and
+- the remote Qwen text/tool model for reasoning and tool selection.
 
 The engineering work is orchestration, tool contracts, deployment, and
 verification. If later measurements show that ASR or wake behavior needs a
@@ -85,11 +87,10 @@ current tool-using duplex agent.
 
 ### Voice choice and provider lock
 
-ME3 keeps Qwen as the default reasoning and tool-calling model. The active
-profiles use exactly one voice model each: Own uses Piper
-`en_GB-alba-medium`, while Qwen uses Qwen3-TTS CustomVoice `aiden`. The same
-voice is used for replies, backchannels, and completion announcements, so a
-turn cannot change speaker identity because of an environment variable.
+ME3's active production target is Qwen Instruct only; the former Own deployment
+is archived. The Qwen line uses Qwen3-TTS CustomVoice `aiden` for replies,
+backchannels, and completion announcements, so a turn cannot change speaker
+identity because of an environment variable.
 The spoken style is also locked to formal customer service: the long-task
 backchannel is exactly `I am processing your request now.`, and the assistant
 must avoid flirtatious, intimate, suggestive, teasing, or overly familiar
@@ -225,15 +226,15 @@ The direct Qwen registry contains these project-local capabilities:
 | `start_web_server` | Serves a project folder on the LAN and reports the URL | “Serve the web app and tell me the URL.” |
 | `stop_web_server` | Stops a running preview server | “Stop the web server.” |
 | `web_servers` | Lists active preview servers | “What is running on this machine?” |
-| `play_music` | Queues a browser/audio-sink music action | “Play Filipino jazz.” |
-| `media_control` | Plays, pauses, stops, skips, or changes volume | “Pause.” / “Make it louder.” |
+| `play_music` | Searches Spotify and starts the track on an active Spotify Connect device | “Play Filipino jazz.” |
+| `media_control` | Controls Spotify playback and volume on the active Connect device | “Pause.” / “Make it louder.” |
 | `get_weather` | Reads current weather for a location | “What is the weather in Manila?” |
 | `control_lights` | Turns lights on/off, dims, or sets a color | “Dim the living-room lights to 30 percent.” |
 | `set_thermostat` | Sets a validated Celsius target | “Set the temperature to 24 degrees.” |
 | `set_alarm` | Creates a next-occurrence alarm | “Set an alarm for 7 AM.” |
 | `create_reminder` | Creates a delayed or timed reminder | “Remind me in ten minutes.” |
-| `call_contact` | Reports that ordinary voice calls are unsupported in Telegram Bot API mode | “Call mom.” |
-| `send_message` | Sends confirmed Telegram text | “Message mom on Telegram.” |
+| `call_contact` | Routes a requested phone call to the connected ME3 Android companion | “Call mom.” |
+| `send_message` | Sends Telegram text after a clear user request | “Message mom on Telegram.” |
 
 | `channel_health` | Reports safe Telegram and optional email configuration status | "Are the communication channels configured?" |
 | `send_email` | Sends one confirmed optional Resend email | "Email the customer the appointment details." |
@@ -264,20 +265,40 @@ microphone placeholder, status area, and tool-activity log.
 
 ### ELI5: calls, texts, and emails
 
-ME3 now has Telegram text and optional email communication helpers, but they
-behave like a locked outbox. `channel_health` checks whether the operator
-configured a provider; it does not send anything. For a Telegram text or email,
-ME3 must say who will receive it and what it will contain, then wait for the
-user's clear yes. Only then can Qwen call the matching tool with `confirm=true`.
+ME3 can send Telegram text through its Bot API after a clear user request;
+`channel_health` reports configuration but does not send anything. The target
+must start the bot once, then the UI can discover the numeric chat mapping.
+Resend handles email only if separately configured.
 
-Telegram handles the active text message through its Bot API. Resend handles
-transactional email only if separately enabled. Ordinary voice calls and SMS
-are not active project capabilities. The Telegram Bot API cannot initiate an
-ordinary voice call; a future call-center voice feature would require a
-separately reviewed MTProto/TDLib bridge, customer consent, AI disclosure,
-recording policy, human transfer, and CRM/identity integrations. The full
-Telegram checklist and required environment names are in
-`docs/CHANNEL_INTEGRATIONS.md`.
+Phone calls use the connected Android companion and the phone's SIM; they
+require call/contact permissions and a connected device. Cellular SMS is not
+implemented, and Telegram Bot API cannot place voice calls or send SMS. The
+full provider setup is in `docs/CHANNEL_INTEGRATIONS.md`.
+
+### Music, alarms, and reminders: real execution requirements
+
+- **Spotify:** the ME3 Pi calls Spotify's Web API and starts playback on an
+  online Spotify Connect device. Enter the Spotify app Client ID in the UI and
+  authorize once with **Connect Spotify**. The API uses PKCE and does not need
+  the app Client Secret. Spotify playback requires an active Premium account;
+  enabling Web API on a Free account is not enough.
+- **Alarm/timer/reminder:** these schedules are stored persistently on the Pi
+  and do not need a Google account. For sound from the laptop, connect the
+  browser speaker once, use **Test laptop alarm sound**, and keep the browser
+  tab open while the laptop is awake. Browser sound cannot wake a sleeping
+  laptop or ring after the tab closes. Desktop notifications are optional.
+- **Google Calendar:** local alarms and reminders still work without Google.
+  To sync reminders or create calendar meetings, configure a Google OAuth Web
+  client, enable Calendar API, enter the client ID/secret in the UI, and
+  authorize once.
+- **Telegram message:** create a bot with `@BotFather` using `/newbot`. Save
+  that bot token in the Pi UI; do not send it in chat. The recipient
+  `@mncfrndz` must open the bot and send `/start`, then choose
+  **Connect @mncfrndz** in ME3. This sends Telegram text, not a phone call or
+  carrier SMS.
+- **Phone call/SMS:** phone calls route through the connected Android
+  companion and its SIM with call permission; this path has not been live
+  tested. Carrier SMS is not implemented.
 
 ## How to run it on Windows
 
@@ -285,8 +306,8 @@ All commands use the one shared workspace environment:
 
 ```powershell
 Set-Location 'C:\Users\danda\Desktop\MEng AI Notebooks\AI 222 231'
-Set-Location '.\AI 231\Dumalaog_ME3 - Voice Duplex'
-$py = '..\..\.venv\Scripts\python.exe'
+Set-Location '.\AI 231\Dumalaog_ME3 - Voice Duplex\me3 qwen'
+$py = '..\..\..\.venv\Scripts\python.exe'
 
 # Dependency and device check
 & $py scripts\dev_env_check.py
@@ -323,7 +344,7 @@ Host: cfdfnjrpi5.local
 Path: /home/dalmacio/Desktop/dandan
 ```
 
-The deployment workflow is:
+The deployment workflow from the Qwen project folder is:
 
 ```powershell
 & $py scripts\package_release.py --force
@@ -333,22 +354,24 @@ The deployment workflow is:
 
 `deployment/latest_release.json` means only that a release was packaged and
 verified locally. `deployment/last_pi_deployment.json` must say `deployed`
-before the Pi is described as deployed. The verified deployment receipt is
-release `me3-20261025-101632-b0238933` at
-`/home/dalmacio/Desktop/kiko/me3_voice_duplex`; the transfer hash matched the
-release manifest and the idempotent installer completed. On the Pi, `--check`
-passes, and a live text-mode Qwen run built a stopwatch web app through
-`write_file` plus `start_web_server` and served it over HTTP; the page was
-cross-verified from a second machine on the LAN. The read-only Pi audio
-preflight reports `pass_devices_visible` (exit 0) with the Fifine microphone at
-`hw:2,0`. The user service remains disabled until a physical Pi speaker test
-and human spoken turn are captured; the split-device acceptance path can route
-Pi capture to the workstation speaker meanwhile.
-The installer creates a Pi-local
-virtual environment, installs the pinned runtime packages, prefetches an
-RAM-appropriate Whisper model and the single fixed Piper voice, and installs four user
-systemd units. It does not enable autostart automatically; enable it on the Pi
-only after the live audio and Qwen credential checks pass.
+before the Pi is described as deployed. On 7 November 2026, release
+`me3-20261107-031101-a879850a` was deployed to
+`/home/dalmacio/Desktop/dandan`; `me3-agent.service` was restarted from the
+Pi-side desktop launcher and reported `active` with `loop=true`. The Pi
+launcher starts and checks that service. The laptop launcher uses
+`cfdfnjrpi5.local` and forwards Pi UI/audio ports 8126/8127 to laptop ports
+8100/8101, including the OAuth callbacks. The name resolves the current DHCP
+address on a same-LAN network where mDNS and SSH are allowed; the numeric
+address is not static.
+
+The laptop-tunneled health endpoint and browser-audio WebSocket pass. The UI
+schedule create/cancel path passes, but no alarm was allowed to fire during
+verification. A human spoken turn was confirmed on the previous Pi release;
+it has not been repeated on this exact deployment. The current hotspot has no
+working route from the Pi to DGX3 ports 8000/8001, so provider-live Qwen audio
+is not claimed for this network session. The OpenVPN unit is active, but its
+tunnel is not established here. The installer creates the Pi-local runtime
+environment and the active systemd service is enabled for the demo.
 
 ### Pi inference credential requirement
 
@@ -370,10 +393,9 @@ streaming is enabled when supported. ASR and TTS remain the Pi-local ME3
 services.
 
 The ElevenLabs adapter remains documented and tested, but it is not active in
-the single-voice demo path. Own is locked to Piper `en_GB-alba-medium` and
-Qwen is locked to Qwen3-TTS `aiden` with a formal style instruction; environment overrides cannot switch the
-voice at runtime. Re-enable ElevenLabs only as a deliberate future experiment
-after choosing a replacement voice and updating the acceptance gate.
+the single-voice demo path. Qwen is locked to Qwen3-TTS `aiden` with a formal
+style instruction; environment overrides cannot switch the voice at runtime.
+The former Own variant is archived rather than supported as another live demo.
 
 Before enabling the user service, run the read-only Pi audio gate:
 
@@ -693,19 +715,22 @@ engineering five-scenario latency driver remain separate.
 
 ## Known limitations and next experiments
 
-1. The remote endpoint is currently HTTP, not HTTPS. Use it only on the trusted
+1. The institutional Qwen endpoint is currently HTTP, not HTTPS. Use it only on the trusted
    institutional network or VPN; migrate to administrator-provided HTTPS when
    available.
-2. The Pi capture path is visible and injection-only evaluation passes. The Pi
-   still needs a physical speaker test and a human spoken turn; speaker
-   behavior, ALSA output choice, CPU/RAM, and systemd supervision must be
-   recorded separately from local Windows and split-device checks.
+2. A human spoken turn was confirmed on the prior Pi release. The current
+   release's service loop, tunneled health, and browser-audio WebSocket pass,
+   but a fresh spoken turn and physical-speaker automatic barge-in/echo test
+   remain. Keep this distinct from injected and Windows-loopback checks.
 3. The Qwen API key is deliberately not included in the release. On the
    deployed Pi it is provisioned in a mode-600 runtime environment file;
-   only its presence is verified, and the value is never printed.
-4. The local loop handles barge-in during TTS, but it does not yet provide the
-   full semantic RESUME/RESPOND classifier required by the paper’s overlap
-   study.
+   only its presence is verified, and the value is never printed. The current
+   hotspot session has no DGX3 route, so provider-live Qwen ASR/TTS is not
+   verified there; the ASR fallback may be selected instead.
+4. Spotify, Google Calendar, and Telegram are not authorized in the live Pi
+   status. Spotify playback requires Premium plus OAuth and an active Connect
+   player. Telegram needs a BotFather token and the recipient to start the bot.
+   Android SIM calling is untested; carrier SMS is not implemented.
 5. A complete 499-trial v1.5 overlap run, judge transcripts, and before/after
    prosodic analysis remain future benchmark work.
 6. Inbound Telegram webhook handling, provider signature verification,

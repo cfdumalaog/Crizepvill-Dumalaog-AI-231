@@ -64,9 +64,9 @@ try:
     print("  faster-whisper", os.environ["ME3_ASR_MODEL"], "cached")
 except Exception as e:
     print("  faster-whisper prefetch skipped:", e)
-# The Qwen profile has one remote Qwen3-TTS CustomVoice (vivian); it does not
+# The Qwen profile has one remote Qwen3-TTS CustomVoice (aiden); it does not
 # prefetch or keep a second local Piper voice.
-print("  Qwen3-TTS voice: vivian (remote profile; no local fallback voice)")
+print("  Qwen3-TTS voice: aiden (remote profile; single active voice)")
 PY
 
 # 5. Silero VAD ONNX is bundled by Pipecat; no model download is needed.
@@ -148,7 +148,7 @@ fi
 if [ -n "$ELEVENLABS_KEY" ]; then
   echo "  ELEVENLABS_API_KEY: set (value hidden; retained for future experiments, not active)"
 else
-  echo "  ELEVENLABS_API_KEY: not configured -> Piper fallback remains active"
+  echo "  ELEVENLABS_API_KEY: not configured (optional; inactive in the Qwen profile)"
 fi
 if [ -n "${TELEGRAM_BOT_TOKEN:-}" ]; then
   echo "  Telegram Bot API: set (value hidden; text messaging enabled)"
@@ -168,6 +168,18 @@ for svc in me3-asr me3-tts me3-vad me3-agent; do
     echo "  installed $svc.service"
   fi
 done
+
+# Put the operator launcher on the Pi desktop. The Pi owns service startup;
+# the laptop launcher separately forwards the web and browser-audio ports.
+if [ -d "$HOME/Desktop" ] && [ -f "$SCRIPT_DIR/launchers/pi/ME3-Qwen-Demo.desktop" ]; then
+  cp "$SCRIPT_DIR/launchers/pi/ME3-Qwen-Demo.desktop" "$HOME/Desktop/ME3 Qwen Demo.desktop"
+  chmod +x "$HOME/Desktop/ME3 Qwen Demo.desktop" "$SCRIPT_DIR/launchers/pi/start-me3-qwen-demo.sh"
+  if command -v gio >/dev/null 2>&1; then
+    gio set "$HOME/Desktop/ME3 Qwen Demo.desktop" metadata::trusted true 2>/dev/null || true
+  fi
+  echo "  installed Pi desktop launcher: $HOME/Desktop/ME3 Qwen Demo.desktop"
+fi
+
 systemctl --user daemon-reload || true
 echo "  enable with: systemctl --user enable --now me3-agent"
 

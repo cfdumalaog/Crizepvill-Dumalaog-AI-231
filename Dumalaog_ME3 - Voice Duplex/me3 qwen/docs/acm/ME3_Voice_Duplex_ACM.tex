@@ -57,17 +57,16 @@ The current revision also specifies the Vocalis-Pi event contract: continuous
 VAD/transcript inputs, explicit turn states, interrupt controls, and an
 adapter seam for asynchronous MCP harness work. The workstation acceptance
 includes the existing local checks plus mocked request-shape and configuration
-tests for the Qwen audio profile. The protected DGX3 listeners were
-authenticated and exercised over the restored VPN route. Qwen2-Audio ASR and
-Qwen3-TTS both returned provider-live audio results, and a complete injected
-voice/tool turn passed. The latest accepted Qwen release was deployed to
-\texttt{/home/dalmacio/Desktop/dandan-qwen}; the former Own deployment was
-removed from the active Pi path and moved to a dated archive. The live Qwen
-service returned HTTP 200, loaded its Qwen audio models, and reported a
-nonzero Fifine startup signal. A clean human spoken turn and paper-native
-overlap run remain separate evidence gates. The vendored benchmark adapter,
-LAN browser-speaker server, browser music handoff, and operator restart
-control are part of the final Qwen package.
+tests for the Qwen audio profile. An earlier VPN session authenticated the
+DGX3 Qwen ASR/TTS services and completed an injected voice/tool turn. On the
+latest laptop-hotspot check, however, the Pi OpenVPN unit is active but has no
+tunnel interface and cannot reach the DGX3 ports. The current accepted release
+is deployed at \texttt{/home/dalmacio/Desktop/dandan}; its Pi voice loop and
+HTTP/browser-audio endpoints start, but provider-live Qwen ASR/TTS are not
+claimed for this network session. A prior operator-confirmed human turn and the
+30-trial injected benchmark remain separate evidence. The paired Pi/laptop
+launchers provide DHCP-independent mDNS discovery and SSH forwarding for the
+browser UI, speaker stream, and OAuth callback.
 \end{abstract}
 
 \keywords{voice agents, full duplex, Raspberry Pi, tool calling, MCP, Qwen,
@@ -103,9 +102,8 @@ The contributions of this work are:
 \item a provider-neutral OpenAI-compatible tool loop that can create and verify
 a static web application through voice or text;
 \item one bounded registry shared by direct Qwen calls and MCP wrappers;
-\item a confirmation-gated Telegram Bot API text adapter with a safe
-provider-response boundary, while ordinary phone calls and SMS remain out of
-scope;
+\item a user-intent-gated Telegram text adapter and Android call bridge;
+carrier SMS and Telegram voice calls are not implemented;
 \item background task supervision so builds do not block the microphone;
 \item a reproducible local-dev, package, deploy, and evidence workflow for the
 Raspberry Pi target, including a LAN browser-speaker transport and a vendored
@@ -122,10 +120,14 @@ audio rate, speech thresholds, model choices, endpoint, tool budget, and
 deployment path are not duplicated across scripts.
 
 The current engineering scope includes interruptible spoken conversation,
-remote Qwen inference, project-local coding tools, public web lookup, timers,
-system information, the existing ME2 bridge, and credential-gated Telegram
-text and optional email actions. It does not claim unrestricted
-Onit equivalence. An always-listening device needs a narrower default action
+remote Qwen inference, project-local coding tools, public web lookup, persistent
+Pi-local timers, alarms and reminders, system information, the existing ME2
+bridge, and credential-gated Telegram text and optional email actions. Google
+Calendar synchronization and Spotify playback are implemented but require
+account authorization; Spotify playback also requires Premium. Carrier SMS and
+Telegram voice calls are not available. The Android companion provides an
+unverified SIM-call bridge. ME3 does not claim unrestricted Onit equivalence.
+An always-listening device needs a narrower default action
 surface than an interactive coding IDE. Capabilities that would add external
 side effects, credential use, repository rewrites, or arbitrary shell access
 must be added as reviewed typed tools.
@@ -313,7 +315,10 @@ validates its target and returns a confirmation-required status unless the
 operator has explicitly confirmed the side effect. The adapters then send one
 bounded REST request and return only a status, channel, and safe provider ID;
 provider response bodies and authorization headers are discarded. Ordinary
-Telegram voice calls are not available through the Bot API. Inbound webhooks,
+Telegram voice calls are not available through the Bot API. The Android
+companion can receive an explicit call request over the browser-audio WebSocket
+and invoke the phone's dialer/call permission; a live call has not yet been
+verified. Cellular SMS is not implemented. Inbound webhooks,
 identity/CRM actions, consent, recording, and human transfer remain outside
 this adapter boundary.
 
@@ -353,13 +358,14 @@ and record a deployment receipt.
 
 \begin{sloppypar}
 The current target is \url{dalmacio@cfdfnjrpi5.local} at
-\url{/home/dalmacio/Desktop/dandan}; the Qwen profile is deployed separately
-at \url{/home/dalmacio/Desktop/dandan-qwen}. The separate ME2 deployment is
-kept outside the ME3 release. Both current receipts report \texttt{deployed}
-after SSH, SCP, extraction, and installation. The active Qwen service returns
-HTTP 200, its Qwen audio models load, and the Fifine capture path reports a
-nonzero startup signal. This is Pi service/audio-start evidence, not yet a
-clean human spoken-turn or speaker-observation claim.
+\url{/home/dalmacio/Desktop/dandan}. Its Wi-Fi address is DHCP-assigned; the
+hostname is the stable same-LAN route. The retired \texttt{dandan-qwen}
+directory was moved to a dated hidden archive, leaving one active ME3 service.
+The current Pi release reports \texttt{loop:true}; tunneled HTTP health and a
+browser-audio WebSocket handshake pass, and the web clock API creates/cancels
+a timer. The SHARC VPN service is enabled but its current hotspot route cannot
+reach DGX3. These are deployment and interface checks, not a fresh human spoken
+turn or a provider-live Qwen claim for the current network.
 \end{sloppypar}
 
 The API key is never included in the archive. On the Pi it must be provisioned
@@ -369,18 +375,11 @@ local testing, but its secret is not printed or written to the repository.
 
 \section{Verification and Evidence}
 
-The current local verification sequence is:
+The local verification gate runs the shared-environment check, audio/MCP smoke
+test, paper-alignment check, unit suite, and a live Qwen tool turn when its
+provider endpoint is reachable.
 
-\begin{lstlisting}
-python scripts/dev_env_check.py
-python scripts/local_smoke_test.py --with-audio
-python scripts/check_paper_alignment.py
-python -m pytest tests -q
-python scripts/run_me3_module.py me3.agent --brain remote --text \\
-  "Use system_info and summarize the host."
-\end{lstlisting}
-
-The active Qwen test suite passed 84 tests in the current checkout. The
+The active Qwen test suite passed 99 tests in the current accepted checkout. The
 tool-focused tests cover OpenAI-compatible schemas, blocked shell patterns,
 background task completion, and a mocked multi-step Qwen response. The
 ElevenLabs tests additionally cover split-byte PCM reassembly, genuinely odd
@@ -403,47 +402,23 @@ engineering checks, not a claim about Pi audio.
 The evidence status at this revision is summarized in
 Table~\ref{tab:progress}.
 
-\begin{table}[t]
-\caption{ME3 progress evidence at the 6 November 2026 revision}
+\begin{table*}[t]
+\caption{ME3 progress evidence at the 7 November 2026 revision}
 \label{tab:progress}
-\small
-\begin{tabularx}{\columnwidth}{@{}lX@{}}
+\scriptsize
+\begin{tabularx}{\textwidth}{@{}p{0.19\textwidth}X@{}}
 \toprule
 Evidence lane & Status and interpretation \\
 \midrule
-Tool-capable Qwen & Verified in earlier live runs: Qwen created and inspected
-a web-app artifact through bounded tools. \\
-Local duplex audio & Verified with the Windows microphone, Piper output, and
-two barge-in cancellations; echo can contaminate ASR on loud speakers. \\
-LAN browser audio & The Pi-side HTTP/WebSocket server, browser PCM sink, device
-selection endpoint, and ME2-style SSH forwarding pass local protocol tests;
-physical Pi capture and LAN audio are still separate hardware gates. \\
-Integrated fd-benchmark & Vendored MIT benchmark source and ME3 direct-feed
-adapter pass import/protocol checks; a 10-trial development-dataset simulation
-completed without ASR/judge scoring. This is not a paper-grade result. \\
-Active Qwen Instruct audio profile & Adapter, runtime selection, configuration checks,
-and request-shape tests pass. Over the VPN, Qwen2-Audio ASR returned in 431.9 ms
-and Qwen3-TTS returned in 851.6 ms; the same matched run recorded
-faster-whisper ASR at 2732.0 ms and Piper TTS at 100.1 ms TTFB/176.7 ms total.
-The injected Qwen voice/tool lane completed one turn with zero errors and five
-shared tool identities. \\
-ElevenLabs renderer & Verified locally: provider-live 16-kHz PCM playback
-through the default speaker; not a native-Filipino voice-quality result. \\
-Qwen endpoint & Authenticated model discovery and a streamed text probe pass
-from the deployed Pi; the operator has also confirmed a human Pi Fifine turn
-with a browser-speaker reply. Automatic physical-speaker barge-in remains a
-separate gate. \\
-External channels & Telegram/Resend adapters and fake-request tests pass; no
-live Telegram message or email side effect has been placed, and phone calls/SMS
-are out of scope. \\
-Pi hardware & The latest Pi process loaded the Fifine capture path and reported
-a nonzero startup signal; the operator-confirmed human spoken turn is complete;
-automatic physical barge-in and echo behavior remain open. \\
-Paper-native FDB v1.5 & Incomplete: no clean 499-utterance overlap artifact
-or paper-grade result is claimed. \\
+Tool-capable Qwen & Earlier live turns created and inspected a web app through bounded tools. \\
+Audio and deployment & Pi loop, SSH-tunneled health, and browser-audio WebSocket pass; no fresh human turn on this release. Windows loopback barge-in was tested earlier. \\
+Class latency stage & 30 trials were retained: 29 replies plus one no-reply; the aggregate used faster-whisper fallback, and barge-in was not measured. \\
+Qwen audio services & Earlier VPN probes measured Qwen ASR 431.9 ms and TTS 851.6 ms; the current hotspot cannot reach DGX3. \\
+Clock and channels & Schedule create/cancel passes; no alarm was fired. Live Pi reports Spotify, Calendar, and Telegram unconfigured; SIM calls are untested and carrier SMS is absent. \\
+Paper-native FDB v1.5 & No clean 499-utterance overlap artifact or paper-grade result is claimed. \\
 \bottomrule
 \end{tabularx}
-\end{table}
+\end{table*}
 
 The deployed Pi preflight is also an explicit hardware gate. It is read-only,
 does not alter mixer state, and returns exit code 2 when no capture device is
@@ -523,17 +498,18 @@ the agent can supervise longer work without freezing the microphone. The
 implementation uses inference and tools rather than model training, keeps
 local speech services under project ownership, and records the distinction
 between local verification, prepared release, Pi deployment, and benchmark
-evidence. The ElevenLabs adapter was provider-tested locally but is not part of
-the active single-voice runtime. The final Qwen workstation acceptance passes
-84 tests and the injection lane passes one clean fixture run. The Pi
-browser-speaker path and vendored benchmark adapter pass local protocol checks,
-including a small simulated 10-trial run. The Qwen Instruct audio profile is
-provider-live over the restored VPN route: its matched run passes both ASR and
-TTS, and the full injected voice/tool turn passes with zero errors. The next
-decisive checks are automatic physical Pi speaker barge-in, operator-owned
-live channel tests, and a clean captured v1.5 overlap
-evaluation.
+evidence. The ElevenLabs adapter was tested locally but is not part of the
+active single-voice runtime. The latest workstation acceptance passes 99 tests
+and the class injection benchmark reports aggregate mean and p95 over 29
+replies plus one retained no-reply trial. The Pi browser-speaker path, schedule
+API, and vendored benchmark adapter pass current protocol checks. Qwen ASR/TTS
+were provider-live during an earlier VPN session but are unreachable from the
+current hotspot. Remaining decisive checks are restoring DGX3 access, a fresh
+human Pi spoken turn, automatic physical-speaker barge-in, live channel setup,
+and a clean captured v1.5 overlap evaluation.
 
+\begingroup
+\scriptsize
 \begin{thebibliography}{9}
 
 \bibitem{fdb}
@@ -579,6 +555,7 @@ Resend. ``Send Email.'' Official API reference, 2026.
 \href{https://resend.com/docs/api-reference/emails/send-email}{Resend API reference}.
 
 \end{thebibliography}
+\endgroup
 
 \end{document}
 
