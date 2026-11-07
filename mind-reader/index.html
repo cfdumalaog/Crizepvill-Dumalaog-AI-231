@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mind Reader</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      padding: 20px;
+    }
+    h1 { font-size: 2.2rem; margin-bottom: 8px; text-align: center; }
+    p.subtitle { color: #aaa; margin-bottom: 30px; text-align: center; }
+    .card {
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 16px;
+      padding: 30px;
+      max-width: 420px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    }
+    .card h2 { font-size: 1.3rem; margin-bottom: 16px; color: #e0e0ff; }
+    .card p { color: #ccc; margin-bottom: 20px; line-height: 1.5; }
+    button {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      border: none;
+      color: #fff;
+      font-size: 1rem;
+      padding: 12px 28px;
+      border-radius: 30px;
+      cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    button:hover { transform: scale(1.05); box-shadow: 0 4px 20px rgba(102,126,234,0.5); }
+    button:active { transform: scale(0.97); }
+    .hidden { display: none; }
+    .result {
+      font-size: 3rem;
+      margin: 16px 0;
+      animation: pop 0.4s ease;
+    }
+    @keyframes pop {
+      0% { transform: scale(0); }
+      70% { transform: scale(1.2); }
+      100% { transform: scale(1); }
+    }
+    .thinking {
+      font-size: 1.1rem;
+      color: #aaa;
+      animation: pulse 1s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 0.4; }
+      50% { opacity: 1; }
+    }
+    .score { margin-top: 12px; color: #888; font-size: 0.9rem; }
+  </style>
+</head>
+<body>
+  <h1>🧠 Mind Reader</h1>
+  <p class="subtitle">Think of a number from 1 to 10. I'll try to read your mind.</p>
+
+  <!-- Start Screen -->
+  <div class="card" id="start-screen">
+    <h2>Ready to play?</h2>
+    <p>Concentrate on a number between 1 and 10. When you're ready, press the button below.</p>
+    <button onclick="startGame()">🔮 Read My Mind</button>
+  </div>
+
+  <!-- Thinking Screen -->
+  <div class="card hidden" id="thinking-screen">
+    <h2>Reading your mind...</h2>
+    <p class="thinking">🧠 Focusing... 🧠</p>
+  </div>
+
+  <!-- Result Screen -->
+  <div class="card hidden" id="result-screen">
+    <h2>I think you're thinking of...</h2>
+    <div class="result" id="guessed-number">?</div>
+    <p id="result-text"></p>
+    <button onclick="playAgain()">🔄 Play Again</button>
+    <div class="score" id="score"></div>
+  </div>
+
+  <script>
+    let score = 0;
+    let plays = 0;
+
+    function showScreen(id) {
+      ['start-screen', 'thinking-screen', 'result-screen'].forEach(s => {
+        document.getElementById(s).classList.add('hidden');
+      });
+      document.getElementById(id).classList.remove('hidden');
+    }
+
+    function startGame() {
+      showScreen('thinking-screen');
+      setTimeout(() => {
+        const guess = Math.floor(Math.random() * 10) + 1;
+        document.getElementById('guessed-number').textContent = guess;
+        document.getElementById('result-text').textContent =
+          'Am I right? Think of the number and tell me!';
+        document.getElementById('score').textContent =
+          `Score: ${score} / ${plays}`;
+        showScreen('result-screen');
+      }, 2000);
+    }
+
+    function playAgain() {
+      plays++;
+      showScreen('start-screen');
+    }
+  </script>
+</body>
+</html>

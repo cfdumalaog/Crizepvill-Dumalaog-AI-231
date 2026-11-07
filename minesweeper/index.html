@@ -5,149 +5,116 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Minesweeper</title>
 <style>
-  body { font-family: Arial, sans-serif; display: flex; flex-direction: column; align-items: center; background: #222; color: #fff; }
-  h1 { margin: 20px 0 10px; }
-  #status { margin-bottom: 10px; font-size: 18px; }
-  #board { display: grid; gap: 2px; background: #444; padding: 4px; }
-  .cell {
-    width: 32px; height: 32px; background: #555; border: 1px solid #333;
-    display: flex; align-items: center; justify-content: center;
-    font-weight: bold; cursor: pointer; user-select: none;
-  }
-  .cell.revealed { background: #888; cursor: default; }
-  .cell.mine { background: #c0392b; }
-  .cell.flagged { background: #f1c40f; }
-  button { margin-top: 15px; padding: 8px 16px; font-size: 16px; cursor: pointer; }
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:Arial,sans-serif;background:#1a1a2e;display:flex;justify-content:center;align-items:center;min-height:100vh;color:#fff}
+h1{text-align:center;margin-bottom:10px;font-size:1.5rem}
+.controls{display:flex;gap:10px;justify-content:center;margin-bottom:10px}
+button{padding:8px 16px;border:none;border-radius:6px;background:#e94560;color:#fff;font-size:1rem;cursor:pointer}
+button:hover{background:#c73650}
+#stats{display:flex;gap:20px;justify-content:center;margin-bottom:10px;font-size:1rem}
+#board{display:grid;gap:2px;background:#16213e;padding:6px;border-radius:8px}
+.cell{width:32px;height:32px;display:flex;justify-content:center;align-items:center;font-size:14px;font-weight:bold;border-radius:3px;cursor:pointer;user-select:none}
+.hidden{background:#0f3460}
+.hidden:hover{background:#1a4a7a}
+.revealed{background:#16213e;cursor:default}
+.mine{background:#e94560}
+.flag{background:#533483}
+.win .cell{opacity:.7}
+#msg{text-align:center;margin-top:10px;font-size:1.1rem;min-height:1.5em}
 </style>
 </head>
 <body>
 <h1>Minesweeper</h1>
-<div id="status">Mines: 10 | Click to start</div>
+<div id="stats"><span>Mines: <b id="mineCount">10</b></span><span>Flags: <b id="flagCount">0</b></span></div>
+<div class="controls"><button onclick="newGame()">New Game</button></div>
 <div id="board"></div>
-<button onclick="init()">New Game</button>
+<div id="msg"></div>
 <script>
-const ROWS = 9, COLS = 9, MINES = 10;
-let board, revealed, flagged, gameOver, started;
-
-function init() {
-  board = Array.from({length: ROWS}, () => Array(COLS).fill(0));
-  revealed = Array.from({length: ROWS}, () => Array(COLS).fill(false));
-  flagged = Array.from({length: ROWS}, () => Array(COLS).fill(false));
-  gameOver = false;
-  started = false;
+const ROWS=9,COLS=9,MINES=10;
+let grid,firstClick,gameOver,flags;
+function newGame(){
+  grid=[];firstClick=true;gameOver=false;flags=0;
+  document.getElementById('board').innerHTML='';
+  document.getElementById('msg').textContent='';
+  document.getElementById('flagCount').textContent='0';
+  document.getElementById('board').classList.remove('win');
+  for(let r=0;r<ROWS;r++){grid[r]=[];for(let c=0;c<COLS;c++){grid[r][c]={mine:false,revealed:false,flagged:false,count:0};}}
   render();
-  document.getElementById('status').textContent = `Mines: ${MINES} | Click to start`;
 }
-
-function placeMines() {
-  let placed = 0;
-  while (placed < MINES) {
-    const r = Math.floor(Math.random() * ROWS);
-    const c = Math.floor(Math.random() * COLS);
-    if (board[r][c] !== -1) {
-      board[r][c] = -1;
-      placed++;
-    }
+function placeMines(sr,sc){
+  let placed=0;
+  while(placed<MINES){
+    let r=Math.floor(Math.random()*ROWS),c=Math.floor(Math.random()*COLS);
+    if(r===sr&&c===sc)continue;
+    if(grid[r][c].mine)continue;
+    grid[r][c].mine=true;placed++;
   }
-  for (let r = 0; r < ROWS; r++)
-    for (let c = 0; c < COLS; c++)
-      if (board[r][c] !== -1)
-        board[r][c] = countMines(r, c);
-}
-
-function countMines(r, c) {
-  let count = 0;
-  for (let dr = -1; dr <= 1; dr++)
-    for (let dc = -1; dc <= 1; dc++) {
-      const nr = r + dr, nc = c + dc;
-      if (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS && board[nr][nc] === -1) count++;
-    }
-  return count;
-}
-
-function reveal(r, c) {
-  if (r < 0 || r >= ROWS || c < 0 || c >= COLS || revealed[r][c] || flagged[r][c]) return;
-  revealed[r][c] = true;
-  if (board[r][c] === -1) {
-    gameOver = true;
-    revealAll();
-  } else if (board[r][c] === 0) {
-    for (let dr = -1; dr <= 1; dr++)
-      for (let dc = -1; dc <= 1; dc++)
-        reveal(r + dr, c + dc);
+  for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
+    if(grid[r][c].mine)continue;
+    let n=0;
+    forEachNeighbor(r,c,(nr,nc)=>{if(grid[nr][nc].mine)n++;});
+    grid[r][c].count=n;
   }
+}
+function forEachNeighbor(r,c,fn){
+  for(let dr=-1;dr<=1;dr++)for(let dc=-1;dc<=1;dc++){
+    if(dr===0&&dc===0)continue;
+    let nr=r+dr,nc=c+dc;
+    if(nr>=0&&nr<ROWS&&nc>=0&&nc<COLS)fn(nr,nc);
+  }
+}
+function reveal(r,c){
+  if(gameOver||grid[r][c].flagged||grid[r][c].revealed)return;
+  if(firstClick){firstClick=false;placeMines(r,c);}
+  if(grid[r][c].mine){
+    grid[r][c].revealed=true;gameOver=true;
+    for(let i=0;i<ROWS;i++)for(let j=0;j<COLS;j++)if(grid[i][j].mine)grid[i][j].revealed=true;
+    document.getElementById('msg').textContent='💥 Game Over!';
+    render();return;
+  }
+  grid[r][c].revealed=true;
+  if(grid[r][c].count===0)forEachNeighbor(r,c,(nr,nc)=>reveal(nr,nc));
   checkWin();
   render();
 }
-
-function revealAll() {
-  for (let r = 0; r < ROWS; r++)
-    for (let c = 0; c < COLS; c++)
-      if (board[r][c] === -1) revealed[r][c] = true;
-}
-
-function checkWin() {
-  let unrevealed = 0;
-  for (let r = 0; r < ROWS; r++)
-    for (let c = 0; c < COLS; c++)
-      if (!revealed[r][c]) unrevealed++;
-  if (unrevealed === MINES) {
-    gameOver = true;
-    document.getElementById('status').textContent = 'You win! 🎉';
-  }
-}
-
-function toggleFlag(r, c) {
-  if (revealed[r][c] || gameOver) return;
-  flagged[r][c] = !flagged[r][c];
+function toggleFlag(r,c){
+  if(gameOver||grid[r][c].revealed)return;
+  grid[r][c].flagged=!grid[r][c].flagged;
+  flags+=grid[r][c].flagged?1:-1;
+  document.getElementById('flagCount').textContent=flags;
   render();
 }
-
-function handleCell(r, c, e) {
-  if (gameOver) return;
-  if (e.button === 2) {
-    toggleFlag(r, c);
-  } else {
-    if (!started) {
-      placeMines();
-      started = true;
-    }
-    if (!flagged[r][c]) reveal(r, c);
+function checkWin(){
+  let revealed=0;
+  for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++)if(grid[r][c].revealed)revealed++;
+  if(revealed===ROWS*COLS-MINES){
+    gameOver=true;
+    document.getElementById('msg').textContent='🎉 You Win!';
+    document.getElementById('board').classList.add('win');
   }
 }
-
-function render() {
-  const boardEl = document.getElementById('board');
-  boardEl.style.gridTemplateColumns = `repeat(${COLS}, 32px)`;
-  boardEl.innerHTML = '';
-  for (let r = 0; r < ROWS; r++) {
-    for (let c = 0; c < COLS; c++) {
-      const cell = document.createElement('div');
-      cell.className = 'cell';
-      if (revealed[r][c]) {
-        cell.classList.add('revealed');
-        if (board[r][c] === -1) {
-          cell.classList.add('mine');
-          cell.textContent = '💣';
-        } else if (board[r][c] > 0) {
-          cell.textContent = board[r][c];
-          cell.style.color = ['#fff','#7fdbff','#fff','#ff7675','#b266ff','#fd79a8','#55efc4','#ffeaa7','#dfe6e9'][board[r][c]];
-        }
-      } else if (flagged[r][c]) {
-        cell.classList.add('flagged');
-        cell.textContent = '🚩';
-      }
-      cell.addEventListener('click', (e) => handleCell(r, c, e));
-      cell.addEventListener('contextmenu', (e) => { e.preventDefault(); handleCell(r, c, e); });
-      boardEl.appendChild(cell);
+function render(){
+  const board=document.getElementById('board');
+  board.style.gridTemplateColumns=`repeat(${COLS},32px)`;
+  board.innerHTML='';
+  for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
+    const cell=document.createElement('div');
+    cell.className='cell';
+    const g=grid[r][c];
+    if(g.revealed){
+      cell.classList.add('revealed');
+      if(g.mine){cell.classList.add('mine');cell.textContent='💣';}
+      else if(g.count>0)cell.textContent=g.count;
+    }else{
+      cell.classList.add('hidden');
+      if(g.flagged){cell.classList.add('flag');cell.textContent='🚩';}
     }
-  }
-  if (gameOver && !checkWin()) {
-    document.getElementById('status').textContent = 'Game Over! 💥';
+    cell.addEventListener('click',()=>reveal(r,c));
+    cell.addEventListener('contextmenu',e=>{e.preventDefault();toggleFlag(r,c);});
+    board.appendChild(cell);
   }
 }
-
-init();
+newGame();
 </script>
 </body>
 </html>
