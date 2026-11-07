@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crizepvill F. Dumalaog | AI & Machine Learning</title>
+    <meta name="description" content="Personal website of Crizepvill F. Dumalaog, focused on artificial intelligence and machine learning projects.">
+    <style>
+        :root {
+            --bg: #0b1020;
+            --bg-2: #111827;
+            --card: #1f2937;
+            --text: #f9fafb;
+            --muted: #9ca3af;
+            --accent: #22d3ee;
+            --accent-2: #a78bfa;
+            --border: rgba(255,255,255,0.08);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+            background:
+                radial-gradient(circle at top left, rgba(34,211,238,0.16), transparent 32%),
+                radial-gradient(circle at top right, rgba(167,139,250,0.16), transparent 28%),
+                var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+        }
+
+        a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        .container {
+            width: min(1120px, calc(100% - 2.5rem));
+            margin: 0 auto;
+        }
+
+        nav {
+            position: sticky;
+            top: 0;
+            z-index: 20;
+            backdrop-filter: blur(14px);
+            background: rgba(11,16,32,0.82);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .nav-inner {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            padding: 1rem 0;
+        }
+
+        .brand {
+            font-weight: 700;
+            letter-spacing: 0.02em;
+        }
+
+        .brand span {
+            color: var(--accent);
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 1.25rem;
+            color: var(--muted);
+        }
+
+        .nav-links a {
+            color: var(--muted);
+        }
+
+        .nav-links a:hover {
+            color: var(--text);
+            text-decoration: none;
+        }
+
+        .hero {
+            padding: 5.5rem 0 4rem;
+        }
+
+        .eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.45rem 0.9rem;
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            color: var(--muted);
+            background: rgba(255,255,255,0.03);
+            margin-bottom: 1.25rem;
+        }
+
+        .eyebrow::before {
+            content: "";
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--accent);
+            box-shadow: 0 0 18px var(--accent);
+        }
+
+        h1 {
+            font-size: clamp(2.5rem, 6vw, 4.5rem);
+            line-height: 1.05;
+            letter-spacing: -0.03em;
+            margin-bottom: 1rem;
+        }
+
+        .gradient-text {
+            background: linear-gradient(90deg, var(--accent), var(--accent-2));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .lead {
+            max-width: 760px;
+            color: var(--muted);
+            font-size: 1.15rem;
+            margin-bottom: 2rem;
+        }
+
+        .actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.9rem;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 46px;
+            padding: 0.85rem 1.35rem;
+            border-radius: 12px;
+            font-weight: 600;
+            border: 1px solid var(--border);
+            transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            text-decoration: none;
+        }
+
+        .btn-primary {
+            background: linear-gradient(90deg, var(--accent), var(--accent-2));
+            color: #0b1020;
+            border: none;
+        }
+
+        .btn-secondary {
+            background: rgba(255,255,255,0.04);
+            color: var(--text);
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            gap: 1.25rem;
+        }
+
+        .card {
+            background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            padding: 1.5rem;
+        }
+
+        .card h2,
+        .card h3 {
+            margin-bottom: 0.75rem;
+            letter-spacing: -0.01em;
+        }
+
+        .card p {
+            color: var(--muted);
+        }
+
+        .span-7 { grid-column: span 7; }
+        .span-5 { grid-column: span 5; }
+        .span-4 { grid-column: span 4; }
+        .span-12 { grid-column: span 12; }
+
+        section {
+            padding: 3rem 0;
+        }
+
+        .section-title {
+            font-size: clamp(1.8rem, 3.5vw, 2.5rem);
+            letter-spacing: -0.02em;
+            margin-bottom: 1.25rem;
+        }
+
+        .section-subtitle {
+            color: var(--muted);
+            max-width: 720px;
+            margin-bottom: 1.5rem;
+        }
+
+        .project-list {
+            display: grid;
+            gap: 1rem;
+        }
+
+        .project {
+            display: grid;
+            gap: 0.5rem;
+        }
+
+        .project-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .tag {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.35rem 0.7rem;
+            border-radius: 999px;
+            border: 1px solid var(--border);
+            color: var(--muted);
+            font-size: 0.85rem;
+        }
+
+        .placeholder-note {
+            border: 1px dashed rgba(255,255,255,0.18);
+            border-radius: 14px;
+            padding: 1rem 1.1rem;
+            color: var(--muted);
+            background: rgba(255,255,255,0.02);
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 1rem;
+        }
+
+        .stat {
+            padding: 1.25rem;
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            background: rgba(255,255,255,0.03);
+        }
+
+        .stat strong {
+            display: block;
+            font-size: 1.6rem;
+            margin-bottom: 0.35rem;
+            color: var(--accent);
+        }
+
+        .stat span {
+            color: var(--muted);
+        }
+
+        footer {
+            border-top: 1px solid var(--border);
+            padding: 2rem 0 3rem;
+            color: var(--muted);
+        }
+
+        .footer-inner {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            gap: 1rem;
+        }
+
+        @media (max-width: 900px) {
+            .span-7,
+            .span-5,
+            .span-4 {
+                grid-column: span 12;
+            }
+
+            .nav-links {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <div class="container nav-inner">
+            <div class="brand">Crizepvill <span>Dumalaog</span></div>
+            <div class="nav-links">
+                <a href="#about">About</a>
+                <a href="#projects">Projects</a>
+                <a href="#interests">Interests</a>
+                <a href="#contact">Contact</a>
+            </div>
+        </div>
+    </nav>
+
+    <header class="hero container">
+        <div class="eyebrow">AI & Machine Learning</div>
+        <h1>Crizepvill F. <span class="gradient-text">Dumalaog</span></h1>
+        <p class="lead">
+            A personal website for Crizepvill F. Dumalaog, focused on artificial intelligence,
+            machine learning, and practical AI projects.
+        </p>
+        <div class="actions">
+            <a class="btn btn-primary" href="#projects">View Projects</a>
+            <a class="btn btn-secondary" href="#about">About</a>
+        </div>
+    </header>
+
+    <main class="container">
+        <section id="about">
+            <div class="grid">
+                <div class="card span-7">
+                    <h2>About</h2>
+                    <p>
+                        This site is dedicated to Crizepvill F. Dumalaog and his work in artificial
+                        intelligence and machine learning. It is intended as a public portfolio and
+                        project hub for AI-related work.
+                    </p>
+                    <p style="margin-top: 1rem;">
+                        Specific biography, education, employment, and contact details are not included
+                        here to avoid adding unverified personal information.
+                    </p>
+                </div>
+                <div class="card span-5">
+                    <h3>Focus Areas</h3>
+                    <div class="project-list">
+                        <div class="project">
+                            <span class="tag">Machine Learning</span>
+                            <span class="tag">AI Applications</span>
+                            <span class="tag">Data Systems</span>
+                        </div>
+                        <div class="project">
+                            <span class="tag">Automation</span>
+                            <span class="tag">Web Projects</span>
+                            <span class="tag">Research</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="projects">
+            <h2 class="section-title">Projects</h2>
+            <p class="section-subtitle">
+                A placeholder section for AI and machine learning projects. Add project titles,
+                descriptions, links, and outcomes here as they become available.
+            </p>
+            <div class="grid">
+                <div class="card span-4">
+                    <h3>Project One</h3>
+                    <p>Placeholder for an AI project description.</p>
+                    <div class="project-meta">
+                        <span class="tag">Machine Learning</span>
+                        <span class="tag">In Development</span>
+                    </div>
+                </div>
+                <div class="card span-4">
+                    <h3>Project Two</h3>
+                    <p>Placeholder for an applied AI system or dataset project.</p>
+                    <div class="project-meta">
+                        <span class="tag">AI</span>
+                        <span class="tag">Research</span>
+                    </div>
+                </div>
+                <div class="card span-4">
+                    <h3>Project Three</h3>
+                    <p>Placeholder for a web-based AI tool or automation project.</p>
+                    <div class="project-meta">
+                        <span class="tag">Web</span>
+                        <span class="tag">Automation</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="interests">
+            <h2 class="section-title">Interests</h2>
+            <p class="section-subtitle">
+                Areas of interest related to AI and machine learning.
+            </p>
+            <div class="stats">
+                <div class="stat">
+                    <strong>AI</strong>
+                    <span>Applied artificial intelligence</span>
+                </div>
+                <div class="stat">
+                    <strong>ML</strong>
+                    <span>Machine learning models</span>
+                </div>
+                <div class="stat">
+                    <strong>Data</strong>
+                    <span>Data pipelines and analysis</span>
+                </div>
+                <div class="stat">
+                    <span style="color: var(--accent); font-size: 1.6rem; font-weight: 700;">Web</span>
+                    <span>AI-powered web projects</span>
+                </div>
+            </div>
+        </section>
+
+        <section id="contact">
+            <div class="card span-12">
+                <h2>Contact</h2>
+                <p>
+                    Contact details are intentionally left as a placeholder. Add an email, GitHub,
+                    LinkedIn, or other professional links here when ready.
+                </p>
+                <div class="placeholder-note" style="margin-top: 1rem;">
+                    Placeholder: Add verified contact information here.
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <div class="container footer-inner">
+            <div>&copy; 2026 Crizepvill F. Dumalaog</div>
+            <div>AI & Machine Learning Portfolio</div>
+        </div>
+    </footer>
+</body>
+</html>
