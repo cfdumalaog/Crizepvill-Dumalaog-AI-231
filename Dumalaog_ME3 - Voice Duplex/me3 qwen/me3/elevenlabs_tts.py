@@ -17,7 +17,26 @@ from urllib.parse import quote
 
 import requests
 
+from . import secure_config
+
 log = logging.getLogger("me3.elevenlabs_tts")
+
+
+def configure_private(api_key: str, voice_id: str) -> dict:
+    """Save the ElevenLabs credentials through the loopback setup endpoint."""
+    key = str(api_key or "").strip()
+    voice = str(voice_id or "").strip()
+    if len(key) < 20 or len(key) > 4096 or "\n" in key or "\r" in key:
+        return {"ok": False, "error": "invalid_elevenlabs_api_key_format"}
+    if not voice or len(voice) > 256 or "\n" in voice or "\r" in voice:
+        return {"ok": False, "error": "elevenlabs_voice_id_required"}
+    result = secure_config.set_values({
+        "ELEVENLABS_API_KEY": key,
+        "ELEVENLABS_VOICE_ID": voice,
+    })
+    return {"ok": bool(result.get("ok")),
+            "configured": bool(result.get("ok")),
+            **({"error": result["error"]} if not result.get("ok") else {})}
 
 
 class AudioChunk:
@@ -82,8 +101,10 @@ class ElevenLabsTTS:
         key_env = options.get("api_key_env", "ELEVENLABS_API_KEY")
         voice_env = options.get("voice_id_env", "ELEVENLABS_VOICE_ID")
         return cls(
-            api_key=os.environ.get(key_env, ""),
-            voice_id=os.environ.get(voice_env, options.get("voice_id", "")),
+            api_key=os.environ.get(key_env, "") or secure_config.get(key_env),
+            voice_id=(os.environ.get(voice_env, "")
+                      or secure_config.get(voice_env)
+                      or options.get("voice_id", "")),
             base_url=options.get("base_url", "https://api.elevenlabs.io/v1"),
             model_id=options.get("model_id", "eleven_flash_v2_5"),
             language_code=os.environ.get(

@@ -271,6 +271,14 @@ agent:
     For Telegram text, email, calendar meetings, and phone calls, execute a
     clear user instruction without another approval phrase. Ask only for
     genuinely missing recipient, message, date, or other required details.
+    Setup is also a ToolBrain conversation, not a fixed UI menu. When the user
+    clicks Set up or asks to configure/connect a provider or integration, first
+    ask what they want to set up if the target is unclear. Once the target and
+    purpose are clear, call setup_form with the user's setup request. Do not
+    list a predefined service menu and do not ask the user to paste a secret in
+    chat. After setup_form returns, explain the generated requirements briefly;
+    the UI will render the returned schema inside this conversation. Treat the
+    user's next form submission as a continuation of the same setup task.
     Ordinary voice calls are not
     available in Telegram Bot API mode. Never expose credentials, invent
     provider configuration, or claim a call/message/email succeeded unless the

@@ -48,9 +48,13 @@ def _elevenlabs_status(cfg: dict) -> dict:
     options = cfg.get("elevenlabs", {})
     key_env = options.get("api_key_env", "ELEVENLABS_API_KEY")
     voice_env = options.get("voice_id_env", "ELEVENLABS_VOICE_ID")
-    key_configured = bool(os.environ.get(key_env, "").strip())
+    from . import secure_config
+    key_configured = bool(os.environ.get(key_env, "").strip()
+                          or secure_config.get(key_env))
     voice_configured = bool(
-        os.environ.get(voice_env, options.get("voice_id", "")).strip()
+        os.environ.get(voice_env, "").strip()
+        or secure_config.get(voice_env)
+        or options.get("voice_id", "").strip()
     )
     return {
         "key_configured": key_configured,

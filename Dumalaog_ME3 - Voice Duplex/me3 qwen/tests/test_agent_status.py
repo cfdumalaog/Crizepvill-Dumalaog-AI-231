@@ -23,6 +23,19 @@ def _fake_stats() -> TurnStats:
     return s
 
 
+def test_snapshot_publishes_generated_setup_form_without_secret_values():
+    st = LoopStatus()
+    st.report_setup_form({
+        "title": "Set up Gemini",
+        "api_key": "must-not-be-published",
+        "fields": [{"name": "api_key", "type": "password"}],
+    })
+    setup = st.snapshot("idle", TurnStats())["setup_form"]
+    assert setup["id"] == "setup-1"
+    assert "api_key" not in setup
+    assert setup["fields"][0]["name"] == "api_key"
+
+
 def test_snapshot_shape_after_simulated_events():
     st = LoopStatus(release_info={"release_id": "me3-test"},
                     brain_name="stub", variant="current")

@@ -13,11 +13,14 @@ MCP servers and VAD are ours.
 The Pi UI now offers Qwen, OpenAI, or **Gemini** as the tool-brain choice,
 with independent ASR/TTS/VAD layers and one consistent TTS voice. The center of the Assistant
 is a single Codex-style conversation: voice turns and typed turns share the
-same history, tool loop, approvals, and follow-up questions. Type or say
-`set up OpenAI`, `set up Gemini`, `set up Spotify`, `set up Google Calendar`, `set up Telegram`,
-or `set up GitHub` and ME3 inserts the appropriate contextual setup prompt.
-Credential values go directly to the existing private Pi setup endpoints and
-are never sent to `/api/chat` or stored in conversation telemetry. OpenAI uses
+same history, tool loop, approvals, and follow-up questions. The **Set up**
+button is itself a normal conversation turn: it asks the ToolBrain what the
+operator wants to configure. After the target is clear, the ToolBrain calls
+`setup_form`, and the UI renders the returned fields as a conversational card
+inside the same feed. There is no fixed provider menu and no separate
+“Generate specific fields” action. Credential values go directly to the
+generated private Pi setup endpoint and are never sent to `/api/chat` or stored
+in conversation telemetry. OpenAI uses
 `gpt-transcribe`, `gpt-4.1-mini`, and `gpt-4o-mini-tts` with the fixed Onyx
 voice. Gemini uses Google's OpenAI-compatible `gemini-2.5-flash` chat/tool
 endpoint and leaves Qwen ASR/TTS as the default audio path. [Provider setup and
@@ -520,24 +523,32 @@ terminal shows the verification stage and tool result. A passing source check
 does not prove the app's behavior, deployment, or GitHub publication; those
 need their corresponding tool results. Benchmark mode keeps tools disabled.
 
-### Adaptive provider setup
+### Codex-style conversational setup
 
-The service buttons in the Assistant are quick-start shortcuts, not a closed
-list of supported providers. If the request mentions another vLLM server,
-OpenAI-compatible endpoint, model server, or base URL, ME3 generates a
-service-specific private setup form from that request. The form asks only for
-the applicable role (text brain, ASR, or TTS), base URL, model name, API key,
-protocol, voice, and fallback. The key is sent only to the Pi's protected
-setup route, stored beside the private credentials with restrictive file
-permissions, and omitted from conversation history and status responses.
+Setup is an agent interaction, not a collection of browser shortcuts. Clicking
+**Set up** sends a setup-intent message to the same `/api/chat` route used by
+typed and voice requests. If the request is vague, the ToolBrain asks one
+useful clarification question in the conversation. If the target is clear—such
+as Gemini, Spotify, Google Calendar, Telegram, GitHub, ElevenLabs, or a custom
+vLLM—the ToolBrain calls the local `setup_form` tool. That tool returns a
+credential-free schema containing only the fields needed for that request.
 
-The operator can save the profile or save and activate it. Activation selects
-the matching ME3 provider/layer and restarts the canonical Pi service. LLM
-profiles use OpenAI-compatible chat completions; ASR and TTS profiles use the
-corresponding Qwen/vLLM audio protocols. This makes a new compatible provider
-plug-and-play without editing source code, while the endpoint still needs to
-actually expose the selected protocol and model. Provider writes are available
-through the loopback SSH-tunnel surface so a LAN viewer cannot submit a secret.
+The browser renders that schema as a card in the conversation feed. The card is
+not a second setup workflow: its non-secret answers are sent back as a normal
+conversation follow-up, while secret values are submitted only to the
+loopback/private Pi endpoint named by the generated form. The UI never sends
+API keys, tokens, passwords, or client secrets to `/api/chat`, browser storage,
+status telemetry, or the model. After a private save, the ToolBrain receives a
+sanitized completion message and can ask for the next step, activate a layer,
+or report what remains.
+
+The same flow handles a provider that was not anticipated when the UI was
+written. For example, say “use this OpenAI-compatible vLLM for the tool brain”
+and ME3 first clarifies the role if needed, then generates the URL, model,
+protocol, credential, and fallback fields appropriate to that provider. No
+source edit or predefined service button is required. Activation selects the
+matching ME3 layer and may restart the canonical Pi service; the endpoint still
+has to implement the selected protocol.
 
 The Qwen audio notice supplied for this project provisions ASR and TTS only:
 DGX3 port 8000 is Qwen2-Audio and port 8001 is Qwen3-TTS. The text/tool brain

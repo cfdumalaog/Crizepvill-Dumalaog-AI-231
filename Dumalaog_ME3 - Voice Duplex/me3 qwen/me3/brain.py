@@ -23,6 +23,17 @@ from .provider_choice import openai_key
 log = logging.getLogger("me3.brain")
 
 
+def _targeted_setup_request(text: str) -> bool:
+    """Detect a setup request whose target is specific enough for a form."""
+    value = str(text or "").lower()
+    if not re.search(r"\b(?:set\s*up|setup|configure|connect|credentials?)\b", value):
+        return False
+    return bool(re.search(
+        r"\b(?:openai|gpt|gemini|google ai|qwen|dgx|vllm|deepgram|"
+        r"elevenlabs?|spotify|calendar|telegram|botfather|github|"
+        r"model endpoint|model server|provider)\b", value))
+
+
 def _ground_development_reply(content: str, path: str, *, tests_passed: bool,
                               serving_url: str | None,
                               github_published: bool) -> str:
@@ -1025,6 +1036,33 @@ class ToolBrain:
         development_repairs = 0
         development_tests_passed = False
         development_serving_url: str | None = None
+
+        # Keep targeted setup deterministic while still inside the ToolBrain.
+        # The browser never classifies or chooses the service; it only submits
+        # the user's setup turn. The generated form is emitted through the same
+        # tool callback used for every other tool event.
+        if self.allow_tools and _targeted_setup_request(user_text):
+            self._progress("planning", "Generating setup requirements")
+            if self.on_tool:
+                self.on_tool("start", "setup_form", {"request": user_text})
+            started = time.perf_counter()
+            try:
+                result = self.dispatch_fn("setup_form", {"request": user_text})
+            except Exception as exc:  # noqa: BLE001 - keep voice loop alive
+                result = {"ok": False, "error": f"{type(exc).__name__}: {exc}"}
+            tool_ms = (time.perf_counter() - started) * 1e3
+            self.metrics["first_tool_ms"] = tool_ms
+            self.metrics["tool_calls"].append({
+                "name": "setup_form", "ms": round(tool_ms),
+                "ok": bool(result.get("ok")) if isinstance(result, dict) else True,
+            })
+            if self.on_tool:
+                self.on_tool("finish", "setup_form", result)
+            if isinstance(result, dict) and result.get("ok"):
+                return str(result.get(
+                    "message",
+                    "I generated the setup requirements in the conversation.",
+                ))
 
         web_query = _web_search_query(history, user_text) if self.allow_tools else None
         if web_query:

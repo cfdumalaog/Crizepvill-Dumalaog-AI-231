@@ -26,71 +26,6 @@
     },
     vad: {silero: 'Silero local', energy: 'Energy gate fallback'}
   };
-  const flows = {
-    openai: {
-      title: 'OpenAI voice provider',
-      help: 'Enter the API key here through the local ME3 tunnel. It goes directly to private Pi storage. Then launch OpenAI to use its ASR, tool model, and voice.',
-      status: '/api/provider/status',
-      fields: [{name:'api_key', label:'OpenAI API key', secret:true}],
-      save: '/api/integrations/openai-key',
-      actions: [{label:'Launch OpenAI', run:() => activateProvider('openai')}],
-    },
-    gemini: {
-      title: 'Gemini tool brain',
-      help: 'Gemini is an alternate text/tool brain through Google’s OpenAI-compatible endpoint. Qwen ASR, Qwen TTS, and Silero remain the audio defaults unless you change the layer selectors.',
-      status: '/api/provider/status',
-      fields: [{name:'api_key', label:'Gemini API key', secret:true}],
-      save: '/api/integrations/gemini-key',
-      actions: [{label:'Launch Gemini brain', run:() => activateProvider('gemini')}],
-    },
-    qwen: {
-      title: 'Qwen voice provider',
-      help: 'Qwen uses the institutional ASR, text, and TTS endpoints through the Pi VPN. Launch it when those servers are reachable.',
-      status: '/api/provider/status',
-      fields: [],
-      actions: [{label:'Launch Qwen', run:() => activateProvider('qwen')}],
-    },
-    deepgram: {
-      title: 'Deepgram speech recognition backup',
-      help: 'Deepgram is an ASR backup for Qwen. It does not replace the text model or speech output.',
-      status: '/api/deepgram/status',
-      fields: [{name:'api_key', label:'Deepgram API key', secret:true}],
-      save: '/api/integrations/deepgram-key',
-    },
-    spotify: {
-      title: 'Spotify music',
-      help: 'Save the Spotify app Client ID, then connect the account through OAuth. Playback requires a compatible Spotify player and account.',
-      status: '/api/spotify/status',
-      fields: [{name:'client_id', label:'Spotify app Client ID'}],
-      save: '/api/spotify/client-id',
-      actions: [{label:'Connect Spotify', run:() => location.assign('/api/spotify/connect')}],
-    },
-    google: {
-      title: 'Google Calendar',
-      help: 'Save your Google OAuth web client, then connect Calendar for reminders and meetings. Register the callback URL shown below in Google Cloud.',
-      status: '/api/google/status',
-      fields: [{name:'client_id', label:'OAuth Client ID'},
-               {name:'client_secret', label:'OAuth Client Secret', secret:true}],
-      save: '/api/integrations/google-config',
-      actions: [{label:'Connect Calendar', run:() => location.assign('/api/google/connect')}],
-    },
-    telegram: {
-      title: 'Telegram messages',
-      help: 'Create a bot with BotFather, save its token, then have the recipient press Start in the bot. ME3 sends as the bot, not your personal Telegram account.',
-      status: '/api/telegram/status',
-      fields: [{name:'bot_token', label:'BotFather token', secret:true}],
-      save: '/api/integrations/telegram-token',
-      actions: [{label:'Connect @mncfrndz', run:() => postAction('/api/telegram/connect-target')}],
-    },
-    github: {
-      title: 'GitHub publishing',
-      help: 'Save a token with access to the repositories you want ME3 to use. ME3 can then verify access and publish requested sites.',
-      status: '/api/github/status',
-      fields: [{name:'token', label:'GitHub token', secret:true}],
-      save: '/api/integrations/github-token',
-    },
-  };
-
   function message(role, text, meta='') {
     const atBottom = feed.scrollHeight - feed.scrollTop - feed.clientHeight < 90;
     const box = document.createElement('div');
@@ -115,21 +50,6 @@
     return /\b(?:sk-[A-Za-z0-9_-]{16,}|AIza[A-Za-z0-9_-]{20,}|github_pat_[A-Za-z0-9_]{20,}|gh[pousr]_[A-Za-z0-9]{20,}|\d{5,16}:[A-Za-z0-9_-]{20,})\b/i.test(text)
       || /\b(?:api[ _-]?key|client[ _-]?secret|bot[ _-]?token|password)\s*(?::|=|\bis\b)\s*\S{8,}/i.test(text)
       || /^[a-f0-9]{32,}$/i.test(text.trim());
-  }
-
-  function setupIntent(text) {
-    const t = String(text || '').toLowerCase();
-    if(!/\b(set\s*up|setup|configure|connect|switch|change provider|use openai|use qwen|use gemini|add (?:an? )?(?:api|token)|credentials?)\b/.test(t)) return '';
-    if(/\b(?:vllm|openai-compatible|custom provider|another provider|different provider|base url|model endpoint|model server)\b/.test(t)) return 'custom_vllm';
-    if(/openai|gpt/.test(t)) return 'openai';
-    if(/gemini|google ai/.test(t)) return 'gemini';
-    if(/qwen|dgx/.test(t)) return 'qwen';
-    if(/deepgram/.test(t)) return 'deepgram';
-    if(/spotify/.test(t)) return 'spotify';
-    if(/google|calendar/.test(t)) return 'google';
-    if(/telegram|botfather/.test(t)) return 'telegram';
-    if(/github/.test(t)) return 'github';
-    return 'menu';
   }
 
   async function jsonRequest(url, options={}) {
@@ -169,21 +89,11 @@
   }
 
   function setupMenu() {
-    const box = promptBase('What would you like to set up?',
-      'Choose a service. ME3 will ask only for the fields needed for that service.');
-    const choices = document.createElement('div'); choices.className = 'setup-choices'; box.appendChild(choices);
-    for(const [id, spec] of Object.entries(flows)) button(spec.title, () => showSetup(id), choices);
-    button('Other vLLM / API', () => showDynamicSetup('Use another vLLM or OpenAI-compatible provider.'), choices);
-    const label = document.createElement('label'); label.textContent = 'Describe another provider or API';
-    const description = document.createElement('textarea');
-    description.rows = 2; description.maxLength = 1200; description.spellcheck = false;
-    description.placeholder = 'Example: use this vLLM endpoint for the tool model and ask me only for the fields it needs.';
-    label.appendChild(description); box.appendChild(label);
-    button('Generate specific fields', () => {
-      const request = description.value.trim();
-      if(!request) { description.focus(); return; }
-      showDynamicSetup(request);
-    }, choices);
+    // Set up is a real conversation turn. The model decides what needs to be
+    // configured and calls setup_form only after the target is clear.
+    return sendChat(
+      'I want to set something up. Ask me what provider, integration, or capability I want to configure. Do not show a fixed service menu; ask only the next useful question and generate a setup form after the target is clear.'
+    );
   }
 
   function makeDynamicField(field) {
@@ -207,103 +117,82 @@
     label.appendChild(entry); return {label, entry};
   }
 
-  async function showDynamicSetup(request) {
-    const safeRequest = String(request || '').trim();
-    if(!safeRequest || secretLike(safeRequest)) {
-      message('system', 'Describe the provider without pasting a key. The generated form has a private key field.');
-      return setupMenu();
-    }
-    const box = promptBase('Generating a provider setup form…',
-      'ME3 is converting your request into the smallest validated field set.');
-    const status = document.createElement('div'); status.className = 'setup-status'; box.appendChild(status);
-    try {
-      const plan = await jsonRequest('/api/setup/plan', {method:'POST', headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({request:safeRequest})});
-      box.replaceChildren();
-      const h = document.createElement('h3'); h.textContent = plan.title || 'Custom provider setup'; box.appendChild(h);
-      const p = document.createElement('p'); p.textContent = plan.help || 'Enter the requested provider details.'; box.appendChild(p);
-      const values = {};
-      (plan.fields || []).forEach(field => { const made = makeDynamicField(field); box.appendChild(made.label); values[field.name] = made.entry; });
-      const actions = document.createElement('div'); actions.className = 'setup-actions'; box.appendChild(actions);
-      const state = document.createElement('div'); state.className = 'setup-status'; box.appendChild(state);
-      let profileId = '';
-      async function saveProfile() {
-        const payload = Object.fromEntries(Object.entries(values).map(([name, entry]) => [name, entry.value]));
-        const result = await jsonRequest('/api/setup/profile', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)});
-        profileId = result.activate_profile_id || '';
-        Object.entries(values).forEach(([name, entry]) => { if(name === 'api_key') entry.value = ''; });
-        state.textContent = 'Saved privately on the Pi. The key is not added to chat history.';
-        return result;
-      }
-      button('Save privately on Pi', async ev => {
-        ev.currentTarget.disabled = true;
-        try { await saveProfile(); } catch(err) { state.textContent = err.message; }
-        finally { ev.currentTarget.disabled = false; }
-      }, actions);
-      button('Save and activate', async ev => {
-        ev.currentTarget.disabled = true;
-        try {
-          if(!profileId) await saveProfile();
-          await jsonRequest('/api/setup/profile/activate', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({profile_id:profileId})});
-          state.textContent = 'Activated. ME3 is restarting with this provider; the current voice loop will reconnect shortly.';
-          setTimeout(refreshSummary, 5000); setTimeout(loadLayers, 5000);
-        } catch(err) { state.textContent = err.message; }
-        finally { ev.currentTarget.disabled = false; }
-      }, actions);
-    } catch(err) { status.textContent = err.message; }
+  const setupFormSeen = new Set();
+  const secretFieldNames = new Set(['api_key', 'client_secret', 'bot_token', 'token', 'password']);
+
+  function setupSummary(form, values) {
+    const details = Object.entries(values)
+      .filter(([name, value]) => value && !secretFieldNames.has(name))
+      .map(([name, value]) => name + '=' + value).join(', ');
+    return details || 'no non-secret values were supplied';
   }
 
-  async function showSetup(id) {
-    if(id === 'custom_vllm') return showDynamicSetup('Use another vLLM or OpenAI-compatible provider.');
-    const spec = flows[id]; if(!spec) return setupMenu();
-    const box = promptBase(spec.title, spec.help);
-    const status = document.createElement('div'); status.className = 'setup-status';
-    box.appendChild(status);
-    const values = {};
-    for(const field of spec.fields) {
-      const label = document.createElement('label'); label.textContent = field.label;
-      const entry = document.createElement('input'); entry.type = field.secret ? 'password' : 'text';
-      entry.autocomplete = field.secret ? 'new-password' : 'off'; entry.spellcheck = false;
-      label.appendChild(entry); box.appendChild(label); values[field.name] = entry;
+  async function submitGeneratedSetup(form, values, state, buttonEl) {
+    const fields = form.fields || [];
+    for(const field of fields) {
+      if(field.required !== false && !String(values[field.name] || '').trim()) {
+        state.textContent = 'Please provide: ' + (field.label || field.name) + '.';
+        return;
+      }
     }
-    const actions = document.createElement('div'); actions.className = 'setup-actions'; box.appendChild(actions);
-    if(spec.save) button('Save privately on Pi', async ev => {
-      const b = ev.currentTarget; b.disabled = true;
-      const payload = Object.fromEntries(Object.entries(values).map(([name, entry]) => [name, entry.value]));
-      try {
-        await jsonRequest(spec.save, {method:'POST',headers:{'Content-Type':'application/json'},
-          body:JSON.stringify(payload)});
-        status.textContent = 'Saved privately on the Pi. The value is not added to chat.';
-        await refreshSummary();
-      } catch(err) { status.textContent = err.message; }
-      finally { Object.values(values).forEach(entry => {entry.value = '';}); b.disabled = false; }
-    }, actions);
-    for(const action of spec.actions || []) button(action.label, async ev => {
-      const b = ev.currentTarget; b.disabled = true;
-      try { await action.run(); status.textContent = 'Action started.'; }
-      catch(err) { status.textContent = err.message; }
-      finally { b.disabled = false; }
-    }, actions);
+    buttonEl.disabled = true;
     try {
-      const data = await jsonRequest(spec.status);
-      if(id === 'openai') status.textContent = 'Current: ' + data.selected + ' · OpenAI key ' + (data.openai_key_configured ? 'saved' : 'missing');
-      else if(id === 'qwen') status.textContent = 'Current: ' + data.selected;
-      else if(id === 'google') status.textContent = (data.authorized ? 'Calendar connected' : 'Calendar not connected') + (data.redirect_uri ? ' · Callback: ' + data.redirect_uri : '');
-      else if(id === 'spotify') status.textContent = (data.connected ? 'Spotify connected' : 'Spotify not connected') + (data.redirect_uri ? ' · Callback: ' + data.redirect_uri : '');
-      else status.textContent = data.configured ? 'Configured on Pi' : 'Setup needed';
-    } catch(err) { status.textContent = err.message; }
+      const privateSave = form.private_save || null;
+      let saved = null;
+      if(privateSave && privateSave.endpoint) {
+        const privatePayload = {};
+        (privateSave.fields || fields.map(field => field.name)).forEach(name => {
+          if(values[name] !== undefined) privatePayload[name] = values[name];
+        });
+        saved = await jsonRequest(privateSave.endpoint, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(privatePayload)});
+      }
+      if(form.activation && form.activation.provider) {
+        await jsonRequest('/api/provider/select', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(form.activation)});
+        await jsonRequest('/api/restart-service', {method:'POST'});
+      } else if(saved && saved.activate_profile_id) {
+        await jsonRequest('/api/setup/profile/activate', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({profile_id:saved.activate_profile_id})});
+        await jsonRequest('/api/restart-service', {method:'POST'});
+      }
+      Object.keys(values).forEach(name => { if(secretFieldNames.has(name)) values[name] = ''; });
+      state.textContent = 'Submitted. Private fields were saved on the Pi; the non-secret details are continuing in the conversation.';
+      await sendChat('I submitted the generated setup form for "' + (form.title || 'this setup') + '". Non-secret details: ' + setupSummary(form, values) + '. Any credential fields were entered through the protected setup card. Continue the setup and tell me what remains or whether it is ready.', {setupFollowup:true});
+      await refreshSummary();
+      setTimeout(loadLayers, 5000);
+    } catch(err) {
+      state.textContent = err.message;
+    } finally {
+      buttonEl.disabled = false;
+    }
+  }
+
+  function renderSetupForm(form) {
+    if(!form || !form.id || setupFormSeen.has(form.id)) return;
+    setupFormSeen.add(form.id);
+    const box = promptBase(form.title || 'Setup details', form.help || 'ME3 generated the requirements for this setup request.');
+    const note = document.createElement('div'); note.className = 'setup-status';
+    note.textContent = 'Generated by the ToolBrain from this conversation. Non-secret values return to chat; secrets go only to protected Pi storage.';
+    box.appendChild(note);
+    const values = {};
+    (form.fields || []).forEach(field => {
+      const made = makeDynamicField(field); box.appendChild(made.label); values[field.name] = made.entry;
+    });
+    const actions = document.createElement('div'); actions.className = 'setup-actions'; box.appendChild(actions);
+    const state = document.createElement('div'); state.className = 'setup-status'; box.appendChild(state);
+    if((form.fields || []).length === 0 && !(form.activation || {}).provider) {
+      state.textContent = 'No manual fields are required. Ask ME3 in the conversation for the next setup step.';
+    }
+    if((form.fields || []).length || (form.activation || {}).provider) {
+      button('Submit in conversation', () => {
+        const raw = Object.fromEntries(Object.entries(values).map(([name, entry]) => [name, entry.value]));
+        submitGeneratedSetup(form, raw, state, actions.querySelector('button'));
+      }, actions);
+    }
   }
 
   async function sendChat(text) {
     const value = String(text || '').trim(); if(!value) return;
     if(secretLike(value)) {
-      message('system', 'That looks like a credential. Choose its service below and enter it in the private setup prompt.');
-      setupMenu(); return;
-    }
-    const intent = setupIntent(value);
-    if(intent) {
-      message('user', value, 'typed');
-      if(intent === 'menu') setupMenu(); else if(intent === 'custom_vllm') showDynamicSetup(value); else showSetup(intent);
+      message('system', 'That looks like a credential. Ask ME3 to set up the service, then enter it in the generated private setup card.');
       return;
     }
     try {
@@ -311,8 +200,7 @@
         body:JSON.stringify({message:value})});
     } catch(err) {
       message('system', err.message === 'use_private_setup_prompt'
-        ? 'Use the private setup prompt for credentials.' : err.message);
-      if(err.message === 'use_private_setup_prompt') setupMenu();
+        ? 'Use the generated private setup card for credentials.' : err.message);
     }
   }
 
@@ -329,10 +217,6 @@
       const meta = role === 'user' ? (event.source === 'chat' ? 'typed' : 'Pi microphone')
         : (event.kind === 'backchannel' ? 'progress' : 'ME3');
       const box = message(role, event.text, meta);
-      if(role === 'user' && event.source !== 'chat') {
-        const intent = setupIntent(event.text);
-        if(intent) { if(intent === 'menu') setupMenu(); else if(intent === 'custom_vllm') showDynamicSetup(event.text); else showSetup(intent); }
-      }
       if(role === 'assistant' && /\bapproval is required\b/i.test(event.text)) {
         const choices = document.createElement('div'); choices.className = 'setup-choices'; box.appendChild(choices);
         button('Approve action', () => sendChat('Approve.'), choices);
@@ -343,11 +227,8 @@
         button('Yes, proceed', () => sendChat('Yes, go ahead.'), choices);
         button('No, cancel', () => sendChat('No, cancel that.'), choices);
       }
-      if(role === 'assistant' && /\b(not configured|missing (?:an? )?(?:api )?key|need (?:an? )?(?:api )?key)\b/i.test(event.text)) {
-        const service = Object.keys(flows).find(name => event.text.toLowerCase().includes(name));
-        if(service) showSetup(service);
-      }
     }
+    if(state.setup_form) renderSetupForm(state.setup_form);
     if(seen.size > 200) {
       const ids = [...seen]; ids.slice(0, ids.length - 150).forEach(id => seen.delete(id));
     }
@@ -449,7 +330,7 @@
   });
   el('chatSetup').addEventListener('click', setupMenu);
   el('openSetup').addEventListener('click', setupMenu);
-  window.ME3Chat = {render, showSetup, setupMenu};
+  window.ME3Chat = {render, setupMenu, renderSetupForm};
   refreshSummary(); loadLayers(); loadPermissions();
   setInterval(refreshSummary, 15000); setInterval(loadLayers, 15000); setInterval(loadPermissions, 15000);
 })();

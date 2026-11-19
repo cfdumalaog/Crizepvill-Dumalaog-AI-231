@@ -464,6 +464,9 @@ class LocalVoiceLoop:
             })
             return
         ok = payload.get("ok") if isinstance(payload, dict) else True
+        if (self.status is not None and isinstance(payload, dict)
+                and isinstance(payload.get("setup_form"), dict)):
+            self.status.report_setup_form(payload["setup_form"])
         self.orchestrator.on_harness_event({
             "phase": "tool_finished",
             "name": str(name),

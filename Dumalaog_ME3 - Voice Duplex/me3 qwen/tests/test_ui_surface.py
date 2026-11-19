@@ -30,3 +30,13 @@ def test_browser_surface_exposes_duplex_mode_toggle():
     assert 'value="automatic"' in html
     assert 'value="keyword_only"' in html
     assert "/api/duplex-mode" in html
+
+
+def test_setup_is_conversation_driven_and_has_no_static_service_menu():
+    html = (PROJECT / "web" / "assistant-chat.js").read_text(encoding="utf-8")
+    assert "I want to set something up" in html
+    assert "setup_form" in html
+    assert "Submit in conversation" in html
+    assert "Generate specific fields" not in html
+    assert "Choose a service" not in html
+    assert "Object.entries(flows)" not in html

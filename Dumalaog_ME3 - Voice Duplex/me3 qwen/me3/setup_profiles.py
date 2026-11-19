@@ -1,10 +1,10 @@
-"""Adaptive, private setup profiles for additional model/API providers.
+"""Adaptive, private setup profiles and conversation-generated forms.
 
-The quick-start buttons in the UI cover the known ME3 integrations.  This
-module handles the open-ended case: a user describes another OpenAI-compatible
-or vLLM service and ME3 returns a structured form for the requested role.
-Profiles are stored beside the protected credential file with mode 0600; the
-status path never returns the API key.
+The ToolBrain calls this module after a setup target is clear. It returns a
+credential-free schema for the conversational UI, covering known ME3
+integrations and open-ended OpenAI-compatible/vLLM providers. Profiles are
+stored beside the protected credential file with mode 0600; the status path
+never returns an API key.
 """
 from __future__ import annotations
 
@@ -20,6 +20,150 @@ from . import secure_config
 
 ROLES = ("llm", "asr", "tts")
 _SAFE_NAME = re.compile(r"[^a-z0-9]+", re.IGNORECASE)
+
+
+def _setup_kind(request: str) -> str | None:
+    """Infer a setup target from the request passed by the ToolBrain.
+
+    This is deliberately a small classifier, not the UI menu.  The brain is
+    responsible for deciding when the request is specific enough to call this
+    tool; the classifier only maps that confirmed target to the private setup
+    adapter and its generated field schema.
+    """
+    text = str(request or "").lower()
+    if re.search(r"\b(?:vllm|openai-compatible|custom provider|model endpoint|model server)\b", text):
+        return "custom_vllm"
+    if re.search(r"\b(?:openai|gpt)\b", text):
+        return "openai"
+    if re.search(r"\b(?:gemini|google ai|google generative)\b", text):
+        return "gemini"
+    if re.search(r"\b(?:qwen|dgx3?|institutional model)\b", text):
+        return "qwen"
+    if re.search(r"\bdeepgram\b", text):
+        return "deepgram"
+    if re.search(r"\b(?:elevenlabs|eleven labs)\b", text):
+        return "elevenlabs"
+    if re.search(r"\bspotify\b", text):
+        return "spotify"
+    if re.search(r"\b(?:google calendar|calendar|meet)\b", text):
+        return "google"
+    if re.search(r"\b(?:telegram|botfather|telegram bot)\b", text):
+        return "telegram"
+    if re.search(r"\b(?:github|github pages|github token)\b", text):
+        return "github"
+    return None
+
+
+def _field(name: str, label: str, field_type: str = "text", **kwargs) -> dict:
+    value = {"name": name, "label": label, "type": field_type,
+             "required": bool(kwargs.pop("required", True))}
+    value.update(kwargs)
+    return value
+
+
+def setup_form(request: str) -> dict:
+    """Return a conversational setup form selected by the ToolBrain.
+
+    The result is UI metadata only.  It never contains a credential value.
+    ``private_save`` tells the browser which existing loopback-protected
+    endpoint receives secret fields; the user-facing, non-secret submission is
+    still sent back through the ordinary chat endpoint after saving.
+    """
+    kind = _setup_kind(request)
+    if kind is None:
+        return {
+            "ok": False,
+            "error": "setup_target_unclear",
+            "needs_clarification": True,
+            "question": "What provider, integration, or capability would you like to set up?",
+        }
+
+    forms = {
+        "openai": {
+            "title": "Set up OpenAI",
+            "help": "Enter the key in this private conversation card. It is saved only on the Pi; it is never sent to the model chat.",
+            "fields": [_field("api_key", "OpenAI API key", "password", autocomplete="new-password")],
+            "private_save": {"endpoint": "/api/integrations/openai-key", "fields": ["api_key"]},
+            "activation": {"provider": "openai"},
+        },
+        "gemini": {
+            "title": "Set up Gemini tool brain",
+            "help": "Enter the Gemini key in this private conversation card. Qwen audio can remain active while Gemini handles reasoning and tools.",
+            "fields": [_field("api_key", "Gemini API key", "password", autocomplete="new-password")],
+            "private_save": {"endpoint": "/api/integrations/gemini-key", "fields": ["api_key"]},
+            "activation": {"provider": "gemini"},
+        },
+        "qwen": {
+            "title": "Use the Qwen provider",
+            "help": "Qwen uses the protected institutional endpoints already configured for the Pi. No credential needs to be typed into chat.",
+            "fields": [],
+            "activation": {"provider": "qwen"},
+        },
+        "deepgram": {
+            "title": "Set up Deepgram speech recognition backup",
+            "help": "Deepgram is an ASR fallback only. Enter its key privately; it does not replace the text/tool brain.",
+            "fields": [_field("api_key", "Deepgram API key", "password", autocomplete="new-password")],
+            "private_save": {"endpoint": "/api/integrations/deepgram-key", "fields": ["api_key"]},
+        },
+        "elevenlabs": {
+            "title": "Set up ElevenLabs voice output",
+            "help": "Enter the API key and, if needed, the selected voice ID privately. The voice remains one consistent ME3 voice after activation.",
+            "fields": [
+                _field("api_key", "ElevenLabs API key", "password", autocomplete="new-password"),
+                _field("voice_id", "ElevenLabs voice ID", "text"),
+            ],
+            "private_save": {"endpoint": "/api/integrations/elevenlabs", "fields": ["api_key", "voice_id"]},
+        },
+        "spotify": {
+            "title": "Set up Spotify music",
+            "help": "Enter the Spotify app client ID privately. ME3 will then continue with Spotify account authorization and an active-player check.",
+            "fields": [_field("client_id", "Spotify app Client ID")],
+            "private_save": {"endpoint": "/api/spotify/client-id", "fields": ["client_id"]},
+        },
+        "google": {
+            "title": "Set up Google Calendar",
+            "help": "Enter the OAuth web-client values privately. ME3 will use the registered callback to continue Calendar authorization.",
+            "fields": [
+                _field("client_id", "Google OAuth Client ID"),
+                _field("client_secret", "Google OAuth Client Secret", "password", autocomplete="new-password"),
+            ],
+            "private_save": {"endpoint": "/api/integrations/google-config", "fields": ["client_id", "client_secret"]},
+        },
+        "telegram": {
+            "title": "Set up Telegram messages",
+            "help": "Enter the BotFather token privately. ME3 sends as the bot identity, not as your personal Telegram account.",
+            "fields": [
+                _field("bot_token", "Telegram BotFather token", "password", autocomplete="new-password"),
+                _field("target", "Recipient username or chat ID", "text", required=False),
+            ],
+            "private_save": {"endpoint": "/api/integrations/telegram-token", "fields": ["bot_token"]},
+        },
+        "github": {
+            "title": "Set up GitHub publishing",
+            "help": "Enter a GitHub token privately. The token's own repository permissions determine what ME3 can read or publish.",
+            "fields": [_field("token", "GitHub token", "password", autocomplete="new-password")],
+            "private_save": {"endpoint": "/api/integrations/github-token", "fields": ["token"]},
+        },
+    }
+    if kind == "custom_vllm":
+        plan = setup_plan(request)
+        plan["title"] = "Set up the provider you described"
+        plan["help"] = (
+            "ME3 generated these fields from the provider request. Non-secret "
+            "details return to the conversation; the API key is saved only "
+            "through the protected Pi setup endpoint."
+        )
+        plan["private_save"] = {
+            "endpoint": "/api/setup/profile",
+            "fields": [field["name"] for field in plan["fields"]],
+        }
+        plan["form_kind"] = kind
+        return {"ok": True, "setup_form": plan,
+                "message": "I generated the fields needed for the provider you described."}
+    form = dict(forms[kind])
+    form["form_kind"] = kind
+    return {"ok": True, "setup_form": form,
+            "message": "I generated the fields needed for that setup request."}
 
 
 def _path() -> Path:

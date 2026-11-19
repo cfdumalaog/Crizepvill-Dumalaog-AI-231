@@ -6,8 +6,9 @@ Version: 0.9, 7 November 2026
 launch-time choice between the Qwen stack described below and an OpenAI stack:
 `gpt-transcribe` ASR, `gpt-4.1-mini` tool brain, and `gpt-4o-mini-tts` with
 one Onyx voice. Both use the owned MCP servers, local Silero VAD, and the same
-tools. The Pi UI has a private API-key password field and saves the selection
-across restarts. See [provider setup](PROVIDER_SELECTION.md). Historical
+tools. The Pi UI uses a ToolBrain-generated private setup card inside the
+conversation and saves the selection across restarts. See [provider setup](PROVIDER_SELECTION.md).
+Historical
 references below describe the Qwen configuration and its measured results;
 they are not OpenAI performance claims.
 

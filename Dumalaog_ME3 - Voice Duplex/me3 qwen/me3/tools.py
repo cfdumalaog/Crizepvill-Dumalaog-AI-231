@@ -31,6 +31,7 @@ from . import github_pages
 from . import me2_commands
 from . import dev_workflow
 from . import permission_policy
+from . import setup_profiles
 
 PROJECT = project_root()
 AGENT_ROOT = PROJECT / "agent_workspace"
@@ -562,6 +563,11 @@ def schedule_meeting(title: str, start: str, end: str,
         location=location, description=description, create_meet=create_meet)
 
 
+def setup_form(request: str) -> dict:
+    """Generate the next private setup card from a confirmed setup request."""
+    return setup_profiles.setup_form(request)
+
+
 _FUNCTIONS = {
     "list_files": list_files,
     "read_file": read_file,
@@ -603,6 +609,7 @@ _FUNCTIONS = {
     "call_contact": me2_commands.call_contact,
     "send_message": me2_commands.send_message,
     "schedule_meeting": schedule_meeting,
+    "setup_form": setup_form,
     "channel_health": channels.channel_health,
     "send_email": channels.send_email,
     "send_telegram_message": channels.send_telegram_message,
@@ -825,6 +832,15 @@ def tool_definitions() -> list[dict]:
             "create_meet": {"type": "boolean", "default": True},
             "confirm": {"type": "boolean", "default": True},
         }, ("title", "start", "end")),
+        spec("setup_form", (
+            "Start a contextual provider or integration setup after the user's "
+            "target is clear. Return the generated setup card to the UI. Never "
+            "request API-key contents in chat; the UI sends secret fields only "
+            "through the protected private setup endpoint. If the target is not "
+            "clear, ask a normal conversational clarification question instead "
+            "of calling this tool."), {
+                "request": {"type": "string"},
+            }, ("request",)),
         spec("channel_health", (
             "Report whether Spotify, Google Calendar, Telegram, and optional "
             "email credentials are configured. This does not contact providers."), {}),
