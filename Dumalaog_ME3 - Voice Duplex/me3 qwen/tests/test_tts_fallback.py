@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
-from me3.mcp_tts import _AutoFallbackTTS
+from me3.mcp_tts import _AutoFallbackTTS, _ProfileFallbackTTS
 
 
 class FailingTTS:
@@ -53,3 +53,16 @@ def test_auto_fallback_does_not_duplicate_partial_provider_audio():
         raise AssertionError("mid-stream provider failure must be surfaced")
 
     assert engine.last_event["fallback"] == "not_safe_after_partial_audio"
+
+
+def test_qwen_profile_falls_back_to_piper_before_first_audio_chunk():
+    primary = FailingTTS()
+    fallback = PiperTTS()
+    engine = _ProfileFallbackTTS(primary, lambda: fallback)
+
+    chunks = list(engine.synthesize("Good morning."))
+
+    assert [c.audio_int16_bytes for c in chunks] == [b"\x01\x02"]
+    assert engine.provider == "piper_fallback"
+    assert engine.config.sample_rate == 22050
+    assert engine.last_event["backend"] == "piper_fallback"

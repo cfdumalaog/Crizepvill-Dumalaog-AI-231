@@ -430,9 +430,14 @@ def send_message(contact: str, body: str, channel: str = "telegram",
     if channel != "telegram":
         return {"ok": False, "error": "telegram_only_channel", "channel": channel,
                 "network_called": False}
-    aliases = {"WIFE": "MNCFRNDZ", "WIFEY": "MNCFRNDZ", "WIFEEY": "MNCFRNDZ",
-               "WIFEEYY_DUMALAOG_FERNANDEZ": "MNCFRNDZ",
-               "MCFRNDZ": "MNCFRNDZ", "MNCFRNDZ": "MNCFRNDZ"}
+    aliases = {
+        "WIFE": "MNCFRNDZ", "WIFEY": "MNCFRNDZ", "WIFEEY": "MNCFRNDZ",
+        "WIFEEYY_DUMALAOG_FERNANDEZ": "MNCFRNDZ",
+        "MCFRNDZ": "MNCFRNDZ", "MNCFRNDZ": "MNCFRNDZ",
+        "MONICA": "MNCFRNDZ", "MONICA_FERNANDEZ": "MNCFRNDZ",
+        # Keep the common spoken/transcription typo usable as well.
+        "MONICA_FERNANDEX": "MNCFRNDZ",
+    }
     mapping_key = "ME3_TELEGRAM_CHAT_" + aliases.get(slug, slug)
     chat_id = raw if re.fullmatch(r"-?\d+", raw) else secure_config.get(mapping_key)
     if not chat_id:
@@ -505,6 +510,9 @@ def connect_telegram_target(username: str = "mncfrndz") -> dict:
                     "target": "@mncfrndz"}
         aliases = {
             "ME3_TELEGRAM_CHAT_MNCFRNDZ": chat_id,
+            "ME3_TELEGRAM_CHAT_MONICA": chat_id,
+            "ME3_TELEGRAM_CHAT_MONICA_FERNANDEZ": chat_id,
+            "ME3_TELEGRAM_CHAT_MONICA_FERNANDEX": chat_id,
             "ME3_TELEGRAM_CHAT_WIFE": chat_id,
             "ME3_TELEGRAM_CHAT_WIFEY": chat_id,
             "ME3_TELEGRAM_CHAT_WIFEEY": chat_id,

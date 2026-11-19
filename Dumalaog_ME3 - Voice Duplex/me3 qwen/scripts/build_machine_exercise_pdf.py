@@ -4,7 +4,8 @@ The source template remains untouched.  The output is a new two-page, 960x540
 PDF that keeps the template's hierarchy, palette, spacing, table structure,
 and footer treatment while replacing placeholders with verified Qwen Instruct
 details. Mean/p95 cells are populated from the recorded 2026-11-07 direct-feed
-class benchmark. ASR fallback and the unmeasured barge-in metric are identified.
+full benchmark, including stage marks transported by the custom WebSocket
+adapter. The physical acoustic path remains a separate acceptance gate.
 """
 from __future__ import annotations
 
@@ -22,7 +23,7 @@ from reportlab.platypus import Paragraph
 
 
 ROOT = Path(__file__).resolve().parents[1]
-OUTPUT = ROOT / "docs" / "machine_exercise_2page_ME3_Qwen_Instruct.pdf"
+OUTPUT = ROOT / "docs" / "machine_exercise_2page_ME3_Qwen_Instruct_full_benchmark_marked_system_diagram.pdf"
 W, H = 960, 540
 
 NAVY = colors.HexColor("#182742")
@@ -132,24 +133,25 @@ def diagram(c: canvas.Canvas, x: float, y: float, w: float, h: float) -> None:
     c.drawString(x + 242, y + h - 13, "QWEN VLLM OVER VPN")
 
     boxes = [
-        (x + 9, "Fifine mic\nEcho guard + VAD", TEAL),
-        (x + 101, "Qwen2-Audio\nASR MCP", colors.HexColor("#4C6FFF")),
-        (x + 193, "Qwen ToolBrain\nMCP tasks/tools", TEAL),
-        (x + 285, "Qwen3-TTS Aiden\nPCM browser sink", colors.HexColor("#4C6FFF")),
+        (x + 9, "Fifine mic\n16 kHz mono USB\necho guard + Silero VAD", TEAL),
+        (x + 101, "Qwen2-Audio\n7B / ASR MCP / 3 tools\nvLLM over VPN", colors.HexColor("#4C6FFF")),
+        (x + 193, "Qwen ToolBrain\nQwen3.8-27B\n4 servers / 54 tools", TEAL),
+        (x + 285, "Qwen3-TTS Aiden\n1.7B / TTS MCP / 4 tools\n16 kHz PCM -> browser", colors.HexColor("#4C6FFF")),
     ]
-    bw, bh = 80, 39
-    by = y + 73
+    bw, bh = 80, 50
+    by = y + 65
     for bx, label, fill in boxes:
         c.setFillColor(WHITE)
         c.setStrokeColor(fill)
         c.setLineWidth(1.0)
         c.roundRect(bx, by, bw, bh, 5, fill=1, stroke=1)
         c.setFillColor(TEXT)
-        c.setFont("Helvetica-Bold", 6.9)
+        c.setFont("Helvetica-Bold", 6.15)
         lines = label.split("\n")
-        c.drawCentredString(bx + bw / 2, by + 24, lines[0])
-        c.setFont("Helvetica", 6.6)
-        c.drawCentredString(bx + bw / 2, by + 12, lines[1])
+        c.drawCentredString(bx + bw / 2, by + 37, lines[0])
+        c.setFont("Helvetica", 5.45)
+        c.drawCentredString(bx + bw / 2, by + 25, lines[1])
+        c.drawCentredString(bx + bw / 2, by + 13, lines[2])
     c.setStrokeColor(NAVY)
     c.setFillColor(NAVY)
     c.setLineWidth(1.0)
@@ -182,7 +184,7 @@ def prompt_box(c: canvas.Canvas, x: float, y: float, w: float, h: float) -> None
     content = (
         "Filipino / English / Taglish voice assistant for a Philippines customer-support pilot.\n"
         "Formal, respectful, concise spoken replies; never flirtatious or suggestive.\n"
-        "Execute clear user requests with bounded tools; ask only for missing details.\n"
+        "Execute clear user requests with Pi-user tools; ask only for missing details.\n"
         "Never expose credentials or claim an external action succeeded without tool evidence.\n"
         "For long work: \"I am processing your request now.\""
     )
@@ -205,7 +207,7 @@ def context_columns(c: canvas.Canvas, x: float, y: float, w: float) -> None:
     ], x, y - 13, col, size=8.5, leading=12, gap=1)
     bullet_list(c, [
         "fast mode; hidden thinking off",
-        "24-round tool budget + safe summary",
+        "24 normal / 48 software tool rounds",
         "1-3 spoken sentences; short history",
         "latest-prompt queue + background status",
         "sanitized terminal; no credentials or CoT",
@@ -295,7 +297,7 @@ def build() -> Path:
     section(c, "4", "MCP SERVICES", "+ model serving: one table, one truth", 48, 428)
     rows = [
         ["Component", "MCP server / transport", "Tools", "Model", "Served where / notes"],
-        ["ASR", "me3-asr / FastMCP", "transcribe(audio) -> text", "Qwen2-Audio-7B-Instruct", "Pi service; benchmark used faster-whisper fallback"],
+        ["ASR", "me3-asr / FastMCP", "transcribe(audio) -> text", "Qwen2-Audio-7B-Instruct", "Pi service; scoring used faster-whisper/small"],
         ["TTS", "me3-tts / FastMCP", "speak(text) -> audio", "Qwen3-TTS-12Hz-1.7B-CustomVoice; Aiden", "Pi service; Qwen vLLM over VPN; one formal voice"],
         ["LLM", "ToolBrain / MCP client", "function calling", "Qwen/Qwen3.8-27B", "Remote vLLM; fast_mode=true; hidden thinking=false"],
         ["VAD", "me3-vad / FastMCP", "detect_speech(frames)", "Silero ONNX", "On-device Pi CPU; 16 kHz mono; endpointing"],
@@ -308,32 +310,32 @@ def build() -> Path:
         "One clock: benchmark direct feed uses the assistant machine clock and records stage marks per turn.",
         "Injection only: no physical microphone or speaker; no acoustic feedback in the latency run.",
         "Benchmark mode: no tool schemas, external agent/harness calls, fillers, backchannels, or real channel side effects.",
-        "Report mean + p95 over the updated stage-latency phrases and preserve JSON, CSV, HTML, and latency chart artifacts.",
+        "Report mean + p95 over the updated stage-latency phrases; preserve JSON, CSV, HTML, and latency chart artifacts.",
     ], 48, 250, 425, size=8.3, leading=11.2, gap=1.5)
 
     metrics = [
         ["Metric", "Definition", "Target", "Mean", "p95"],
-        ["E2E latency", "end of speech -> audio out", "4.0 s", "5.81 s", "7.87 s"],
-        ["ASR final", "VAD end -> transcript", "0.8 s", "3.38 s", "4.92 s"],
-        ["LLM TTFT", "transcript -> first token", "1.5 s", "0.21 s", "0.21 s"],
-        ["TTS TTFB", "text -> first audio chunk", "0.6 s", "1.60 s", "2.98 s"],
-        ["Barge-in", "speech -> playback stopped", "0.8 s", "n/m", "n/m"],
-        ["WER", "ASR accuracy on test set", "15%", "29.3%", "n/a"],
+        ["E2E latency", "end of speech -> audio out", "4.0 s", "4.89 s", "7.01 s"],
+        ["ASR final", "VAD end -> transcript", "0.8 s", "1.17 s", "2.16 s"],
+        ["LLM TTFT", "transcript -> first token", "1.5 s", "1.35 s", "4.73 s"],
+        ["TTS TTFB", "text -> first audio chunk", "0.6 s", "2.51 s", "4.28 s"],
+        ["Barge-in", "speech -> playback stopped", "0.8 s", "0.19 s", "0.19 s"],
+        ["WER", "ASR accuracy on test set", "15%", "24.1%", "-"],
     ]
     draw_table(c, 507, 262, [83, 160, 52, 47, 47], metrics, 17, font_size=6.9)
 
     panel(c, 48, 37, 277, 96, "DEMO (deck 2)", [
         "Operator confirmed Pi Fifine speech -> ME3 -> laptop browser speaker.",
         "Direct commands work without Qwen; complex tasks need model access.",
-        "Barge-in was not measured in the injection-only benchmark (n/m).",
+        "Barge-in measured 0.19 s mean/p95 over one marked injection trial.",
     ])
     panel(c, 339, 37, 277, 96, "RESULTS (deck 2)", [
-        "30 planned; 29 replies and one no-reply. All valid trials aggregated; no best run selected.",
-        "LLM TTFT met target; E2E, ASR, TTS, and WER missed.",
-        "ASR used faster-whisper: DGX3 port 8000 was unreachable.",
+        "One round completed 40/40 planned trials: 30 stage-latency plus 10 group-level clips; no judge.",
+        "Stage samples: E2E/ASR/LLM/TTS/barge-in n=20/26/26/22/1; WER n=27.",
+        "E2E, ASR, TTS, and WER missed targets; LLM mean met but p95 missed; barge-in met.",
     ])
     panel(c, 630, 37, 282, 96, "CHALLENGES & REFERENCES", [
-        "Restore DGX3 ASR; rerun the benchmark and measure barge-in.",
+        "Stage marks now cross the direct-feed adapter; the marked 40/40 run populated the table.",
         "Spotify needs API access, Premium, and PKCE; current account lacks API access.",
         "Calendar OAuth, Telegram bot setup, and Android call permissions remain.",
         "Lights/thermostat are simulated. See the benchmark report.",

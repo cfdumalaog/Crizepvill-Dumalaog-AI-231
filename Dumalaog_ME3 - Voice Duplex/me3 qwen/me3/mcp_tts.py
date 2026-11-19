@@ -2,9 +2,10 @@
 
 Exposes the active text-to-speech backend as MCP tools so any MCP client can
 synthesize speech on the RPi and receive audio bytes. The active Qwen profile
-uses its fixed Qwen3-TTS CustomVoice. The former Piper path and ElevenLabs
-adapter remain available only for archived/future controlled experiments and
-are not selected by the active voice loop.
+uses its fixed Qwen3-TTS CustomVoice. If that remote service fails before
+producing audio, one cached local Piper voice provides an availability backup;
+the fallback stays selected until service restart so one outage cannot
+alternate voices sentence by sentence.
 
 Tools:
   - synthesize(text) -> {audio_b64 (wav), sample_rate, duration_s, latency_ms, ttfb_ms}
@@ -146,6 +147,84 @@ class _AutoFallbackTTS:
             }
 
 
+class _ProfileFallbackTTS:
+    """Use a cached local backup voice if the active remote profile fails.
+
+    A provider failure before any audio is emitted can safely fall back. A
+    mid-stream failure is surfaced because replaying a full backup sentence
+    would repeat audio the listener already heard.
+    """
+
+    def __init__(self, primary, fallback_loader):
+        self.primary = primary
+        self._fallback_loader = fallback_loader
+        self._fallback = None
+        self.config = primary.config
+        self.provider = getattr(primary, "provider", "primary")
+        self.last_event = None
+        self._load_ms = getattr(primary, "_load_ms", 0.0)
+        self._using_fallback = False
+
+    def synthesize(self, text: str):
+        if not str(text or "").strip():
+            return
+        if self._using_fallback:
+            emitted = False
+            for chunk in self._fallback.synthesize(text):
+                emitted = True
+                yield chunk
+            if not emitted:
+                raise RuntimeError("local backup TTS returned no audio")
+            self.provider = f"{getattr(self._fallback, 'provider', 'piper')}_fallback"
+            self.config = self._fallback.config
+            self.last_event = {
+                "backend": self.provider,
+                "ok": True,
+                "reason": "remote_provider_unavailable_until_restart",
+            }
+            return
+        emitted = False
+        try:
+            for chunk in self.primary.synthesize(text):
+                emitted = True
+                yield chunk
+            if not emitted:
+                raise RuntimeError("primary TTS returned no audio")
+            self.provider = getattr(self.primary, "provider", "primary")
+            self.config = self.primary.config
+            self.last_event = getattr(self.primary, "last_event", None)
+            return
+        except Exception as exc:  # noqa: BLE001 - controlled local failover
+            if emitted:
+                self.provider = getattr(self.primary, "provider", "primary")
+                self.config = self.primary.config
+                self.last_event = {
+                    "backend": self.provider,
+                    "ok": False,
+                    "error_class": type(exc).__name__,
+                    "fallback": "not_safe_after_partial_audio",
+                }
+                raise
+            log.warning("primary TTS unavailable; loading local backup (%s)",
+                        type(exc).__name__)
+            if self._fallback is None:
+                self._fallback = self._fallback_loader()
+            self._using_fallback = True
+            self.provider = f"{getattr(self._fallback, 'provider', 'piper')}_fallback"
+            self.config = self._fallback.config
+            fallback_emitted = False
+            for chunk in self._fallback.synthesize(text):
+                fallback_emitted = True
+                yield chunk
+            if not fallback_emitted:
+                raise RuntimeError("local backup TTS returned no audio") from exc
+            self.last_event = {
+                "backend": self.provider,
+                "ok": True,
+                "reason": type(exc).__name__,
+            }
+
+
 def _get_engine():
     """Lazy-load the one approved TTS backend for the selected profile.
 
@@ -158,12 +237,27 @@ def _get_engine():
         root_cfg = load_config()
         cfg = root_cfg["tts"]
         runtime_variant = root_cfg.get("runtime_variant", "current")
-        requested = "qwen_remote" if runtime_variant == "qwen_instruct" else "piper"
-        if requested == "qwen_remote":
+        requested = cfg.get("engine") or (
+            "openai" if root_cfg.get("runtime_provider") == "openai"
+            else "qwen_remote" if runtime_variant == "qwen_instruct"
+            else "piper")
+        if requested == "openai":
+            from .openai_audio import OpenAITTS
+            _engine = OpenAITTS()
+            _cfg = {**cfg, "engine": "openai", "model": _engine.model,
+                    "voice": _engine.voice, "auto_fallback": False}
+        elif requested == "qwen_remote":
             from .qwen_audio import QwenRemoteTTS, config_from_env
-            _engine = QwenRemoteTTS(config_from_env(cfg))
+            primary = QwenRemoteTTS(config_from_env(cfg))
+            fallback_cfg = dict(root_cfg.get("tts", {}))
+            fallback_cfg["voice"] = cfg.get(
+                "fallback_voice", "en_US-ryan-medium")
+            _engine = _ProfileFallbackTTS(
+                primary, lambda: _load_piper(fallback_cfg))
             _cfg = dict(cfg)
             _cfg["engine"] = "qwen_remote"
+            _cfg["fallback_engine"] = cfg.get("fallback_engine", "piper")
+            _cfg["fallback_voice"] = fallback_cfg["voice"]
         elif requested == "elevenlabs":
             from .elevenlabs_tts import ElevenLabsTTS
             t0 = time.perf_counter()
@@ -216,7 +310,6 @@ def synthesize(text: str) -> dict:
         {audio_b64, sample_rate, duration_s, latency_ms, ttfb_ms}
     """
     engine, _cfg = _get_engine()
-    sr = _engine_sample_rate(engine)
     t0 = time.perf_counter()
     chunks = []
     first_byte_ms = None
@@ -226,6 +319,7 @@ def synthesize(text: str) -> dict:
             first_byte_ms = (time.perf_counter() - t0) * 1000
         chunks.append(pcm_bytes)
     pcm = b"".join(chunks)
+    sr = _engine_sample_rate(engine)
     latency_ms = (time.perf_counter() - t0) * 1000
     audio_b64, dur = _pcm_to_wav_b64(pcm, sr)
     backend = getattr(engine, "provider", _cfg.get("engine", "piper"))
@@ -248,10 +342,10 @@ def synthesize_stream(text: str) -> list[dict]:
     The first element's ttfb_ms is the time-to-first-audio-byte metric.
     """
     engine, _cfg = _get_engine()
-    sr = _engine_sample_rate(engine)
     t0 = time.perf_counter()
     out = []
     for i, chunk in enumerate(engine.synthesize(text)):
+        sr = _engine_sample_rate(engine)
         ttfb = (time.perf_counter() - t0) * 1000 if i == 0 else None
         b64, _dur = _pcm_to_wav_b64(chunk.audio_int16_bytes, sr)
         item = {"chunk_i": i, "audio_b64": b64, "sample_rate": sr}
@@ -266,8 +360,8 @@ def synthesize_stream(text: str) -> list[dict]:
 def voices() -> dict:
     """List voices for the active backend."""
     try:
-        if _cfg and _cfg.get("engine") == "qwen_remote":
-            return {"ok": True, "engine": "qwen_remote",
+        if _cfg and _cfg.get("engine") in {"qwen_remote", "openai"}:
+            return {"ok": True, "engine": _cfg["engine"],
                     "voices": [_cfg.get("voice", "aiden")]}
         if _cfg and _cfg.get("engine") == "elevenlabs":
             return {"ok": True, "engine": "elevenlabs",
@@ -301,6 +395,10 @@ def health() -> dict:
             "elevenlabs_voice_configured": eleven["voice_configured"],
             "auto_fallback": bool(cfg.get("auto_fallback", False)),
             "last_event": getattr(engine, "last_event", None),
+            "fallback_engine": cfg.get("fallback_engine"),
+            "fallback_voice": cfg.get("fallback_voice"),
+            "fallback_active": bool(
+                getattr(engine, "provider", "").endswith("_fallback")),
         }
     except Exception as e:  # noqa: BLE001
         return {"ok": False, "error": str(e)}

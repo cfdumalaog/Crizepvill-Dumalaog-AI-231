@@ -1,41 +1,41 @@
 {
   "schema": 1,
-  "acceptance_id": "workstation-20261107-031916",
-  "status": "pass",
-  "created_utc": "2026-11-07T03:19:16.559580+00:00",
+  "acceptance_id": "workstation-20261118-185602",
+  "status": "fail",
+  "created_utc": "2026-11-18T18:56:02.107806+00:00",
   "host": "DABEXY",
-  "python": "3.12.10",
+  "python": "3.13.1",
   "mode": "windows_workstation_only",
   "external_side_effects": false,
   "pi_contacted": false,
   "promotion_policy": "workstation_acceptance_required",
-  "release_id": "me3-20261107-031910-057f9c4e",
-  "source_fingerprint": "057f9c4ef8456adbdeef6679184394bfd47f3889b15f22ac0f2dd752c8ead34e",
-  "zip_sha256": "36c17c7e8a13a09d11a0c9c684bc4adac3388999f0f08876e7b51363afb95448",
+  "release_id": null,
+  "source_fingerprint": null,
+  "zip_sha256": null,
   "checks": [
     {
       "name": "shared_environment",
-      "status": "pass",
-      "returncode": 0,
-      "duration_s": 2.969,
+      "status": "fail",
+      "returncode": 1,
+      "duration_s": 4.764,
       "command": "C:\\Users\\danda\\Desktop\\MEng AI Notebooks\\AI 222 231\\.venv\\Scripts\\python.exe scripts/dev_env_check.py",
-      "stdout_tail": "                      MCP SDK - all four servers speak MCP\n  [OK ] fastapi        0.141.1                       FastMCP server framework\n  [OK ] uvicorn        0.52.4                        ASGI transport for streamable-http mode\n  [OK ] pipecat        1.13.0                        full-duplex orchestration pipeline\n  [OK ] faster_whisper 1.2.1                         SOTA ASR (CTranslate2)\n  [OK ] piper          present                       SOTA low-latency TTS\n  [OK ] onnxruntime    1.24.4                        CPU Silero VAD runtime\n  [OK ] sounddevice    0.5.6                         full-duplex mic/speaker I/O (PortAudio)\n  [OK ] requests       2.34.2                        LLM endpoint client (remote vLLM option)\n\nRESULT: PASS - all ME3 dependencies importable in this environment.\n",
-      "stderr_tail": "\u001b[32m2026-11-07 11:18:51.387\u001b[0m | \u001b[1mINFO    \u001b[0m | \u001b[36mpipecat\u001b[0m:\u001b[36m<module>\u001b[0m:\u001b[36m54\u001b[0m - \u001b[1m\\u14da\\u160f\\u15e2 Pipecat 1.13.0 (Python 3.12.10 (tags/v3.12.10:0cc8128, Apr  8 2025, 12:21:36) [MSC v.1943 64 bit (AMD64)]) \\u14da\\u160f\\u15e2\u001b[0m\n"
+      "stdout_tail": "kely to be a NumPy issue but will be caused by a bad install\nor environment on your machine.\n\nOriginal error was: No module named 'numpy._core._multiarray_umath'\n  SOTA low-latency TTS\n  [MISS] onnxruntime    ImportError: DLL load failed while importing onnxruntime_pybind11_state: The specified module could not be found.  CPU Silero VAD runtime\n  [MISS] sounddevice    ModuleNotFoundError: No module named '_cffi_backend'  full-duplex mic/speaker I/O (PortAudio)\n  [OK ] requests       2.34.2                        LLM endpoint client (remote vLLM option)\n\nMISSING (7):\n    pip install numpy\n    pip install mcp\n    pip install fastapi\n    pip install faster-whisper\n    pip install piper-tts\n    pip install onnxruntime\n    pip install sounddevice\n\nRESULT: FAIL - install the above, then re-run.\n",
+      "stderr_tail": "\u001b[32m2026-11-19 02:55:51.990\u001b[0m | \u001b[1mINFO    \u001b[0m | \u001b[36mpipecat\u001b[0m:\u001b[36m<module>\u001b[0m:\u001b[36m54\u001b[0m - \u001b[1m\\u14da\\u160f\\u15e2 Pipecat 1.13.0 (Python 3.13.1 (tags/v3.13.1:0671451, Dec  3 2024, 19:06:28) [MSC v.1942 64 bit (AMD64)]) \\u14da\\u160f\\u15e2\u001b[0m\n"
     },
     {
       "name": "pytest",
-      "status": "pass",
-      "returncode": 0,
-      "duration_s": 7.308,
+      "status": "fail",
+      "returncode": 2,
+      "duration_s": 2.367,
       "command": "C:\\Users\\danda\\Desktop\\MEng AI Notebooks\\AI 222 231\\.venv\\Scripts\\python.exe -m pytest tests -q",
-      "stdout_tail": "........................................................................ [ 72%]\n...........................                                              [100%]\n99 passed in 6.13s\n",
+      "stdout_tail": "E   This is unlikely to be a NumPy issue but will be caused by a bad install\nE   or environment on your machine.\nE   \nE   Original error was: No module named 'numpy._core._multiarray_umath'\n=========================== short test summary info ===========================\nERROR tests/test_agent_status.py\nERROR tests/test_audio_io.py\nERROR tests/test_deepgram_asr.py\nERROR tests/test_fdbench_adapter.py\nERROR tests/test_github_pages.py\nERROR tests/test_injected_audio.py\nERROR tests/test_local_ui.py\nERROR tests/test_openai_provider.py\nERROR tests/test_pi_server_retry.py\nERROR tests/test_qwen_audio.py\nERROR tests/test_tts_fallback.py\nERROR tests/test_vocalis_protocol.py\nERROR tests/test_web_audio.py\n!!!!!!!!!!!!!!!!!! Interrupted: 13 errors during collection !!!!!!!!!!!!!!!!!!!\n13 errors in 1.30s\n",
       "stderr_tail": ""
     },
     {
       "name": "python_compile",
       "status": "pass",
       "returncode": 0,
-      "duration_s": 0.147,
+      "duration_s": 0.159,
       "command": "C:\\Users\\danda\\Desktop\\MEng AI Notebooks\\AI 222 231\\.venv\\Scripts\\python.exe -m compileall -q me3 scripts",
       "stdout_tail": "",
       "stderr_tail": ""
@@ -44,52 +44,52 @@
       "name": "bash_syntax",
       "status": "pass",
       "returncode": 0,
-      "duration_s": 4.518,
+      "duration_s": 3.064,
       "command": "bash -n install.sh",
       "stdout_tail": "",
       "stderr_tail": ""
     },
     {
       "name": "mcp_and_audio_smoke",
-      "status": "pass",
-      "returncode": 0,
-      "duration_s": 3.754,
-      "command": "C:\\Users\\danda\\Desktop\\MEng AI Notebooks\\AI 222 231\\.venv\\Scripts\\python.exe scripts/local_smoke_test.py --with-audio",
-      "stdout_tail": "load_ms\": 68.8}\n  [PASS] me3.mcp_tts   tools=4 health={\"ok\": true, \"engine\": \"qwen3-tts\", \"configured_engine\": \"qwen_remote\", \"voice\": \"aiden\", \"sample_rate\": 24000, \"load_ms\n  [PASS] me3.mcp_vad   tools=4 health={\"ok\": true, \"engine\": \"silero-vad\", \"threshold\": 0.5, \"min_silence_ms\": 800, \"load_ms\": 265.0}\n  [PASS] me3.mcp_tasks tools=38 health={\"ok\": true, \"tools\": [\"set_timer\", \"list_timers\", \"cancel_timer\", \"system_info\", \"read_file\", \"write_file\", \"run_comman\n\nBenchmark:\n  [PASS] me3.benchmark constructed; 5 benchmark scenarios registered\n\nAudio I/O:\n  [PASS] PortAudio OK; 44 devices; default in/out below\n         default in : 1\n         default out: 4\n\nRESULT: PASS - 4 MCP servers healthy, benchmark + audio OK.\nSafe to run scripts/package_release.py and then scripts/deploy_to_pi.py.\n",
-      "stderr_tail": "\u001b[32m2026-11-07 11:19:07.148\u001b[0m | \u001b[1mINFO    \u001b[0m | \u001b[36mpipecat\u001b[0m:\u001b[36m<module>\u001b[0m:\u001b[36m54\u001b[0m - \u001b[1m\\u14da\\u160f\\u15e2 Pipecat 1.13.0 (Python 3.12.10 (tags/v3.12.10:0cc8128, Apr  8 2025, 12:21:36) [MSC v.1943 64 bit (AMD64)]) \\u14da\\u160f\\u15e2\u001b[0m\n"
+      "status": "fail",
+      "returncode": 1,
+      "duration_s": 0.472,
+      "command": "C:\\Users\\danda\\Desktop\\MEng AI Notebooks\\AI 222 231\\.venv\\Scripts\\python.exe scripts/local_smoke_test.py",
+      "stdout_tail": "lease note and check the following:\n\n  * The Python version is: Python 3.13 from \"C:\\Users\\danda\\Desktop\\MEng AI Notebooks\\AI 222 231\\.venv\\Scripts\\python.exe\"\n  * The NumPy version is: \"2.5.2\"\n\nand make sure that they are the versions you expect.\n\nPlease carefully study the information and documentation linked above.\nThis is unlikely to be a NumPy issue but will be caused by a bad install\nor environment on your machine.\n\nOriginal error was: No module named 'numpy._core._multiarray_umath'\n\n  [FAIL] me3.mcp_tasks ModuleNotFoundError: No module named 'pydantic_core._pydantic_core'\n\nBenchmark:\n  [PASS] me3.benchmark constructed; 5 benchmark scenarios registered\n\nAudio I/O:\n  [SKIP] audio I/O (use --with-audio to test PortAudio devices)\n\nRESULT: FAIL - 4 check(s) failed. Fix before packaging.\n",
+      "stderr_tail": "rror.html\n\nPlease note and check the following:\n\n  * The Python version is: Python 3.13 from \"C:\\Users\\danda\\Desktop\\MEng AI Notebooks\\AI 222 231\\.venv\\Scripts\\python.exe\"\n  * The NumPy version is: \"2.5.2\"\n\nand make sure that they are the versions you expect.\n\nPlease carefully study the information and documentation linked above.\nThis is unlikely to be a NumPy issue but will be caused by a bad install\nor environment on your machine.\n\nOriginal error was: No module named 'numpy._core._multiarray_umath'\n\nTraceback (most recent call last):\n  File \"C:\\Users\\danda\\Desktop\\MEng AI Notebooks\\AI 222 231\\AI 231\\Dumalaog_ME3 - Voice Duplex\\me3 qwen\\scripts\\local_smoke_test.py\", line 51, in check_servers\n    mod = import_server(name)\nModuleNotFoundError: No module named 'pydantic_core._pydantic_core'\n"
     },
     {
       "name": "paper_alignment",
-      "status": "pass",
-      "returncode": 0,
-      "duration_s": 0.318,
+      "status": "fail",
+      "returncode": 1,
+      "duration_s": 0.196,
       "command": "C:\\Users\\danda\\Desktop\\MEng AI Notebooks\\AI 222 231\\.venv\\Scripts\\python.exe scripts/check_paper_alignment.py",
-      "stdout_tail": "onse_latency_s\": \"tmodel_start - tuser_end\"\n    },\n    \"transforms\": {\n      \"talking_to_others\": {\n        \"gain_db\": -8.0,\n        \"high_shelf_hz\": 4000.0,\n        \"high_shelf_db\": -5.0,\n        \"reflections\": [\n          [\n            0.045,\n            -6.0\n          ],\n          [\n            0.12,\n            -12.0\n          ]\n        ]\n      },\n      \"background_speech\": {\n        \"gain_db\": -15.0,\n        \"lowpass_hz\": 3000.0,\n        \"echo\": [\n          0.1,\n          -10.0\n        ]\n      }\n    }\n  },\n  \"pi\": {\n    \"installer\": true,\n    \"systemd_units\": 4,\n    \"owned_mcp_servers\": 4,\n    \"variant\": \"me3 qwen\",\n    \"lan_browser_server\": true,\n    \"fdbench_adapter\": true,\n    \"full_duplex\": true,\n    \"asr_compute_type\": \"int8\"\n  }\n}\nLIVE_PI_RUN: not performed by this static check\n",
-      "stderr_tail": ""
+      "stdout_tail": "",
+      "stderr_tail": " seem incompatible\nwith with either python 'cpython-313' or the platform 'win32':\n\n  * _multiarray_umath.cp312-win_amd64.lib\n  * _multiarray_umath.cp312-win_amd64.pyd\n\nWe have compiled some common reasons and troubleshooting tips at:\n\n    https://numpy.org/devdocs/user/troubleshooting-importerror.html\n\nPlease note and check the following:\n\n  * The Python version is: Python 3.13 from \"C:\\Users\\danda\\Desktop\\MEng AI Notebooks\\AI 222 231\\.venv\\Scripts\\python.exe\"\n  * The NumPy version is: \"2.5.2\"\n\nand make sure that they are the versions you expect.\n\nPlease carefully study the information and documentation linked above.\nThis is unlikely to be a NumPy issue but will be caused by a bad install\nor environment on your machine.\n\nOriginal error was: No module named 'numpy._core._multiarray_umath'\n\n"
     },
     {
       "name": "variant_imports",
-      "status": "pass",
-      "returncode": 0,
-      "duration_s": 0.638,
+      "status": "fail",
+      "returncode": 1,
+      "duration_s": 0.349,
       "command": "C:\\Users\\danda\\Desktop\\MEng AI Notebooks\\AI 222 231\\.venv\\Scripts\\python.exe scripts/check_variants.py",
-      "stdout_tail": "me3 qwen: variant imports PASS\nME3 QWEN IMPORTS PASS\n",
+      "stdout_tail": "seem incompatible\nwith with either python 'cpython-313' or the platform 'win32':\n\n  * _multiarray_umath.cp312-win_amd64.lib\n  * _multiarray_umath.cp312-win_amd64.pyd\n\nWe have compiled some common reasons and troubleshooting tips at:\n\n    https://numpy.org/devdocs/user/troubleshooting-importerror.html\n\nPlease note and check the following:\n\n  * The Python version is: Python 3.13 from \"C:\\Users\\danda\\Desktop\\MEng AI Notebooks\\AI 222 231\\.venv\\Scripts\\python.exe\"\n  * The NumPy version is: \"2.5.2\"\n\nand make sure that they are the versions you expect.\n\nPlease carefully study the information and documentation linked above.\nThis is unlikely to be a NumPy issue but will be caused by a bad install\nor environment on your machine.\n\nOriginal error was: No module named 'numpy._core._multiarray_umath'\n\n\n",
       "stderr_tail": ""
     },
     {
       "name": "fdbench_adapter_check",
-      "status": "pass",
-      "returncode": 0,
-      "duration_s": 0.495,
+      "status": "fail",
+      "returncode": 1,
+      "duration_s": 0.151,
       "command": "C:\\Users\\danda\\Desktop\\MEng AI Notebooks\\AI 222 231\\.venv\\Scripts\\python.exe scripts/me3_fdbench_agent.py --check",
-      "stdout_tail": "ME3 fdbench adapter ready; websockets=17.1; url=ws://127.0.0.1:8791\n",
-      "stderr_tail": ""
+      "stdout_tail": "",
+      "stderr_tail": " seem incompatible\nwith with either python 'cpython-313' or the platform 'win32':\n\n  * _multiarray_umath.cp312-win_amd64.lib\n  * _multiarray_umath.cp312-win_amd64.pyd\n\nWe have compiled some common reasons and troubleshooting tips at:\n\n    https://numpy.org/devdocs/user/troubleshooting-importerror.html\n\nPlease note and check the following:\n\n  * The Python version is: Python 3.13 from \"C:\\Users\\danda\\Desktop\\MEng AI Notebooks\\AI 222 231\\.venv\\Scripts\\python.exe\"\n  * The NumPy version is: \"2.5.2\"\n\nand make sure that they are the versions you expect.\n\nPlease carefully study the information and documentation linked above.\nThis is unlikely to be a NumPy issue but will be caused by a bad install\nor environment on your machine.\n\nOriginal error was: No module named 'numpy._core._multiarray_umath'\n\n"
     },
     {
       "name": "git_whitespace",
       "status": "pass",
       "returncode": 0,
-      "duration_s": 0.037,
+      "duration_s": 0.045,
       "command": "git diff --check -- Dumalaog_ME3 - Voice Duplex",
       "stdout_tail": "",
       "stderr_tail": ""
@@ -100,8 +100,15 @@
       "missing": []
     }
   ],
-  "failed_checks": [],
+  "failed_checks": [
+    "shared_environment",
+    "pytest",
+    "mcp_and_audio_smoke",
+    "paper_alignment",
+    "variant_imports",
+    "fdbench_adapter_check"
+  ],
   "package_error": null,
   "pi_hardware_note": "This gate proves workstation software/demo readiness only. Run Pi ALSA/PortAudio preflight and a human hardware turn before enabling the Pi service.",
-  "pi_deploy_allowed": true
+  "pi_deploy_allowed": false
 }

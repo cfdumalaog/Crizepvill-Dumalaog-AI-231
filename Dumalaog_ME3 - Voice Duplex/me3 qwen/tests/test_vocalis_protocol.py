@@ -8,6 +8,7 @@ import numpy as np
 from me3.agent import LocalVoiceLoop, TurnStats
 from me3.audio_io import InjectedDuplexAudio
 from me3.config import load_config
+from me3.agent_status import LoopStatus
 from me3.vocalis import EventChannel, TTSAction, TurnState, VocalisOrchestrator
 
 
@@ -140,6 +141,44 @@ def test_followup_input_is_explicitly_bound_to_pending_action():
     assert "FOLLOW-UP TO THE PREVIOUS ASSISTANT QUESTION" in prepared
     assert "good morning" in prepared
     assert loop._pending_followup is None
+
+
+def test_typed_followup_uses_the_live_voice_history():
+    cfg = load_config()
+    audio = InjectedDuplexAudio(
+        sample_rate=int(cfg["audio"]["sample_rate"]),
+        frame_ms=int(cfg["audio"]["frame_ms"]),
+    )
+
+    class Brain:
+        name = "test-brain"
+
+        def __init__(self):
+            self.calls = []
+
+        def chat(self, history, text):
+            self.calls.append((list(history), text))
+            return ("What message should I send via Telegram?"
+                    if len(self.calls) == 1 else "The follow-up was received.")
+
+    status = LoopStatus()
+    brain = Brain()
+    loop = LocalVoiceLoop(cfg, brain=brain, audio=audio, status=status)
+    loop._engines = (None, None, None, {}, object(), {})
+    loop.ack_wait_s = 0
+    loop._speak_text = lambda *_args, **_kwargs: None
+    try:
+        assert loop.queue_text_turn("Send Monica a Telegram message")["queued"]
+        loop._drain_text_turns()
+        assert status.snapshot("idle", loop.stats)["conversation"][0]["source"] == "chat"
+        assert loop.queue_text_turn("Good morning")["queued"]
+        loop.state = "idle"
+        loop._drain_text_turns()
+        assert brain.calls[1][0][-1]["content"] == "What message should I send via Telegram?"
+        assert "FOLLOW-UP TO THE PREVIOUS ASSISTANT QUESTION" in brain.calls[1][1]
+        assert "Good morning" in brain.calls[1][1]
+    finally:
+        audio.close()
 
 
 def test_default_profile_uses_full_duplex_barge_in_and_command_control():

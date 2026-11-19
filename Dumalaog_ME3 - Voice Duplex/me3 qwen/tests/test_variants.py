@@ -61,6 +61,20 @@ def test_spoken_tone_is_formal_and_professional(monkeypatch):
     load_config.cache_clear()
 
 
+def test_website_owner_identity_is_bounded_and_seeded(monkeypatch):
+    monkeypatch.delenv("ME3_VARIANT", raising=False)
+    load_config.cache_clear()
+    cfg = load_config()
+    assert cfg["website_user"] == {
+        "display_name": "Crizepvill F. Dumalaog",
+        "purpose": "personal AI and machine-learning project website",
+    }
+    prompt = cfg["agent"]["system_prompt"].lower()
+    assert "the website owner is crizepvill f. dumalaog" in prompt
+    assert "never invent biography" in prompt
+    load_config.cache_clear()
+
+
 def test_qwen_ui_uses_the_final_audio_model_label():
     source = (Path(__file__).resolve().parents[1] / "web" / "assistant.html").read_text(
         encoding="utf-8"

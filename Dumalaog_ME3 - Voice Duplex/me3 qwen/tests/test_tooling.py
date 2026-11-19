@@ -37,6 +37,50 @@ def test_clear_me2_commands_have_deterministic_tool_routes(utterance, expected):
     assert routed[0] == expected
 
 
+def test_current_event_questions_get_grounded_web_search_queries():
+    assert brain._web_search_query(
+        [], "who won the 2026 midterm election in the United States?"
+    ) == "who won the 2026 midterm election in the United States?"
+    follow_up = brain._web_search_query(
+        [{"role": "user", "content": "who won the 2026 midterm election in the United States?"}],
+        "already happened",
+    )
+    assert follow_up and "midterm election" in follow_up.lower()
+    assert brain._web_search_query([], "what is today's date?") is None
+    assert brain._web_search_query([], "what is the current date?") is None
+
+
+def test_runtime_date_context_is_fresh_and_localized():
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+
+    context = brain._runtime_date_context()
+    expected = datetime.now(ZoneInfo("Asia/Manila")).strftime("%Y-%m-%d")
+    assert expected in context
+    assert "Current date:" in context
+
+
+def test_web_search_falls_back_when_duckduckgo_returns_a_challenge(monkeypatch):
+    bing_html = (
+        '<rss><channel><item><title>Verified result</title>'
+        '<link>https://example.test/result</link>'
+        '<description>Useful snippet.</description></item></channel></rss>'
+    )
+    responses = [
+        {"ok": True, "status_code": 202, "text": "challenge"},
+        {"ok": True, "status_code": 200, "text": bing_html},
+    ]
+    monkeypatch.setattr(tools, "fetch_url", lambda *args, **kwargs: responses.pop(0))
+    result = tools.web_search("current AI news", 3)
+    assert result["ok"] is True
+    assert result["provider"] == "bing"
+    assert result["results"] == [{
+        "title": "Verified result",
+        "url": "https://example.test/result",
+        "snippet": "Useful snippet.",
+    }]
+
+
 def test_repeated_voice_history_cannot_swallow_play_music_tool_call(monkeypatch):
     monkeypatch.setenv("ME3_DIRECT_TEST_KEY", "in-memory-test-only")
     calls = []
@@ -70,7 +114,10 @@ def test_repeated_voice_history_cannot_swallow_play_music_tool_call(monkeypatch)
     assert "Started Requested track" in reply
 
 
-def test_command_policy_blocks_shell_and_external_access():
+def test_command_policy_blocks_shell_and_external_access_when_limited(monkeypatch):
+    monkeypatch.setattr(tools, "load_config", lambda: {"agent_access": {
+        "full_pi_user_access": False,
+    }})
     with pytest.raises(ValueError):
         tools._argv("rm -rf agent_workspace")
     with pytest.raises(ValueError):
@@ -78,6 +125,19 @@ def test_command_policy_blocks_shell_and_external_access():
     with pytest.raises(ValueError):
         tools._argv("ssh pi hostname")
     assert tools._argv("python -c 'print(1)'")[0] == "python"
+
+
+def test_full_pi_access_accepts_shell_and_outside_project_files(tmp_path, monkeypatch):
+    monkeypatch.setattr(tools, "load_config", lambda: {"agent_access": {
+        "full_pi_user_access": True,
+    }})
+    assert tools._argv("bash -lc 'pwd && ls'")[:2] == ["bash", "-lc"]
+    outside = tmp_path / "demo.txt"
+    assert tools.safe_path(str(outside), allow_missing=True, write=True) == outside
+    assert tools.write_file(str(outside), "hello")["ok"] is True
+    assert tools.read_file(str(outside))["content"] == "hello"
+    with pytest.raises(ValueError):
+        tools.safe_path(str(tmp_path / "secrets" / "token.key"), allow_missing=True)
 
 
 def test_background_task_manager_runs_and_reports(tmp_path):
@@ -152,6 +212,43 @@ def test_qwen_tool_loop_executes_tool_then_returns_text(monkeypatch):
     assert any(stage == "thinking" for stage, _task in progress)
     assert any("Running tool: system_info" in task
                for _stage, task in progress)
+
+
+def test_current_event_turn_runs_web_preflight_before_model(monkeypatch):
+    monkeypatch.setenv("ME3_WEB_PREFLIGHT_KEY", "in-memory-test-only")
+    dispatch_calls = []
+    captured = []
+
+    def fake_dispatch(name, args):
+        dispatch_calls.append((name, args))
+        return {"ok": True, "provider": "test", "query": args["query"],
+                "results": [{"title": "Verified result", "url": "https://example.test"}]}
+
+    def fake_post(*args, **kwargs):
+        captured.append(kwargs["json"])
+        return SimpleNamespace(
+            raise_for_status=lambda: None,
+            json=lambda: {"choices": [{"message": {
+                "role": "assistant",
+                "content": "I found a current result and will cite it carefully.",
+            }}]},
+        )
+
+    monkeypatch.setattr(brain.requests, "post", fake_post)
+    b = brain.ToolBrain(
+        {"base_url": "http://qwen.test/v1", "model": "Qwen/test",
+         "api_key_env": "ME3_WEB_PREFLIGHT_KEY", "max_tokens": 128,
+         "timeout_s": 2, "system_prompt": "test"},
+        "test", dispatch_fn=fake_dispatch,
+    )
+    reply = b.chat([], "who won the 2026 midterm election in the United States?")
+    assert "current result" in reply
+    assert dispatch_calls and dispatch_calls[0][0] == "web_search"
+    assert "2026 midterm election" in dispatch_calls[0][1]["query"].lower()
+    messages = captured[0]["messages"]
+    assert any(item.get("tool_call_id") == "me3-web-preflight" for item in messages)
+    expected_date = brain._runtime_date_context().split("Current date: ", 1)[1].split(" ", 1)[0]
+    assert expected_date in messages[0]["content"]
 
 
 def test_tool_budget_finishes_with_summary_instead_of_limit_error(monkeypatch):

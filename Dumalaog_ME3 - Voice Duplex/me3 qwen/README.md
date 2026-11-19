@@ -10,20 +10,22 @@ MCP servers and VAD are ours.
 
 ## Voice provider at Pi launch
 
-The Pi UI now offers a complete **Qwen** or **OpenAI** voice stack, including
-ASR, tool-using LLM, and one consistent TTS voice. The center of the Assistant
+The Pi UI now offers Qwen, OpenAI, or **Gemini** as the tool-brain choice,
+with independent ASR/TTS/VAD layers and one consistent TTS voice. The center of the Assistant
 is a single Codex-style conversation: voice turns and typed turns share the
 same history, tool loop, approvals, and follow-up questions. Type or say
-`set up OpenAI`, `set up Spotify`, `set up Google Calendar`, `set up Telegram`,
+`set up OpenAI`, `set up Gemini`, `set up Spotify`, `set up Google Calendar`, `set up Telegram`,
 or `set up GitHub` and ME3 inserts the appropriate contextual setup prompt.
 Credential values go directly to the existing private Pi setup endpoints and
 are never sent to `/api/chat` or stored in conversation telemetry. OpenAI uses
 `gpt-transcribe`, `gpt-4.1-mini`, and `gpt-4o-mini-tts` with the fixed Onyx
-voice. [Provider setup and limits](docs/PROVIDER_SELECTION.md) describes the
-private setup flow and current limits. The **Model layers** card independently
-selects ASR, TTS, and VAD (Qwen, Deepgram, faster-whisper, Piper, ElevenLabs,
-OpenAI, Silero, or the energy fallback) and restarts the Pi service after a
-change. The compact restart controls live at the bottom of the left column.
+voice. Gemini uses Google's OpenAI-compatible `gemini-2.5-flash` chat/tool
+endpoint and leaves Qwen ASR/TTS as the default audio path. [Provider setup and
+limits](docs/PROVIDER_SELECTION.md) describes the private setup flow and
+current limits. The **Model layers** card independently selects the tool brain,
+ASR, TTS, and VAD (including configured custom profiles) and restarts the Pi
+service after a change. The compact restart controls live at the bottom of the
+left column.
 
 The center layout intentionally resembles a coding-agent chat: a persistent
 conversation feed, a single composer, typed approvals/setup answers, voice
@@ -33,7 +35,9 @@ history, so the operator can ask a follow-up in chat while a software task is
 still running. ME3 does not expose hidden chain-of-thought; it shows safe
 phase/tool status instead.
 
-The Android project is a parity client, not a second secret-bearing server.
+The Android project is a presentation/parity client, not a second
+secret-bearing server. It requests the compact `?mode=apk` surface; the normal
+laptop/Pi browser keeps the detailed operator dashboard and provider choices.
 See [docs/APK_MIGRATION_PLAN.md](docs/APK_MIGRATION_PLAN.md) for the staged
 plan. Raw provider keys must not be seeded into an APK: the Pi private store
 remains authoritative, or a future direct-phone mode uses Android Keystore.

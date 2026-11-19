@@ -110,7 +110,7 @@ header{
 .restart-actions .service-button{background:rgba(239,68,68,.1);border-color:rgba(239,68,68,.4);color:#fca5a5;}
 .restart-statuses{display:none;}
 .layer-card{padding:12px;}
-.layer-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;}
+.layer-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;}
 .layer-grid label{display:grid;gap:4px;color:var(--muted);font-size:.68rem;text-transform:uppercase;letter-spacing:.05em;}
 .layer-grid select{min-width:0;width:100%;border:1px solid var(--line);border-radius:8px;background:#0b1220;color:var(--text);padding:8px 6px;font:inherit;font-size:.72rem;text-transform:none;letter-spacing:normal;}
 .layer-apply{width:100%;margin-top:8px;border:1px solid rgba(59,130,246,.45);border-radius:8px;background:rgba(59,130,246,.14);color:var(--text);padding:8px;cursor:pointer;font:inherit;font-size:.74rem;font-weight:700;}
@@ -263,7 +263,14 @@ body.apk-focus .chat-form button{min-width:72px;background:rgba(37,99,235,.36);}
   body.apk-focus .chat-card{min-height:52vh;}
 }
 </style>
-</head><body class="apk-focus">
+</head><body>
+<script>
+  // The compact focused surface belongs to the Android companion only.  The
+  // normal Pi/laptop browser keeps the detailed operator dashboard visible.
+  if (new URLSearchParams(location.search).get('mode') === 'apk') {
+    document.body.classList.add('apk-focus');
+  }
+</script>
 <div id="offlineBanner" hidden>Status server offline - reconnect the ME3 page or check the Pi tunnel/service.</div>
 <div class="notification-stack" id="notificationStack" aria-live="assertive"></div>
 <header>
@@ -344,8 +351,9 @@ body.apk-focus .chat-form button{min-width:72px;background:rgba(37,99,235,.36);}
     </div>
     <div class="card layer-card">
       <div class="light-head"><h2>Model layers</h2><span class="light-mode">SELECTABLE</span></div>
-      <div class="audio-note">Choose the provider for each runtime layer. Changes are saved privately on the Pi and restart the service so the real engine changes.</div>
+      <div class="audio-note">Choose the provider for every runtime layer. The tool brain is the text model that plans and calls tools; custom choices appear here by their configured profile name. Changes are saved privately on the Pi and restart the service.</div>
       <div class="layer-grid">
+        <label>Tool brain<select id="layerBrain" aria-label="Tool brain provider"></select></label>
         <label>ASR<select id="layerAsr" aria-label="ASR provider"></select></label>
         <label>TTS<select id="layerTts" aria-label="TTS provider"></select></label>
         <label>VAD<select id="layerVad" aria-label="VAD provider"></select></label>

@@ -20,6 +20,17 @@ def _wav_bytes(sample_rate: int = 16000) -> bytes:
     return buf.getvalue()
 
 
+def test_qwen_asr_normalizes_explanatory_transcript_wrapper():
+    wrapped = "The transcript of the audio is: 'play the latest episode.'"
+
+    assert qwen_audio._normalize_transcript(wrapped) == (
+        "play the latest episode."
+    )
+    assert qwen_audio._normalize_transcript("open the calendar") == (
+        "open the calendar"
+    )
+
+
 def test_qwen_asr_uses_vllm_multimodal_chat_request(monkeypatch):
     captured = {}
 
@@ -115,6 +126,35 @@ def test_qwen_audio_requires_runtime_configuration():
         assert "missing base URL" in str(exc)
     else:  # pragma: no cover
         raise AssertionError("missing Qwen endpoint should fail closed")
+
+
+def test_qwen_asr_config_keeps_yaml_fallback_without_environment_override(monkeypatch):
+    monkeypatch.delenv("ME3_ASR_FALLBACK", raising=False)
+    monkeypatch.delenv("ME3_ASR_FALLBACK_MODEL", raising=False)
+    monkeypatch.delenv("ME3_ASR_FALLBACK_COMPUTE_TYPE", raising=False)
+
+    cfg = qwen_audio.config_from_env({
+        "base_url_env": "ME3_TEST_ASR_URL",
+        "api_key_env": "ME3_TEST_ASR_KEY",
+        "fallback_engine": "faster_whisper",
+        "fallback_model": "base",
+        "fallback_compute_type": "int8",
+    })
+
+    assert cfg["fallback_engine"] == "faster_whisper"
+    assert cfg["fallback_model"] == "base"
+    assert cfg["fallback_compute_type"] == "int8"
+
+
+def test_qwen_audio_tunnel_url_overrides_dgx_endpoint(monkeypatch):
+    monkeypatch.setenv("ME3_TEST_ASR_URL", "http://dgx.example/v1")
+    monkeypatch.setenv("ME3_TEST_ASR_TUNNEL", "http://127.0.0.1:18000/v1")
+    cfg = qwen_audio.config_from_env({
+        "base_url_env": "ME3_TEST_ASR_URL",
+        "tunnel_base_url_env": "ME3_TEST_ASR_TUNNEL",
+        "api_key_env": "ME3_TEST_ASR_KEY",
+    })
+    assert cfg["base_url"] == "http://127.0.0.1:18000/v1"
 
 
 def test_qwen_asr_uses_local_faster_whisper_fallback_when_remote_is_down(monkeypatch):

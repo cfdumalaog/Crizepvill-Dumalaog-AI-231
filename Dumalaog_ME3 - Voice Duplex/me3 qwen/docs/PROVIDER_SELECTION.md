@@ -8,6 +8,7 @@ browser speaker route. No model training is required.
 |---|---|---|---|
 | Qwen | DGX3 Qwen2-Audio (with existing Deepgram/local ASR fallback) | Qwen3.8-27B | DGX3 Qwen3-TTS Aiden (with Piper fallback) |
 | OpenAI | `gpt-transcribe` | `gpt-4.1-mini` | `gpt-4o-mini-tts`, Onyx, 24 kHz PCM |
+| Gemini | Qwen2-Audio DGX3 by default | Gemini OpenAI-compatible `gemini-2.5-flash` | Qwen3-TTS Aiden by default |
 
 The OpenAI profile uses the current file-transcription endpoint for completed
 VAD turns. It is still the ME3 continuous microphone loop, not a browser
@@ -43,6 +44,10 @@ turn.
    `gpt-4o-mini-tts` before trying one short spoken turn. The status endpoint
    only reports that a key is stored; a spoken turn verifies authorization,
    network access, model availability, and audio playback.
+6. To use Gemini as the text/tool brain, type or say `set up Gemini`, enter the
+   Gemini API key privately, and choose **Launch Gemini brain**. Gemini uses
+   Google's OpenAI-compatible chat-completions endpoint with function calling;
+   Qwen ASR, Qwen TTS Aiden, and Silero remain the audio defaults.
 
 If the Pi service is unreachable, first reconnect the Pi and SSH tunnel. The
 provider can be selected only on the Pi service; this project does not start a
@@ -85,15 +90,21 @@ The OpenAI speech voice is AI-generated. Tell listeners that the voice is AI.
 ## Independent model-layer selectors
 
 The Assistant includes a **Model layers** card below Pi audio routing. It reads
-and writes `/api/layers` and offers these choices:
+and writes `/api/layers` and offers a selector for the tool brain as well as
+the audio layers:
 
-- ASR: Qwen2-Audio DGX3, Deepgram Nova-3, faster-whisper local, or OpenAI
-  transcription;
-- TTS: Qwen3-TTS Aiden, Piper local, ElevenLabs Filipino, or OpenAI Onyx;
+- Tool brain: Qwen, OpenAI, Gemini, or a configured custom LLM profile;
+- ASR: Qwen2-Audio DGX3, Deepgram Nova-3, faster-whisper local, OpenAI
+  transcription, or a configured custom ASR profile;
+- TTS: Qwen3-TTS Aiden, Piper local, ElevenLabs Filipino, OpenAI Onyx, or a
+  configured custom TTS profile;
 - VAD: local Silero or the lightweight energy-gate fallback.
 
-The selector writes only backend names to a private `layers.json` beside the
-Pi credentials file. It never stores a key or puts a secret in the conversation.
+The selector writes only backend/profile references to a private `layers.json`
+beside the Pi credentials file. It never stores a key or puts a secret in the
+conversation. The generic `custom_vllm` label is an internal compatibility
+marker and is not offered in the dropdown; configured profiles are listed by
+their saved names and model IDs.
 Applying a selection schedules the canonical Pi service to restart, because
 ASR/TTS engines are cached at process start. A direct service restart is still
 available in the compact bottom control row. The complete Qwen/OpenAI provider

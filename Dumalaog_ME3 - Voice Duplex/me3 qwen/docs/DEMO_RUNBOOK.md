@@ -30,10 +30,13 @@ voice loop:
 The active presentation profile is `-Variant qwen_instruct`; it reads the
 protected handoff file automatically on this workstation and uses the live
 Qwen2-Audio/Qwen3-TTS services when the VPN route is reachable. On the Pi, the
-Qwen profile has an explicit cached multilingual faster-whisper `base` ASR
-failover, so the voice loop remains usable if only port 8000 is down. The
-Runtime card identifies `faster_whisper_fallback`; do not record that run as a
-Qwen2-Audio ASR benchmark. If both paths fail, show the bounded provider error.
+Qwen profile tries Qwen ASR first, then optional Deepgram Nova-3 multilingual
+(English/Tagalog), then cached faster-whisper `base` if port 8000 is down. It
+also has a cached Piper `en_US-ryan-medium` speech backup if Qwen3-TTS fails
+before audio starts; once selected, that voice stays active until service
+restart. The Runtime card identifies the active backends; do not record
+fallback runs as Qwen ASR/TTS benchmark results. If all ASR paths fail, show
+the bounded provider error.
 The former local audio profile is archived.
 
 ```powershell

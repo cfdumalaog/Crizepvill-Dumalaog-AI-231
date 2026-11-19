@@ -9,15 +9,17 @@ Double-click these Windows launchers from File Explorer:
 | `Start-ME3-UI.bat` | Interactive local agent console | Opens `http://127.0.0.1:8124/`; Qwen + tools, GPT-5.6 Luna + tools, or offline stub, tool events, and hard-disabled Telegram/Resend side effects. |
 | `Start-ME3-Web.bat` | Local browser preview | Serves the tracked `web\` presenter surface on `http://127.0.0.1:8123/` and reports LAN URLs. Pass `-Path agent_workspace\voice_webapp` for a generated app. |
 | `Start-ME3-Pi-Web.bat` | ME2-style Pi browser tunnel | Starts the Pi static preview when available, forwards it to `http://127.0.0.1:8090/`, and opens the browser. `Ctrl+C` closes the tunnel. |
-| `Start-ME3-Pi-Qwen.bat` | **Named Qwen Instruct laptop launcher** | Connects to the Pi by stable mDNS name (`cfdfnjrpi5.local`) and forwards Pi ports 8126/8127 to laptop ports 8100/8101, including the Spotify OAuth callback on port 8100. It does not start a second ME3 server. |
+| `Start-ME3-Pi-Qwen.bat` | **Named Qwen Instruct laptop launcher** | Connects to the stable Pi identity (`cfdfnjrpi5.local` first, then the current DHCP lease discovered from the Pi Wi-Fi MAC) and forwards Pi ports 8126/8127 to laptop ports 8100/8101, including the Spotify OAuth callback on port 8100. It does not start a second ME3 server. |
 | `pi/ME3-Qwen-Demo.desktop` | **Pi desktop launcher** | Restarts/enables the Pi's `me3-agent.service`, checks the web/audio service and voice loop, and displays current Pi addresses for the laptop launcher. |
 | `Start-Pi-Injection-Demo.bat` | The deployed Pi Qwen/tool demo | Uses reviewed WAV fixtures and a virtual sink; recommended when the physical Fifine input is occupied or the speaker path is not ready. |
 
 It uses the single shared workspace `.venv` (same as the ME2 launchers).
-The LLM brain is Qwen/vLLM when `VLLM_API_KEY` is set, GPT-5.6 Luna when
-`OPENAI_API_KEY` is set and Qwen is unavailable, or the stub otherwise. The
-whole voice pipeline (VAD -> ASR -> LLM -> TTS) remains the same. First run
-downloads the Piper voice model into `models/tts/`.
+For the Pi service, the provider chosen in the Assistant UI controls ASR,
+tool-using LLM, and TTS together. Qwen uses the configured DGX3 stack; OpenAI
+uses `gpt-transcribe`, `gpt-4.1-mini`, and Onyx speech after its key is saved
+privately. The choice persists across service restarts. Older `-Brain luna`
+commands below are legacy local development examples; use the Pi UI for the
+current demo. See `docs/PROVIDER_SELECTION.md` in the project root.
 
 PowerShell overrides:
 
@@ -127,3 +129,17 @@ the VPN for model traffic. The legacy model reverse tunnel is still available
 only through `Start-ME3-Pi-Web.ps1 -UseReverseTunnel` when the Pi VPN is
 intentionally unavailable. Because this service owns the physical Fifine
 microphone, run only this one full-duplex Qwen listener at a time.
+
+The non-tunneled Pi URL is hostname-based rather than a hard-coded IP:
+
+```text
+http://cfdfnjrpi5.local:8126/
+```
+
+The Pi hostname is persistent across DHCP changes. On Windows, VPN software
+can block `.local` mDNS resolution; the launcher then discovers the current
+lease from the Pi's stable Wi-Fi MAC (`2C-CF-67-70-8D-47`) in the local neighbor
+table and uses that address automatically. Therefore `192.168.1.13` is only
+the current lease, not a permanent address. A genuinely fixed IP across one
+specific router requires a DHCP reservation on that router; it cannot be made
+universal across arbitrary demo networks.

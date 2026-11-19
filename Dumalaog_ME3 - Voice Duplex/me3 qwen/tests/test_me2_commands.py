@@ -122,3 +122,26 @@ def test_named_calls_and_messages_require_protected_contact_mapping(monkeypatch)
     assert me2_commands.call_contact("mom", confirm=True)["error"] == "android_call_device_not_connected"
     assert me2_commands.send_message("mom", "hello")["error"] == "telegram_contact_not_configured"
     assert me2_commands.send_message("mom", "hello", channel="telegram")["error"] == "telegram_contact_not_configured"
+
+
+def test_monica_name_and_username_share_the_telegram_mapping(monkeypatch):
+    values = {
+        "ME3_TELEGRAM_CHAT_MNCFRNDZ": "123456789",
+    }
+    monkeypatch.setattr(me2_commands.secure_config, "get",
+                        lambda name: values.get(name, ""))
+    sent = []
+    monkeypatch.setattr(
+        me2_commands.channels, "send_telegram_message",
+        lambda chat_id, body, confirm=False: sent.append(
+            (chat_id, body, confirm)) or {"ok": True},
+    )
+
+    assert me2_commands.send_message("Monica Fernandez", "hello")["ok"] is True
+    assert me2_commands.send_message("@mncfrndz", "hello")["ok"] is True
+    assert me2_commands.send_message("Monica Fernandex", "hello")["ok"] is True
+    assert sent == [
+        ("123456789", "hello", False),
+        ("123456789", "hello", False),
+        ("123456789", "hello", False),
+    ]

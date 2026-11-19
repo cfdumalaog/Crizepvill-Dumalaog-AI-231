@@ -2,6 +2,15 @@
 
 Version: 0.9, 7 November 2026
 
+**Provider update, 16 November 2026:** The same Pi ME3 agent now supports a
+launch-time choice between the Qwen stack described below and an OpenAI stack:
+`gpt-transcribe` ASR, `gpt-4.1-mini` tool brain, and `gpt-4o-mini-tts` with
+one Onyx voice. Both use the owned MCP servers, local Silero VAD, and the same
+tools. The Pi UI has a private API-key password field and saves the selection
+across restarts. See [provider setup](PROVIDER_SELECTION.md). Historical
+references below describe the Qwen configuration and its measured results;
+they are not OpenAI performance claims.
+
 ## What this project is
 
 ME3 is a Raspberry Pi voice agent that listens and speaks at the same time.
@@ -77,7 +86,8 @@ behavior. It uses:
 - Qwen2-Audio-7B-Instruct for remote ASR, with the configured multilingual
   faster-whisper fallback when the ASR service cannot be reached;
 - Qwen3-TTS-12Hz-1.7B-CustomVoice using the fixed `aiden` voice for every
-  reply, backchannel, and announcement; and
+  reply, backchannel, and announcement, with a cached Piper backup if remote
+  TTS is unavailable; and
 - the remote Qwen text/tool model for reasoning and tool selection.
 
 The engineering work is orchestration, tool contracts, deployment, and
@@ -97,8 +107,10 @@ must avoid flirtatious, intimate, suggestive, teasing, or overly familiar
 language.
 
 The ElevenLabs adapter remains available for a deliberate future experiment,
-but the active selector does not auto-select it and does not use a second voice
-as a fallback. This keeps the functional demo simple and repeatable. Eleven
+but the active selector does not auto-select it. During a Qwen TTS outage only,
+the local `en_US-ryan-medium` Piper voice takes over and stays selected until
+service restart; this is an availability failover, not a matched-voice claim.
+Eleven
 Realtime Mini and Max remain an alternative hosted architecture, not a silent
 replacement for the Qwen/tool loop.
 
@@ -194,11 +206,13 @@ run passed with faster-whisper ASR at 2732.0 ms and Piper TTS at 100.1 ms
 TTFB/176.7 ms total. The full injected Qwen voice lane also completed one turn
 with zero errors and called the shared `list_files`, `read_file`, `run_command`,
 `start_web_server`, and `write_file` tools. If the VPN route becomes
-unavailable, the Pi Qwen profile now uses its explicitly provisioned,
-multilingual faster-whisper `base` failover. The UI exposes
-`asr_backend=faster_whisper_fallback` so the operator can distinguish that
-functional recovery from a Qwen2-Audio result. If both providers fail, the
-active profile reports the bounded provider error. The former local audio
+unavailable, the Pi Qwen profile tries optional Deepgram Nova-3 multilingual
+(English/Tagalog), then its local faster-whisper `base` failover. If Qwen TTS
+is unavailable, cached Piper provides speech and stays selected until service
+restart. The UI exposes
+`asr_backend=deepgram_fallback` or `faster_whisper_fallback` so the operator
+can distinguish recovery from a Qwen2-Audio result. If all ASR providers fail,
+the active profile reports a bounded provider error. The former local audio
 build is archived rather than presented as a second production variant.
 
 ## What the agent can do
@@ -211,7 +225,8 @@ The direct Qwen registry contains these project-local capabilities:
 | `read_file` | Reads a bounded text file | “Read the app configuration.” |
 | `write_file` | Creates or replaces a text file | “Create an HTML page.” |
 | `search_text` | Searches project text | “Find every reference to the Qwen endpoint.” |
-| `run_command` | Runs one direct allowlisted command | “Run the web app test.” |
+| `run_command` | Runs an installed command as the Pi service user | “Run the web app test.” |
+| `verify_project` | Checks source syntax and local website assets after software edits | “Verify the app files.” |
 | `start_background_task` | Runs a longer build/test without blocking voice | “Start the frontend build and tell me when it finishes.” |
 | `task_status` | Checks a background task | “Is the build done?” |
 | `task_output` | Reads recent task output | “What did the test print?” |
@@ -247,17 +262,29 @@ bridge.
 
 ### Web-app example
 
-The intended flow is:
+The active software-development flow is:
 
 1. User says what the app should do.
 2. Qwen decides the app needs files.
 3. Qwen calls `write_file` for each file under
    `agent_workspace/<app-name>/`.
 4. Qwen calls `list_files` and `read_file` to inspect what it actually made.
-5. If a build or test is needed, Qwen calls `run_command` or
-   `start_background_task`.
-6. Qwen receives tool results, fixes errors if possible, and then speaks a
-   short factual summary.
+5. Qwen runs the project's own tests or build with `run_command` or
+   `start_background_task` and inspects their results.
+6. If Qwen only promises to work, ME3 prompts it once to take real tool
+   actions. Software requests can use up to 48 tool rounds; ordinary voice
+   turns retain the 24-round limit.
+7. After edits or commands, ME3 runs `verify_project` automatically. It
+   checks Python/JSON/JavaScript syntax and local static-site assets. A failed
+   check is sent back to Qwen for up to two repair passes. If the check still
+   fails, ME3 reports the failure rather than claiming completion.
+8. The final spoken summary distinguishes source checks, project tests, live
+   serving, and GitHub publication. Each requires its own tool evidence.
+
+`verify_project` is a source check, not a browser interaction test or a proof
+that the app meets every requirement. For interactive behavior, Qwen must run
+the relevant project tests or preview the app. The Runtime terminal displays
+planning, tool, and verification progress without exposing hidden reasoning.
 
 The included demonstration at `agent_workspace/voice_webapp/` is a
 dependency-free static HTML/CSS/JavaScript app with a command input,
@@ -619,15 +646,15 @@ The tool result, rather than a model assumption, is the source of truth.
 
 ### 3a. External-channel tool protocol
 
-The external tools follow the same selected-provider function-call loop, but their
-side-effect boundary is stricter:
+The external tools follow the same selected-provider function-call loop:
 
 1. `channel_health` returns only configured/not-configured state and required
    environment names; it performs no network request.
 2. `send_telegram_message` and `send_email` validate the target locally.
-3. Without `confirm=true`, each returns `confirmation_required` and
-   `network_called=false`.
-4. With confirmation, the adapter sends one bounded REST request and returns
+3. A clear request with recipient and content is treated as authorization; the
+   Qwen and MCP routes pass `confirm=true` without asking again. A direct
+   adapter call with `confirm=false` still returns `confirmation_required`.
+4. The adapter sends one bounded REST request and returns
    only `ok`, provider, status code, channel, and a safe provider ID.
 5. Provider response bodies and headers are discarded, because they can
    contain account details or customer data.
@@ -639,32 +666,23 @@ adding a second harness does not create a second permission policy.
 
 ### 4. File and command safety
 
-The tool registry is not a general unrestricted shell. It applies these rules:
+The active Pi profile sets `agent_access.full_pi_user_access=true`. In this
+mode the file and command tools can work outside the ME3 project, and
+`bash -lc` enables shell syntax. Commands run with the operating-system rights
+of the `dalmacio` service user. ME3 does not elevate to root. Direct file tools
+still reject credential-like path names and file extensions, and limit the
+size of reads and writes. Command output and background logs may contain data
+from any readable path, so use this mode only on the trusted demo Pi and review
+voice transcripts before requesting destructive work.
 
-- paths must resolve inside the ME3 project;
-- credential-like paths, `.env`, `.git`, virtual environments, private keys,
-  model caches, and release trees are protected;
-- file reads and writes are bounded by size;
-- direct commands are tokenized and run without a shell;
-- only development and inspection executables are allowlisted;
-- shell operators and destructive/external-access patterns are rejected; and
-- long jobs write output under `agent_workspace/.tasks` and are capped by a
-  timeout.
-
-This is enough for a local static webapp, Python helper, or frontend build,
-while avoiding accidental `rm -rf`, SSH, credential access, or repository
-rewrites from an ambiguous voice transcript.
-
-The boundary is intentionally narrower than unrestricted Onit. Onit can be
-used for broad interactive coding with explicit operator oversight. ME3 is an
-always-listening device, so its default voice tools must be bounded. Additional
-capabilities should be added as explicit typed tools with tests, not by turning
-voice into an arbitrary shell.
+Set `agent_access.full_pi_user_access=false` to restore the project-root path
+boundary, command allowlist, and shell-operator rejection. Background jobs
+remain under `agent_workspace/.tasks` and have timeouts in either mode.
 
 ### 5. Background work
 
 Voice must remain responsive while a build runs. `BackgroundTaskManager` starts
-an allowlisted process with standard input closed, captures stdout/stderr to
+a process with standard input closed, captures stdout/stderr to
 project-local task logs, watches the timeout, and exposes status/output/cancel
 operations. The assistant can say that a task is running, continue listening,
 and answer a later “is it finished?” request from the stored status.
@@ -691,7 +709,7 @@ ME3 ships four owned FastMCP servers:
   tool wrappers.
 
 The direct Qwen loop calls the Python registry in-process for low overhead.
-The MCP wrappers expose the same bounded operations to another harness. Both
+The MCP wrappers expose the same configured operations to another harness. Both
 paths therefore share the same path and command policy.
 
 ## Verification contract
@@ -725,8 +743,10 @@ engineering five-scenario latency driver remain separate.
 3. The Qwen API key is deliberately not included in the release. On the
    deployed Pi it is provisioned in a mode-600 runtime environment file;
    only its presence is verified, and the value is never printed. The current
-   hotspot session has no DGX3 route, so provider-live Qwen ASR/TTS is not
-   verified there; the ASR fallback may be selected instead.
+   DILNET2.0 check on 7 November found DGX3 ASR port 8000 unreachable and TTS
+   port 8001 reachable. ASR now fails over through optional Deepgram and then
+   local faster-whisper; Piper is the local TTS backup. Deepgram must be
+   validated and saved through the protected UI before it can be used.
 4. Spotify, Google Calendar, and Telegram are not authorized in the live Pi
    status. Spotify playback requires Premium plus OAuth and an active Connect
    player. Telegram needs a BotFather token and the recipient to start the bot.
@@ -750,8 +770,8 @@ service environment was provisioned securely.
 ### The agent speaks but cannot build a webapp
 
 Use text mode with the same request first. Inspect the tool log for a rejected
-path, an existing file requiring `overwrite=true`, a command outside the
-allowlist, or a background task that is still running. The default target is
+path, an existing file requiring `overwrite=true`, a failed command, or a
+background task that is still running. The default target is
 `agent_workspace/<app-name>`.
 
 ### The Pi starts but does not hear speech

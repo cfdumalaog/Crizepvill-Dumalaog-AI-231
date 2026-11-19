@@ -5,7 +5,7 @@ PROJECT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)"
 UNIT="me3-agent.service"
 WEB_URL="http://127.0.0.1:8126/api/state"
 
-printf '\nME3 Qwen Instruct demo startup\n'
+printf '\nME3 voice demo startup (Qwen or OpenAI)\n'
 printf 'Project: %s\n' "$PROJECT"
 printf 'Host:    %s.local\n' "$(hostname -s)"
 printf 'Starting the Pi systemd service...\n'
@@ -43,10 +43,14 @@ port_check() {
   local port="$1"
   timeout 3 bash -c "</dev/tcp/10.153.60.233/$port" >/dev/null 2>&1
 }
-if port_check 8000 && port_check 8001; then
-  printf 'DGX3 Qwen ASR/TTS ports: reachable from Pi\n'
-else
-  printf 'DGX3 Qwen ASR/TTS ports: not reachable from Pi; check VPN or DILNET\n'
+selected_provider="$(curl -fsS --max-time 3 http://127.0.0.1:8126/api/provider/status 2>/dev/null | "$PROJECT/.venv/bin/python" -c 'import json,sys; print(json.load(sys.stdin).get("selected", "unknown"))' 2>/dev/null || printf 'unknown')"
+printf 'Voice provider: %s\n' "$selected_provider"
+if [[ "$selected_provider" == "qwen" ]]; then
+  if port_check 8000 && port_check 8001; then
+    printf 'DGX3 Qwen ASR/TTS ports: reachable from Pi\n'
+  else
+    printf 'DGX3 Qwen ASR/TTS ports: not reachable from Pi; check VPN or DILNET\n'
+  fi
 fi
 
 if [[ -z "$state" ]]; then

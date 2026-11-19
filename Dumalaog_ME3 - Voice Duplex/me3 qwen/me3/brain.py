@@ -565,10 +565,11 @@ def resolve_llm_config(cfg: dict, selection: str = "auto") -> tuple[str | None, 
         "qwen": "qwen",
         "openai": "luna",
         "luna": "luna",
+        "gemini": "gemini",
         "custom_vllm": "custom_vllm",
     }
     if selection == "auto":
-        candidates = ("qwen", "luna")
+        candidates = ("qwen", "gemini", "luna")
     else:
         provider = aliases.get(selection)
         if provider is None:
@@ -578,6 +579,7 @@ def resolve_llm_config(cfg: dict, selection: str = "auto") -> tuple[str | None, 
     configs = {
         "qwen": dict(llm.get("remote", {}) or {}),
         "luna": dict(llm.get("openai", {}) or {}),
+        "gemini": dict(llm.get("gemini", {}) or {}),
         "custom_vllm": dict(llm.get("remote", {}) or {}),
     }
     for provider in candidates:
@@ -706,6 +708,8 @@ class ToolBrain:
             # Do not send OpenAI's reasoning_effort field to Qwen; it is not a
             # portable OpenAI-compatible parameter and may be rejected.
             body["chat_template_kwargs"] = {"enable_thinking": False}
+        if self.provider == "gemini" and self.cfg.get("reasoning_effort"):
+            body["reasoning_effort"] = self.cfg["reasoning_effort"]
         if self.max_completion_tokens is not None:
             body["max_completion_tokens"] = int(self.max_completion_tokens)
         elif self.max_tokens is not None:
@@ -1297,8 +1301,11 @@ def build_tool_brain(cfg: dict, selection: str, system_prompt: str,
             "no inference provider is configured; set VLLM_API_KEY for Qwen "
             "or configure OpenAI through the private ME3 setup page")
     provider_cfg["system_prompt"] = system_prompt
-    provider_cfg["name"] = (
-        "qwen-tools" if provider == "qwen" else "gpt-4.1-mini-tools")
+    provider_cfg["name"] = {
+        "qwen": "qwen-tools",
+        "gemini": "gemini-tools",
+        "luna": "gpt-4.1-mini-tools",
+    }.get(provider, f"{provider}-tools")
     provider_cfg["allow_tools"] = bool(allow_tools)
     return ToolBrain(provider_cfg, system_prompt, on_tool=on_tool,
                      dispatch_fn=dispatch_fn, on_progress=on_progress)

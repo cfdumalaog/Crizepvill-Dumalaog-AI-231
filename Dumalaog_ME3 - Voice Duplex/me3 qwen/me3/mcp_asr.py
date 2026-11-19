@@ -15,6 +15,8 @@ from __future__ import annotations
 import base64
 import io
 import time
+import wave
+from types import SimpleNamespace
 
 from fastmcp import FastMCP
 
@@ -26,15 +28,47 @@ _engine = None
 _cfg = None
 
 
+class DeepgramASR:
+    """Small adapter that keeps Deepgram behind the same ASR interface."""
+
+    last_backend = "deepgram"
+    fallback_model = None
+
+    def __init__(self):
+        self._load_ms = 0.0
+
+    def transcribe(self, audio, sample_rate=16000, **_kwargs):
+        import numpy as np
+        pcm = np.asarray(audio, dtype=np.float32)
+        pcm16 = (np.clip(pcm, -1.0, 1.0) * 32767).astype(np.int16).tobytes()
+        buf = io.BytesIO()
+        with wave.open(buf, "wb") as out:
+            out.setnchannels(1)
+            out.setsampwidth(2)
+            out.setframerate(int(sample_rate))
+            out.writeframes(pcm16)
+        started = time.perf_counter()
+        from .deepgram_asr import transcribe_wav
+        text, _latency_ms = transcribe_wav(buf.getvalue())
+        latency_ms = (time.perf_counter() - started) * 1000
+        return [SimpleNamespace(text=text)], SimpleNamespace(
+            duration=len(pcm16) / 2 / int(sample_rate), latency_ms=latency_ms)
+
+
 def _get_engine():
     """Lazy-load faster-whisper (heavy; load once)."""
     global _engine, _cfg
     if _engine is None:
         _cfg = load_config()["asr"]
         t0 = time.perf_counter()
-        if _cfg.get("engine") == "qwen_remote":
+        if _cfg.get("engine") == "openai":
+            from .openai_audio import OpenAIASR
+            _engine = OpenAIASR(_cfg["model"])
+        elif _cfg.get("engine") == "qwen_remote":
             from .qwen_audio import QwenRemoteASR, config_from_env
             _engine = QwenRemoteASR(config_from_env(_cfg))
+        elif _cfg.get("engine") == "deepgram":
+            _engine = DeepgramASR()
         else:
             from faster_whisper import WhisperModel
             _engine = WhisperModel(
@@ -61,7 +95,7 @@ def transcribe_pcm(audio_b64: str, sample_rate: int = 16000) -> dict:
 
     engine, cfg = _get_engine()
     raw = base64.b64decode(audio_b64)
-    if cfg.get("engine") == "qwen_remote":
+    if cfg.get("engine") in {"qwen_remote", "openai", "deepgram"}:
         segments, info = engine.transcribe(
             np.frombuffer(raw, dtype=np.int16).astype(np.float32) / 32768.0,
             language=cfg.get("language"),
@@ -111,7 +145,7 @@ def transcribe_file(path: str) -> dict:
         {text, duration_s, latency_ms}
     """
     engine, cfg = _get_engine()
-    if cfg.get("engine") == "qwen_remote":
+    if cfg.get("engine") in {"qwen_remote", "openai", "deepgram"}:
         segments, info = engine.transcribe(path, language=cfg.get("language"))
         return {
             "text": " ".join(s.text.strip() for s in segments).strip(),

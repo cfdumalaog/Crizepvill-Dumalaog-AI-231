@@ -51,20 +51,16 @@ class AgentController:
         self.input_device = input_device
         self.output_mode = output_mode
         self.output_device = output_device
-        # Browser output is normally the laptop speaker while capture remains
-        # on the Pi.  That is an acoustic, cross-device path: a VAD-positive
-        # speaker reflection must not immediately become a barge-in before the
-        # protected-playback echo/keyword gate can inspect it.  Keep automatic
-        # barge-in available through the UI toggle, but make the safe mode the
-        # default for the Pi/browser transport. Direct Pi speaker output keeps
-        # the configured automatic mode.
+        # Full-duplex automatic barge-in is the default for both Pi-speaker and
+        # browser-speaker routes. The echo guard rejects correlated ME3 output
+        # while genuine user speech can interrupt TTS. Keyword-only protected
+        # playback remains available as an explicit UI mode for noisy rooms or
+        # demonstrations that need an uninterruptible response.
         configured_mode = (
             "automatic" if bool(cfg.get("agent", {}).get("barge_in", True))
             else "keyword_only"
         )
-        self.duplex_mode = (
-            "keyword_only" if output_mode == "browser" else configured_mode
-        )
+        self.duplex_mode = configured_mode
         self.loop: LocalVoiceLoop | None = None
         self.thread: threading.Thread | None = None
         self.lock = threading.RLock()
@@ -427,6 +423,7 @@ def main() -> int:
         deepgram_key_set=deepgram_asr.configure_api_key,
         provider_status=provider_choice.status,
         openai_key_set=provider_choice.save_openai_key,
+        gemini_key_set=provider_choice.save_gemini_key,
         provider_select=lambda payload: provider_choice.choose(payload.get("provider")),
         layer_status=layer_choice.status,
         layer_select=choose_layers,

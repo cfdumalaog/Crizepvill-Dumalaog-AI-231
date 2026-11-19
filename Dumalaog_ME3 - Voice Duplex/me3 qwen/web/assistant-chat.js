@@ -9,6 +9,11 @@
   const seen = new Set();
   let sessionId = null;
   const layerLabels = {
+    brain: {
+      qwen: 'Qwen text/tool brain', openai: 'OpenAI text/tool brain',
+      gemini: 'Gemini text/tool brain',
+      custom_vllm: 'Configured vLLM/API profile'
+    },
     asr: {
       qwen_remote: 'Qwen2-Audio DGX3', deepgram: 'Deepgram Nova-3',
       faster_whisper: 'faster-whisper local', openai: 'OpenAI transcription',
@@ -29,6 +34,14 @@
       fields: [{name:'api_key', label:'OpenAI API key', secret:true}],
       save: '/api/integrations/openai-key',
       actions: [{label:'Launch OpenAI', run:() => activateProvider('openai')}],
+    },
+    gemini: {
+      title: 'Gemini tool brain',
+      help: 'Gemini is an alternate text/tool brain through Google’s OpenAI-compatible endpoint. Qwen ASR, Qwen TTS, and Silero remain the audio defaults unless you change the layer selectors.',
+      status: '/api/provider/status',
+      fields: [{name:'api_key', label:'Gemini API key', secret:true}],
+      save: '/api/integrations/gemini-key',
+      actions: [{label:'Launch Gemini brain', run:() => activateProvider('gemini')}],
     },
     qwen: {
       title: 'Qwen voice provider',
@@ -99,16 +112,17 @@
   }
 
   function secretLike(text) {
-    return /\b(?:sk-[A-Za-z0-9_-]{16,}|github_pat_[A-Za-z0-9_]{20,}|gh[pousr]_[A-Za-z0-9]{20,}|\d{5,16}:[A-Za-z0-9_-]{20,})\b/i.test(text)
+    return /\b(?:sk-[A-Za-z0-9_-]{16,}|AIza[A-Za-z0-9_-]{20,}|github_pat_[A-Za-z0-9_]{20,}|gh[pousr]_[A-Za-z0-9]{20,}|\d{5,16}:[A-Za-z0-9_-]{20,})\b/i.test(text)
       || /\b(?:api[ _-]?key|client[ _-]?secret|bot[ _-]?token|password)\s*(?::|=|\bis\b)\s*\S{8,}/i.test(text)
       || /^[a-f0-9]{32,}$/i.test(text.trim());
   }
 
   function setupIntent(text) {
     const t = String(text || '').toLowerCase();
-    if(!/\b(set\s*up|setup|configure|connect|switch|change provider|use openai|use qwen|add (?:an? )?(?:api|token)|credentials?)\b/.test(t)) return '';
+    if(!/\b(set\s*up|setup|configure|connect|switch|change provider|use openai|use qwen|use gemini|add (?:an? )?(?:api|token)|credentials?)\b/.test(t)) return '';
     if(/\b(?:vllm|openai-compatible|custom provider|another provider|different provider|base url|model endpoint|model server)\b/.test(t)) return 'custom_vllm';
     if(/openai|gpt/.test(t)) return 'openai';
+    if(/gemini|google ai/.test(t)) return 'gemini';
     if(/qwen|dgx/.test(t)) return 'qwen';
     if(/deepgram/.test(t)) return 'deepgram';
     if(/spotify/.test(t)) return 'spotify';
@@ -349,7 +363,7 @@
       el('variantPill').textContent = activeProvider === 'openai' ? 'ME3 OPENAI' : 'ME3 QWEN INSTRUCT';
       const layers = await jsonRequest('/api/layers').catch(() => ({}));
       const selected = layers.layers || {};
-      const layerText = selected.asr ? ' · Layers: ' + selected.asr + '/' + selected.tts + '/' + selected.vad : '';
+      const layerText = selected.asr ? ' · Layers: ' + (selected.brain || '-') + '/' + selected.asr + '/' + selected.tts + '/' + selected.vad : '';
       el('connectionSummary').textContent = 'Voice: ' + activeProvider.toUpperCase()
         + ' · OpenAI key: ' + (provider.openai_key_configured ? 'saved' : 'missing')
         + ' · Deepgram: ' + (deepgram.configured ? 'ready' : 'missing')
@@ -361,26 +375,29 @@
     } catch(_) { el('connectionSummary').textContent = 'Connection status unavailable.'; }
   }
 
-  function populateLayerSelect(id, name, options, value) {
+  function populateLayerSelect(id, name, options, value, optionLabels={}) {
     const select = el(id); if(!select) return;
     select.replaceChildren();
     for(const option of options || []) {
       const item = document.createElement('option');
-      item.value = option;
-      item.textContent = (layerLabels[name] && layerLabels[name][option]) || option;
+      const optionValue = typeof option === 'string' ? option : option.value;
+      item.value = optionValue;
+      item.textContent = optionLabels[optionValue]
+        || (layerLabels[name] && layerLabels[name][optionValue]) || optionValue;
       select.appendChild(item);
     }
-    if(value && options && options.includes(value)) select.value = value;
+    if(value && [...select.options].some(option => option.value === value)) select.value = value;
   }
 
   async function loadLayers() {
     try {
       const data = await jsonRequest('/api/layers');
-      const values = data.layers || {}, options = data.options || {};
-      populateLayerSelect('layerAsr', 'asr', options.asr, values.asr);
-      populateLayerSelect('layerTts', 'tts', options.tts, values.tts);
-      populateLayerSelect('layerVad', 'vad', options.vad, values.vad);
-      el('layerStatus').textContent = 'Active: ' + (values.asr || '-') + ' · ' + (values.tts || '-') + ' · ' + (values.vad || '-');
+      const values = data.layers || {}, options = data.options || {}, labels = data.option_labels || {};
+      populateLayerSelect('layerBrain', 'brain', options.brain, values.brain, labels);
+      populateLayerSelect('layerAsr', 'asr', options.asr, values.asr, labels);
+      populateLayerSelect('layerTts', 'tts', options.tts, values.tts, labels);
+      populateLayerSelect('layerVad', 'vad', options.vad, values.vad, labels);
+      el('layerStatus').textContent = 'Active: ' + (values.brain || '-') + ' · ' + (values.asr || '-') + ' · ' + (values.tts || '-') + ' · ' + (values.vad || '-');
     } catch(err) { el('layerStatus').textContent = 'Layer providers unavailable: ' + err.message; }
   }
 
@@ -400,7 +417,7 @@
     button.disabled = true; label.textContent = 'Saving layers privately on the Pi…';
     try {
       const result = await jsonRequest('/api/layers', {method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({asr:el('layerAsr').value, tts:el('layerTts').value, vad:el('layerVad').value})});
+        body: JSON.stringify({brain:el('layerBrain').value, asr:el('layerAsr').value, tts:el('layerTts').value, vad:el('layerVad').value})});
       label.textContent = result.restart_scheduled
         ? 'Saved. ME3 is restarting with the selected layers; reconnecting shortly.'
         : 'Saved. Restart the ME3 service to load the selected layers.';

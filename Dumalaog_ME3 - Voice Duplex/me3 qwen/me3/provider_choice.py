@@ -6,7 +6,7 @@ import os
 
 from . import secure_config
 
-PROVIDERS = ("qwen", "openai", "custom_vllm")
+PROVIDERS = ("qwen", "openai", "gemini", "custom_vllm")
 
 
 def _path():
@@ -32,6 +32,8 @@ def choose(provider: str) -> dict:
         return {"ok": False, "error": "unsupported_provider"}
     if provider == "openai" and not openai_key():
         return {"ok": False, "error": "openai_api_key_required"}
+    if provider == "gemini" and not gemini_key():
+        return {"ok": False, "error": "gemini_api_key_required"}
     if provider == "custom_vllm":
         from . import setup_profiles
         if not setup_profiles.active_profile("llm"):
@@ -65,11 +67,14 @@ def status() -> dict:
         "selected": selected(),
         "providers": list(PROVIDERS),
         "openai_key_configured": bool(openai_key()),
+        "gemini_key_configured": bool(gemini_key()),
         "custom_vllm_configured": bool(custom.get("active", {}).get("llm")),
         "custom_vllm_profiles": custom.get("profiles", []),
-        "models": {"openai": {"asr": "gpt-transcribe",
-                              "llm": "gpt-4.1-mini",
-                              "tts": "gpt-4o-mini-tts"}},
+        "models": {
+            "openai": {"asr": "gpt-transcribe", "llm": "gpt-4.1-mini",
+                        "tts": "gpt-4o-mini-tts"},
+            "gemini": {"llm": "gemini-2.5-flash"},
+        },
     }
 
 
@@ -83,6 +88,22 @@ def save_openai_key(value: str) -> dict:
     if not key.startswith("sk-") or len(key) < 20:
         return {"ok": False, "error": "invalid_openai_api_key_format"}
     result = secure_config.set_values({"OPENAI_API_KEY": key})
+    return {"ok": bool(result.get("ok")),
+            "configured": bool(result.get("ok")),
+            **({"error": result["error"]} if not result.get("ok") else {})}
+
+
+def gemini_key() -> str:
+    """Return the privately stored Gemini key without exposing it to status."""
+    return (secure_config._read().get("GEMINI_API_KEY", "").strip()
+            or secure_config.get("GEMINI_API_KEY"))
+
+
+def save_gemini_key(value: str) -> dict:
+    key = str(value or "").strip()
+    if len(key) < 20 or len(key) > 4096 or "\n" in key or "\r" in key:
+        return {"ok": False, "error": "invalid_gemini_api_key_format"}
+    result = secure_config.set_values({"GEMINI_API_KEY": key})
     return {"ok": bool(result.get("ok")),
             "configured": bool(result.get("ok")),
             **({"error": result["error"]} if not result.get("ok") else {})}

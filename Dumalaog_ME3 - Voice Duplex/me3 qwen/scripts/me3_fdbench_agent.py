@@ -27,7 +27,8 @@ PROJECT = Path(__file__).resolve().parents[1]
 if str(PROJECT) not in sys.path:
     sys.path.insert(0, str(PROJECT))
 # Make the benchmark's standard-library stage-mark helper available to the
-# ME3 process. It remains inert unless FDBENCH_MARKS is configured.
+# ME3 process. The custom direct-feed adapter below attaches its WebSocket as
+# the mark sink, matching launch_assistant.py's direct-feed behavior.
 BENCH_ADAPTERS = PROJECT / "benchmarking" / "fd-benchmark" / "adapters"
 if BENCH_ADAPTERS.exists() and str(BENCH_ADAPTERS) not in sys.path:
     sys.path.insert(0, str(BENCH_ADAPTERS))
@@ -59,6 +60,7 @@ class FdbenchAudio:
         self._playing = False
         self._play_until = 0.0
         self._lock = threading.Lock()
+        self._send_lock = threading.Lock()
         self._receiver = threading.Thread(target=self._receive, daemon=True,
                                           name="me3-fdbench-recv")
 
@@ -96,7 +98,8 @@ class FdbenchAudio:
         with self._lock:
             self._playing = True
             self._play_until = time.perf_counter() + duration
-        self.ws.send(x.astype("<i2", copy=False).tobytes())
+        with self._send_lock:
+            self.ws.send(x.astype("<i2", copy=False).tobytes())
         if blocking:
             while not self.playback_done():
                 time.sleep(0.02)
@@ -107,12 +110,24 @@ class FdbenchAudio:
                 self._playing = False
             return not self._playing
 
+    def _send_text(self, message: str) -> None:
+        """Serialize all outbound WebSocket writes from one connection."""
+        with self._send_lock:
+            self.ws.send(message)
+
+    def send_mark(self, mark: dict) -> None:
+        """Send an fdbench stage mark over the direct-feed WebSocket."""
+        try:
+            self._send_text(json.dumps(mark, separators=(",", ":")))
+        except Exception:  # noqa: BLE001 - marks never break the voice loop
+            log.debug("could not send fdbench stage mark", exc_info=True)
+
     def stop_playback(self, silent: bool = False):
         with self._lock:
             self._playing = False
             self._play_until = time.perf_counter()
         try:
-            self.ws.send(json.dumps({"event": "clear"}))
+            self._send_text(json.dumps({"event": "clear"}))
         except Exception:  # noqa: BLE001
             pass
 
@@ -180,6 +195,7 @@ def main() -> int:
         if args.brain != "auto":
             raise
         brain = StubBrain()
+    from fdbench_marks import set_sink
     from websockets.sync.client import connect
     logging.basicConfig(level=logging.INFO,
                         format="%(asctime)s %(levelname)-7s %(name)s: %(message)s")
@@ -187,15 +203,19 @@ def main() -> int:
     with connect(args.url, max_size=None, compression=None, ping_interval=20) as ws:
         audio = FdbenchAudio(ws, sample_rate=16000,
                              frame_ms=int(cfg["audio"]["frame_ms"]))
-        loop = LocalVoiceLoop(cfg, brain=brain, audio=audio)
-        thread = threading.Thread(target=loop.run, daemon=True,
-                                  name="me3-fdbench-loop")
-        thread.start()
-        while thread.is_alive() and not audio._closed.wait(0.25):
-            pass
-        loop.stop()
-        thread.join(timeout=10)
-        audio.close()
+        set_sink(audio.send_mark)
+        try:
+            loop = LocalVoiceLoop(cfg, brain=brain, audio=audio)
+            thread = threading.Thread(target=loop.run, daemon=True,
+                                      name="me3-fdbench-loop")
+            thread.start()
+            while thread.is_alive() and not audio._closed.wait(0.25):
+                pass
+            loop.stop()
+            thread.join(timeout=10)
+        finally:
+            set_sink(None)
+            audio.close()
     return 0
 
 

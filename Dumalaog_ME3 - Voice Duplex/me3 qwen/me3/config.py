@@ -124,6 +124,13 @@ def load_config() -> dict:
     if layers["tts"] == "piper":
         cfg["tts"]["voice"] = cfg["tts"].get("fallback_voice", "en_US-ryan-medium")
         cfg["tts"]["announcer_voice"] = cfg["tts"]["voice"]
+    elif layers["tts"] == "qwen_remote" and variant == "qwen_instruct":
+        # Selecting OpenAI as the text/tool brain must not leak its Onyx voice
+        # into an explicitly selected Qwen audio layer.  Keep the Qwen
+        # CustomVoice identity consistent for replies and announcements.
+        qwen_tts = (variants.get("qwen_instruct", {}) or {}).get("tts", {}) or {}
+        cfg["tts"]["voice"] = qwen_tts.get("voice", "aiden")
+        cfg["tts"]["announcer_voice"] = cfg["tts"]["voice"]
     qwen_llm_base = os.environ.get("ME3_QWEN_LLM_BASE_URL", "").strip()
     if qwen_llm_base:
         cfg.setdefault("llm", {}).setdefault("remote", {})[

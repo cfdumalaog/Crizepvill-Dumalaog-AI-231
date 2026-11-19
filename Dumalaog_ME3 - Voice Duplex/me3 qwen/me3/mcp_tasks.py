@@ -233,14 +233,14 @@ def search_project_text(query: str, path: str = "agent_workspace",
 @mcp.tool()
 def run_project_command(command: str, cwd: str = "agent_workspace",
                         timeout_s: int = 60) -> dict:
-    """Run one bounded, direct allowlisted build/test command."""
+    """Run a command with the active ME3 Pi-user access policy."""
     return project_tools.run_command(command, cwd, timeout_s)
 
 
 @mcp.tool()
 def start_project_task(command: str, cwd: str = "agent_workspace",
                        timeout_s: int = 600) -> dict:
-    """Start a longer allowlisted command without blocking voice input."""
+    """Start a longer command without blocking voice input."""
     return project_tools.start_background_task(command, cwd, timeout_s)
 
 
@@ -276,9 +276,47 @@ def search_public_web(query: str, max_results: int = 5) -> dict:
 
 
 @mcp.tool()
+def github_pages_health(check: bool = False) -> dict:
+    """Report GitHub Pages credential status without exposing the token."""
+    return project_tools.github_pages.health(check)
+
+
+@mcp.tool()
+def github_repositories(max_repositories: int = 200) -> dict:
+    """List repositories visible to the private GitHub credential."""
+    return project_tools.github_pages.list_repositories(max_repositories)
+
+
+@mcp.tool()
+def github_repository_access(owner: str, repo: str) -> dict:
+    """Check read/write access to one named GitHub repository."""
+    return project_tools.github_pages.repository_access(owner, repo)
+
+
+@mcp.tool()
+def deploy_github_pages(site_dir: str, owner: str, repo: str,
+                        branch: str = "main", base_path: str = "",
+                        pages_path: str = "/",
+                        message: str = "Deploy GitHub Pages site from ME3",
+                        enable_pages: bool = True,
+                        create_if_missing: bool = False) -> dict:
+    """Publish a validated site requested by the user."""
+    return project_tools.github_pages.deploy(
+        site_dir, owner, repo, branch, base_path, pages_path,
+        message, enable_pages, create_if_missing=create_if_missing,
+    )
+
+
+@mcp.tool()
 def project_git_status() -> dict:
     """Show ME3 repository status without changing it."""
     return project_tools.git_status()
+
+
+@mcp.tool()
+def verify_project(path: str = "agent_workspace", max_files: int = 300) -> dict:
+    """Check source syntax and static assets for a requested software project."""
+    return project_tools.verify_project(path, max_files)
 
 
 @mcp.tool()
@@ -288,9 +326,9 @@ def channel_health() -> dict:
 
 
 @mcp.tool()
-def send_email(to: list[str], subject: str, text: str, confirm: bool = False,
+def send_email(to: list[str], subject: str, text: str, confirm: bool = True,
                from_email: str = "") -> dict:
-    """Send one Resend transactional email only after explicit confirmation."""
+    """Send one requested Resend transactional email without a second approval."""
     return project_tools.channels.send_email(
         to, subject, text, confirm=confirm, from_email=from_email or None,
     )
@@ -298,8 +336,8 @@ def send_email(to: list[str], subject: str, text: str, confirm: bool = False,
 
 @mcp.tool()
 def send_telegram_message(chat_id: str, text: str,
-                          confirm: bool = False) -> dict:
-    """Send one Telegram Bot API text message after explicit confirmation."""
+                          confirm: bool = True) -> dict:
+    """Send one requested Telegram Bot API text message without a second approval."""
     return project_tools.channels.send_telegram_message(
         chat_id, text, confirm=confirm,
     )
@@ -380,14 +418,14 @@ def complete_reminder(reminder_id: str) -> dict:
 
 
 @mcp.tool()
-def call_contact(contact: str, confirm: bool = False) -> dict:
+def call_contact(contact: str, confirm: bool = True) -> dict:
     """Report that ordinary voice calls are unavailable in Telegram-only mode."""
     return project_tools.me2_commands.call_contact(contact, confirm)
 
 
 @mcp.tool()
 def send_message(contact: str, body: str, channel: str = "telegram",
-                 confirm: bool = False) -> dict:
+                 confirm: bool = True) -> dict:
     """Send Telegram text using a protected contact mapping."""
     return project_tools.me2_commands.send_message(contact, body, channel, confirm)
 
@@ -401,7 +439,9 @@ def health() -> dict:
                       "list_project_files", "read_project_file", "write_project_file",
                       "search_project_text", "run_project_command", "start_project_task",
                       "project_task_status", "project_task_output", "cancel_project_task",
-                      "fetch_public_url", "search_public_web", "project_git_status",
+                      "fetch_public_url", "search_public_web", "github_pages_health",
+                      "github_repositories", "github_repository_access",
+                      "deploy_github_pages", "project_git_status", "verify_project",
                       "channel_health", "send_email",
                       "send_telegram_message", "play_music", "media_control", "music_state",
                       "get_weather", "control_lights", "set_thermostat", "set_alarm",

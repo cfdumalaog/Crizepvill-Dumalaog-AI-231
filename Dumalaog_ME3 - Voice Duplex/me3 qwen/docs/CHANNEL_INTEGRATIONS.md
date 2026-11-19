@@ -25,6 +25,7 @@ private per-user files.
 | Telegram message to `@mncfrndz` | A bot token from `@BotFather`; the recipient must open that bot and send `/start` once. A personal Telegram login alone is not a bot API credential. | Save the token, then choose **Connect @mncfrndz** in the tunneled Pi UI to map the chat. |
 | Phone call | Android companion installed/open on a phone with cellular calling; allow `CALL_PHONE` and, for contact names, `READ_CONTACTS`; keep the companion connected to the Pi. A live call has not yet been tested. | Install the project APK, open its ME3 UI, grant permissions, and keep it connected. |
 | Carrier SMS | Not implemented in the current Android companion. Telegram Bot API sends Telegram chat text, not SMS. | No credential can enable carrier SMS yet; it needs a phone-side implementation and permission. |
+| ASR failover | Optional Deepgram API key; the Pi first tries DGX3 Qwen, then Deepgram Nova-3 multilingual with English/Tagalog hints, then local faster-whisper base. | Enter the key in the Deepgram card in the tunneled Pi UI. The server validates it against Deepgram over HTTPS and stores it in the private Pi credential file. |
 
 Spotify callback: `http://127.0.0.1:8100/api/spotify/callback`<br>
 Google callback: `http://127.0.0.1:8100/api/google/callback`

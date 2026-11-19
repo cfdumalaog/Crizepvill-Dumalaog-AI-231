@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import urllib.error
 import urllib.request
 from pathlib import Path
 
@@ -149,9 +150,49 @@ def test_status_server_serves_state_and_pages():
         with urllib.request.urlopen(base + "/console", timeout=5) as r:
             assert r.status == 200
             assert "orbCanvas" in r.read().decode("utf-8")
+        with urllib.request.urlopen(base + "/assistant-chat.js", timeout=5) as r:
+            assert "javascript" in r.headers.get("Content-Type", "")
+            assert "setupMenu" in r.read().decode("utf-8")
     finally:
         server.stop()
     assert server._httpd is None
+
+
+def test_chat_endpoint_queues_text_and_rejects_pasted_credentials():
+    status = LoopStatus()
+    accepted = []
+    server = StatusServer(
+        status, html_dir=PROJECT / "web", get_state=lambda: "idle",
+        get_stats=TurnStats, port=0,
+        chat_submit=lambda text: accepted.append(text) or {"ok": True, "queued": True},
+    )
+    assert server.start()
+    base = f"http://127.0.0.1:{server.port}"
+
+    def post(text):
+        return urllib.request.urlopen(urllib.request.Request(
+            base + "/api/chat", data=json.dumps({"message": text}).encode(),
+            headers={"Content-Type": "application/json"}, method="POST"),
+            timeout=3)
+
+    try:
+        with post("Set a timer for five minutes") as response:
+            assert json.loads(response.read())["queued"] is True
+        assert accepted == ["Set a timer for five minutes"]
+        with post("hello") as response:
+            assert response.status == 200
+        secret = "sk-" + "test" * 8
+        try:
+            post("my API key: " + secret)
+        except urllib.error.HTTPError as exc:
+            assert exc.code == 400
+            assert json.loads(exc.read())["error"] == "use_private_setup_prompt"
+        else:
+            raise AssertionError("credential must not enter chat")
+        assert secret not in json.dumps(status.snapshot("idle", TurnStats()))
+        assert len(accepted) == 2
+    finally:
+        server.stop()
 
 
 def test_status_server_can_dispatch_service_restart_callback():

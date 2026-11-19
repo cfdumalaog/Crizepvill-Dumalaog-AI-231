@@ -175,6 +175,21 @@ llm:
     max_tool_steps: 24
     max_development_steps: 48
     name: gpt-5.6-luna-medium-tools
+  gemini:
+    base_url: https://generativelanguage.googleapis.com/v1beta/openai
+    model: gemini-2.5-flash
+    api_key_env: GEMINI_API_KEY
+    temperature: 0.2
+    max_tokens: 4096
+    timeout_s: 90
+    max_tool_steps: 24
+    max_development_steps: 48
+    history_messages: 16
+    stream: true
+    reasoning_effort: none
+    fast_mode: true
+    thinking: false
+    name: gemini-tools
   local:
     ollama_host: http://localhost:11434
     model: qwen2.5:3b            # Pi 5 only; Pi 4 -> remote mode

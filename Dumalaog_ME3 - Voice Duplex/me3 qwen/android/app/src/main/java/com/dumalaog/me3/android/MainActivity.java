@@ -215,7 +215,10 @@ public final class MainActivity extends Activity {
         configureWebView();
         shell.addView(webView, new LinearLayout.LayoutParams(-1, 0, 1f));
         setContentView(shell);
-        webView.loadUrl(endpoint);
+        // The Android companion intentionally uses the compact presentation
+        // surface. Desktop/laptop browsers keep the full ME3 operator UI.
+        String apkEndpoint = endpoint + (endpoint.contains("?") ? "&" : "?") + "mode=apk";
+        webView.loadUrl(apkEndpoint);
     }
 
     private void configureWebView() {

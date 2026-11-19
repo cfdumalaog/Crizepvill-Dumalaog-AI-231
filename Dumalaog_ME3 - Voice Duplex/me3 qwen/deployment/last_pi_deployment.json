@@ -1,9 +1,9 @@
 {
   "status": "deployed",
-  "at": "2026-11-07T03:19:56Z",
-  "release_id": "me3-20261107-031910-057f9c4e",
-  "host": "cfdfnjrpi5.local",
-  "path": "/home/dalmacio/Desktop/dandan",
-  "zip_sha256": "36c17c7e8a13a09d11a0c9c684bc4adac3388999f0f08876e7b51363afb95448",
+  "at": "2026-11-18T16:59:32Z",
+  "release_id": "me3-20261118-165756-db081183",
+  "host": "192.168.1.13",
+  "path": "/home/dalmacio/Desktop/dandan-qwen",
+  "zip_sha256": "858057ce927e310e0840b2f7f6268334d725317d4458f93d2f98c81bde1325c2",
   "reason": null
 }

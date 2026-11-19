@@ -39,6 +39,10 @@ INCLUDE = [
     "benchmarking/fd-benchmark",  # vendored MIT full-duplex benchmark + adapter
     "config",              # config/config.yaml (single source of truth)
     "web",                 # tracked presenter surface for local/Pi browser access
+    # One deterministic local TTS backup. The voice is bundled into the
+    # accepted Pi release so a provider outage cannot turn into silence.
+    "models/tts/en_US-ryan-medium.onnx",
+    "models/tts/en_US-ryan-medium.onnx.json",
     "launchers/pi",        # Pi desktop startup/check launcher and its desktop entry
     "data/DATASET.md",     # class-group shared benchmark dataset spec
     "install.sh",          # idempotent Pi installer
@@ -54,6 +58,10 @@ INCLUDE = [
     "docs/VOCALIS_PROTOCOL.md",
     "docs/WORKSTATION_FIRST_RELEASE.md",
     "docs/FDBENCH_INTEGRATION.md",
+    "docs/GITHUB_PAGES_DEPLOYMENT.md",
+    "docs/PROVIDER_SELECTION.md",
+    "docs/APK_MIGRATION_PLAN.md",
+    "docs/presentation/ME3_Voice_Duplex_Presentation_v11_Benchmark_20261119.pptx",
     "docs/ME2_VS_ME3.md",
     "scripts/fdb_v15_eval.py",
     "scripts/check_paper_alignment.py",
@@ -66,6 +74,7 @@ INCLUDE = [
     "scripts/loopback_selftest.py",
     "scripts/run_me3_module.py",
     "scripts/me3_pi_server.py",
+    "scripts/provider_matrix_smoke.py",
     "scripts/workstation_acceptance.py",
     "Building AI Voice Agents - Summary.pdf",
     "FULL-DUPLEX-BENCH V1.5 - EVALUATING OVERLAP.pdf",
@@ -177,7 +186,7 @@ def package(force: bool = False) -> dict:
         "zip": f"dist/{release_id}.zip",
         "zip_sha256": sha256(zip_path),
         "target": "rpi",
-        "note": "Packaged + integrity-checked locally. NOT yet on the Pi.",
+        "note": "Packaged and integrity-checked locally; deployment receipt is recorded in deployment/last_pi_deployment.json.",
     }
     DEPLOY.mkdir(exist_ok=True)
     write_json(latest_path, release)

@@ -756,13 +756,19 @@ class _StatusHandler(BaseHTTPRequestHandler):
                     "error": type(exc).__name__}).encode("utf-8"),
                     "application/json; charset=utf-8")
             return
-        if path in {"/api/integrations/openai-key", "/api/provider/select"}:
+        if path in {"/api/integrations/openai-key",
+                    "/api/integrations/gemini-key",
+                    "/api/provider/select"}:
             if not self._is_loopback_request():
                 self._send(403, b"use the local SSH tunnel for provider setup",
                            "text/plain; charset=utf-8")
                 return
-            callback = getattr(self.server, "openai_key_set" if path.endswith("openai-key")
-                               else "provider_select", None)
+            key_callbacks = {
+                "/api/integrations/openai-key": "openai_key_set",
+                "/api/integrations/gemini-key": "gemini_key_set",
+            }
+            callback = getattr(self.server, key_callbacks[path]
+                               if path in key_callbacks else "provider_select", None)
             if callback is None:
                 self._send(404, b"provider setup is not enabled", "text/plain; charset=utf-8")
                 return
@@ -772,7 +778,7 @@ class _StatusHandler(BaseHTTPRequestHandler):
                     raise ValueError("invalid JSON body")
                 payload = json.loads(self.rfile.read(length).decode("utf-8"))
                 result = callback(str(payload.get("api_key") or "")
-                                  if path.endswith("openai-key") else payload)
+                                  if path in key_callbacks else payload)
                 code = 200 if result.get("ok") else 400
                 self._send(code, json.dumps(result).encode("utf-8"),
                            "application/json; charset=utf-8")
@@ -993,7 +999,8 @@ class StatusServer:
                  google_client_set=None, telegram_status=None,
                  telegram_token_set=None, telegram_connect_target=None,
                  deepgram_status=None, deepgram_key_set=None,
-                 provider_status=None, openai_key_set=None, provider_select=None,
+                 provider_status=None, openai_key_set=None, gemini_key_set=None,
+                 provider_select=None,
                   layer_status=None, layer_select=None,
                   permission_status=None, permission_set=None,
                  github_status=None, github_token_set=None,
@@ -1033,6 +1040,7 @@ class StatusServer:
         self.deepgram_key_set = deepgram_key_set
         self.provider_status = provider_status
         self.openai_key_set = openai_key_set
+        self.gemini_key_set = gemini_key_set
         self.provider_select = provider_select
         self.layer_status = layer_status
         self.layer_select = layer_select
@@ -1089,6 +1097,7 @@ class StatusServer:
         self._httpd.deepgram_key_set = self.deepgram_key_set
         self._httpd.provider_status = self.provider_status
         self._httpd.openai_key_set = self.openai_key_set
+        self._httpd.gemini_key_set = self.gemini_key_set
         self._httpd.provider_select = self.provider_select
         self._httpd.layer_status = self.layer_status
         self._httpd.layer_select = self.layer_select
