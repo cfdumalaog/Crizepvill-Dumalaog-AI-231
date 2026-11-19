@@ -79,6 +79,55 @@ def load_config() -> dict:
         selected = variants.get("qwen_instruct", {})
         cfg["asr"] = {**cfg.get("asr", {}), **selected.get("asr", {})}
         cfg["tts"] = {**cfg.get("tts", {}), **selected.get("tts", {})}
+    from .provider_choice import selected as selected_provider
+    provider = selected_provider()
+    if provider == "openai":
+        cfg["asr"] = {**cfg["asr"], "engine": "openai",
+                      "model": "gpt-transcribe"}
+        cfg["tts"] = {**cfg["tts"], "engine": "openai",
+                      "model": "gpt-4o-mini-tts", "voice": "onyx",
+                      "announcer_voice": "onyx"}
+    from .setup_profiles import profile_config
+    if provider == "custom_vllm":
+        custom_llm = profile_config("llm")
+        if custom_llm:
+            cfg["llm"]["remote"] = {
+                **cfg.get("llm", {}).get("remote", {}),
+                **custom_llm,
+                "api_key_env": "",
+                "fast_mode": True,
+                "stream": True,
+            }
+    cfg["runtime_provider"] = provider
+    from .layer_choice import selected as selected_layers
+    layers = selected_layers(provider)
+    cfg["asr"]["engine"] = layers["asr"]
+    cfg["tts"]["engine"] = layers["tts"]
+    cfg.setdefault("vad", {})["engine"] = layers["vad"]
+    if layers["asr"] == "custom_vllm":
+        custom_asr = profile_config("asr")
+        if custom_asr:
+            cfg["asr"] = {**cfg["asr"], **custom_asr, "engine": "qwen_remote",
+                           "base_url_env": "", "api_key_env": ""}
+    if layers["tts"] == "custom_vllm":
+        custom_tts = profile_config("tts")
+        if custom_tts:
+            cfg["tts"] = {**cfg["tts"], **custom_tts, "engine": "qwen_remote",
+                           "base_url_env": "", "api_key_env": ""}
+    if layers["asr"] == "deepgram":
+        cfg["asr"]["model"] = "nova-3"
+    elif layers["asr"] == "faster_whisper":
+        cfg["asr"]["model"] = cfg["asr"].get("fallback_model", "base")
+        cfg["asr"]["compute_type"] = cfg["asr"].get("fallback_compute_type", "int8")
+    elif layers["asr"] == "openai":
+        cfg["asr"]["model"] = "gpt-transcribe"
+    if layers["tts"] == "piper":
+        cfg["tts"]["voice"] = cfg["tts"].get("fallback_voice", "en_US-ryan-medium")
+        cfg["tts"]["announcer_voice"] = cfg["tts"]["voice"]
+    qwen_llm_base = os.environ.get("ME3_QWEN_LLM_BASE_URL", "").strip()
+    if qwen_llm_base:
+        cfg.setdefault("llm", {}).setdefault("remote", {})[
+            "base_url"] = qwen_llm_base.rstrip("/")
     cfg["runtime_variant"] = variant
     return cfg
 

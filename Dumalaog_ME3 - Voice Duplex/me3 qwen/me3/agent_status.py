@@ -23,9 +23,11 @@ from __future__ import annotations
 import json
 import ipaddress
 import logging
+import re
 import statistics
 import threading
 import time
+import uuid
 from collections import deque
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -35,7 +37,8 @@ from urllib.parse import parse_qs, urlsplit
 log = logging.getLogger("me3.agent_status")
 
 _PAGE_FILES = {"/": "assistant.html", "/index.html": "assistant.html",
-               "/roadmap": "roadmap.html", "/console": "assistant.html"}
+               "/roadmap": "roadmap.html", "/console": "assistant.html",
+               "/assistant-chat.js": "assistant-chat.js"}
 
 
 def _iso(ts: float | None) -> str | None:
@@ -43,6 +46,16 @@ def _iso(ts: float | None) -> str | None:
         return None
     return datetime.fromtimestamp(ts, tz=timezone.utc).isoformat(
         timespec="seconds")
+
+
+def _looks_like_credential(text: str) -> bool:
+    """Keep pasted credentials out of model turns and conversation telemetry."""
+    value = str(text or "").strip()
+    return bool(re.search(
+        r"(?i)(?:\bsk-[A-Za-z0-9_-]{16,}|\bgh(?:p|o|u|s|r)_[A-Za-z0-9]{20,}"
+        r"|\bgithub_pat_[A-Za-z0-9_]{20,}|\b\d{5,16}:[A-Za-z0-9_-]{20,}"
+        r"|\b(?:api[_ -]?key|client[_ -]?secret|bot[_ -]?token|password)"
+        r"\s*(?::|=|\bis\b)\s*\S{8,})", value)) or bool(re.fullmatch(r"[a-fA-F0-9]{32,}", value))
 
 
 def _percentile(values: list[float], pct: float) -> float:
@@ -72,6 +85,7 @@ class LoopStatus:
     def __init__(self, release_info: dict | None = None,
                  brain_name: str = "", variant: str = ""):
         self._lock = threading.Lock()
+        self.session_id = uuid.uuid4().hex
         self.release_info = release_info or {}
         self.brain_name = brain_name
         self.variant = variant
@@ -86,6 +100,8 @@ class LoopStatus:
         self.last_reply = ""
         self.last_reply_kind = ""
         self.last_reply_at: float | None = None
+        self.conversation_events: deque[dict] = deque(maxlen=100)
+        self._conversation_id = 0
         self.last_error = ""
         self.last_error_stage = ""
         self.last_error_at: float | None = None
@@ -120,16 +136,28 @@ class LoopStatus:
             self.vad_probability = float(probability)
             self.rms = float(rms)
 
-    def report_transcript(self, text: str) -> None:
+    def report_transcript(self, text: str, source: str = "voice") -> None:
         with self._lock:
             self.last_transcript = str(text)
             self.last_transcript_at = time.time()
+            self._conversation_id += 1
+            self.conversation_events.append({
+                "id": self._conversation_id, "role": "user",
+                "source": source, "text": str(text)[:4000],
+                "at": self.last_transcript_at,
+            })
 
     def report_reply(self, text: str, kind: str = "reply") -> None:
         with self._lock:
             self.last_reply = str(text)
             self.last_reply_kind = str(kind)
             self.last_reply_at = time.time()
+            self._conversation_id += 1
+            self.conversation_events.append({
+                "id": self._conversation_id, "role": "assistant",
+                "kind": str(kind), "text": str(text)[:4000],
+                "at": self.last_reply_at,
+            })
 
     def report_error(self, stage: str, message: str) -> None:
         """Publish a bounded operator-facing error, never raw payloads."""
@@ -204,6 +232,7 @@ class LoopStatus:
                 current_progress["at"] = _iso(current_progress["at"])
             payload = {
                 "ok": True,
+                "session_id": self.session_id,
                 "loop": self.loop_running,
                 "state": str(state),
                 "state_reason": self.state_reason,
@@ -221,6 +250,10 @@ class LoopStatus:
                 "last_reply": {"text": self.last_reply,
                                "kind": self.last_reply_kind,
                                "at": _iso(self.last_reply_at)},
+                "conversation": [
+                    {**event, "at": _iso(event["at"])}
+                    for event in self.conversation_events
+                ],
                 "last_error": {"stage": self.last_error_stage,
                                 "message": self.last_error,
                                 "at": _iso(self.last_error_at)},
@@ -361,6 +394,34 @@ class _StatusHandler(BaseHTTPRequestHandler):
         if path == "/api/schedules":
             callback = getattr(self.server, "schedules_get", None)
             payload = callback() if callback is not None else {"ok": True, "items": []}
+            self._send(200, json.dumps(payload).encode("utf-8"),
+                       "application/json; charset=utf-8")
+            return
+        if path == "/api/deepgram/status":
+            callback = getattr(self.server, "deepgram_status", None)
+            payload = callback() if callback is not None else {
+                "ok": True, "provider": "deepgram", "configured": False,
+                "model": "nova-3"}
+            self._send(200, json.dumps(payload).encode("utf-8"),
+                       "application/json; charset=utf-8")
+            return
+        if path == "/api/provider/status":
+            callback = getattr(self.server, "provider_status", None)
+            payload = callback() if callback is not None else {"ok": False}
+            self._send(200, json.dumps(payload).encode("utf-8"),
+                       "application/json; charset=utf-8")
+            return
+        if path == "/api/layers":
+            callback = getattr(self.server, "layer_status", None)
+            payload = callback() if callback is not None else {"ok": False}
+            self._send(200, json.dumps(payload).encode("utf-8"),
+                       "application/json; charset=utf-8")
+            return
+        if path == "/api/github/status":
+            callback = getattr(self.server, "github_status", None)
+            payload = callback() if callback is not None else {
+                "ok": True, "provider": "github", "configured": False,
+                "missing": ["GITHUB_TOKEN"]}
             self._send(200, json.dumps(payload).encode("utf-8"),
                        "application/json; charset=utf-8")
             return
@@ -512,12 +573,96 @@ class _StatusHandler(BaseHTTPRequestHandler):
                 self._send(404, f"page {page} not found".encode(),
                            "text/plain; charset=utf-8")
                 return
-            self._send(200, html.encode("utf-8"), "text/html; charset=utf-8")
+            mime = ("application/javascript; charset=utf-8"
+                    if page.endswith(".js") else "text/html; charset=utf-8")
+            self._send(200, html.encode("utf-8"), mime)
             return
         self._send(404, b"not found", "text/plain; charset=utf-8")
 
     def do_POST(self):  # noqa: N802
         path = urlsplit(self.path).path
+        if path in {"/api/setup/plan", "/api/setup/profile",
+                    "/api/setup/profile/activate"}:
+            if path != "/api/setup/plan" and not self._is_loopback_request():
+                self._send(403, b"use the local SSH tunnel for provider setup",
+                           "text/plain; charset=utf-8")
+                return
+            callback_name = {
+                "/api/setup/plan": "setup_plan",
+                "/api/setup/profile": "setup_profile_save",
+                "/api/setup/profile/activate": "setup_profile_activate",
+            }[path]
+            callback = getattr(self.server, callback_name, None)
+            if callback is None:
+                self._send(404, b"adaptive setup is not enabled",
+                           "text/plain; charset=utf-8")
+                return
+            try:
+                length = int(self.headers.get("Content-Length", "0"))
+                if length <= 0 or length > 20000:
+                    raise ValueError("invalid JSON body")
+                payload = json.loads(self.rfile.read(length).decode("utf-8"))
+                if path == "/api/setup/plan":
+                    result = callback(str(payload.get("request") or ""))
+                elif path == "/api/setup/profile":
+                    result = callback(payload)
+                else:
+                    result = callback(str(payload.get("profile_id") or ""))
+                code = 200 if result.get("ok") else 400
+                self._send(code, json.dumps(result).encode("utf-8"),
+                           "application/json; charset=utf-8")
+            except Exception as exc:  # noqa: BLE001 - never echo secret input
+                self._send(400, json.dumps({
+                    "ok": False, "error": type(exc).__name__,
+                }).encode("utf-8"), "application/json; charset=utf-8")
+            return
+        if path == "/api/chat":
+            callback = getattr(self.server, "chat_submit", None)
+            if callback is None:
+                self._send(503, b'{"ok":false,"error":"chat_unavailable"}',
+                           "application/json; charset=utf-8")
+                return
+            try:
+                length = int(self.headers.get("Content-Length", "0"))
+                if length <= 0 or length > 10000:
+                    raise ValueError("invalid request")
+                payload = json.loads(self.rfile.read(length).decode("utf-8"))
+                text = str(payload.get("message") or "").strip()
+                if not text or len(text) > 4000:
+                    raise ValueError("message length must be 1-4000 characters")
+                if _looks_like_credential(text):
+                    self._send(400, b'{"ok":false,"error":"use_private_setup_prompt"}',
+                               "application/json; charset=utf-8")
+                    return
+                result = callback(text)
+                self._send(200 if result.get("ok") else 503,
+                           json.dumps(result).encode("utf-8"),
+                           "application/json; charset=utf-8")
+            except (ValueError, TypeError, AttributeError):
+                self._send(400, b'{"ok":false,"error":"invalid_chat_message"}',
+                           "application/json; charset=utf-8")
+            return
+        if path == "/api/layers":
+            callback = getattr(self.server, "layer_select", None)
+            if callback is None:
+                self._send(503, b'{"ok":false,"error":"layer_selection_unavailable"}',
+                           "application/json; charset=utf-8")
+                return
+            try:
+                length = int(self.headers.get("Content-Length", "0"))
+                if length <= 0 or length > 5000:
+                    raise ValueError("invalid JSON body")
+                payload = json.loads(self.rfile.read(length).decode("utf-8"))
+                result = callback(payload)
+                self._send(200 if result.get("ok") else 400,
+                           json.dumps(result).encode("utf-8"),
+                           "application/json; charset=utf-8")
+            except Exception as exc:  # noqa: BLE001 - bounded operator endpoint
+                self._send(400, json.dumps({
+                    "ok": False, "error": type(exc).__name__,
+                    "message": str(exc)[:300],
+                }).encode("utf-8"), "application/json; charset=utf-8")
+            return
         if path in {"/api/schedules", "/api/schedules/cancel"}:
             callback = getattr(self.server, "schedule_cancel" if path.endswith("/cancel")
                                else "schedule_create", None)
@@ -559,6 +704,79 @@ class _StatusHandler(BaseHTTPRequestHandler):
             except Exception as exc:  # noqa: BLE001
                 self._send(400, json.dumps({"ok": False, "error": type(exc).__name__}).encode("utf-8"),
                            "application/json; charset=utf-8")
+            return
+        if path == "/api/integrations/deepgram-key":
+            if not self._is_loopback_request():
+                self._send(403, b"use the local SSH tunnel to save credentials",
+                           "text/plain; charset=utf-8")
+                return
+            callback = getattr(self.server, "deepgram_key_set", None)
+            if callback is None:
+                self._send(404, b"Deepgram setup is not enabled",
+                           "text/plain; charset=utf-8")
+                return
+            try:
+                length = int(self.headers.get("Content-Length", "0"))
+                if length <= 0 or length > 5000:
+                    raise ValueError("invalid JSON body")
+                payload = json.loads(self.rfile.read(length).decode("utf-8"))
+                result = callback(str(payload.get("api_key") or ""))
+                code = 200 if result.get("ok") else 400
+                self._send(code, json.dumps(result).encode("utf-8"),
+                           "application/json; charset=utf-8")
+            except Exception as exc:  # noqa: BLE001 - never log or echo the key
+                self._send(400, json.dumps({"ok": False,
+                    "error": type(exc).__name__}).encode("utf-8"),
+                    "application/json; charset=utf-8")
+            return
+        if path in {"/api/integrations/openai-key", "/api/provider/select"}:
+            if not self._is_loopback_request():
+                self._send(403, b"use the local SSH tunnel for provider setup",
+                           "text/plain; charset=utf-8")
+                return
+            callback = getattr(self.server, "openai_key_set" if path.endswith("openai-key")
+                               else "provider_select", None)
+            if callback is None:
+                self._send(404, b"provider setup is not enabled", "text/plain; charset=utf-8")
+                return
+            try:
+                length = int(self.headers.get("Content-Length", "0"))
+                if length <= 0 or length > 5000:
+                    raise ValueError("invalid JSON body")
+                payload = json.loads(self.rfile.read(length).decode("utf-8"))
+                result = callback(str(payload.get("api_key") or "")
+                                  if path.endswith("openai-key") else payload)
+                code = 200 if result.get("ok") else 400
+                self._send(code, json.dumps(result).encode("utf-8"),
+                           "application/json; charset=utf-8")
+            except Exception as exc:  # noqa: BLE001 - never echo secret input
+                self._send(400, json.dumps({"ok": False,
+                           "error": type(exc).__name__}).encode("utf-8"),
+                           "application/json; charset=utf-8")
+            return
+        if path == "/api/integrations/github-token":
+            if not self._is_loopback_request():
+                self._send(403, b"use the local SSH tunnel to save credentials",
+                           "text/plain; charset=utf-8")
+                return
+            callback = getattr(self.server, "github_token_set", None)
+            if callback is None:
+                self._send(404, b"GitHub setup is not enabled",
+                           "text/plain; charset=utf-8")
+                return
+            try:
+                length = int(self.headers.get("Content-Length", "0"))
+                if length <= 0 or length > 5000:
+                    raise ValueError("invalid JSON body")
+                payload = json.loads(self.rfile.read(length).decode("utf-8"))
+                result = callback(str(payload.get("token") or ""))
+                code = 200 if result.get("ok") else 400
+                self._send(code, json.dumps(result).encode("utf-8"),
+                           "application/json; charset=utf-8")
+            except Exception as exc:  # noqa: BLE001 - never log or echo the token
+                self._send(400, json.dumps({"ok": False,
+                    "error": type(exc).__name__}).encode("utf-8"),
+                    "application/json; charset=utf-8")
             return
         if path == "/api/integrations/telegram-token":
             if not self._is_loopback_request():
@@ -747,8 +965,14 @@ class StatusServer:
                  google_connect=None, google_callback=None,
                  google_client_set=None, telegram_status=None,
                  telegram_token_set=None, telegram_connect_target=None,
+                 deepgram_status=None, deepgram_key_set=None,
+                 provider_status=None, openai_key_set=None, provider_select=None,
+                 layer_status=None, layer_select=None,
+                 github_status=None, github_token_set=None,
                  schedules_get=None, schedule_create=None,
-                 schedule_cancel=None):
+                 schedule_cancel=None, chat_submit=None,
+                 setup_plan=None, setup_profile_save=None,
+                 setup_profile_activate=None):
         self.status = status
         self.html_dir = Path(html_dir)
         self.get_state = get_state
@@ -777,9 +1001,22 @@ class StatusServer:
         self.telegram_status = telegram_status
         self.telegram_token_set = telegram_token_set
         self.telegram_connect_target = telegram_connect_target
+        self.deepgram_status = deepgram_status
+        self.deepgram_key_set = deepgram_key_set
+        self.provider_status = provider_status
+        self.openai_key_set = openai_key_set
+        self.provider_select = provider_select
+        self.layer_status = layer_status
+        self.layer_select = layer_select
+        self.github_status = github_status
+        self.github_token_set = github_token_set
         self.schedules_get = schedules_get
         self.schedule_create = schedule_create
         self.schedule_cancel = schedule_cancel
+        self.chat_submit = chat_submit
+        self.setup_plan = setup_plan
+        self.setup_profile_save = setup_profile_save
+        self.setup_profile_activate = setup_profile_activate
         self._httpd: ThreadingHTTPServer | None = None
         self._thread: threading.Thread | None = None
 
@@ -818,9 +1055,22 @@ class StatusServer:
         self._httpd.telegram_status = self.telegram_status
         self._httpd.telegram_token_set = self.telegram_token_set
         self._httpd.telegram_connect_target = self.telegram_connect_target
+        self._httpd.deepgram_status = self.deepgram_status
+        self._httpd.deepgram_key_set = self.deepgram_key_set
+        self._httpd.provider_status = self.provider_status
+        self._httpd.openai_key_set = self.openai_key_set
+        self._httpd.provider_select = self.provider_select
+        self._httpd.layer_status = self.layer_status
+        self._httpd.layer_select = self.layer_select
+        self._httpd.github_status = self.github_status
+        self._httpd.github_token_set = self.github_token_set
         self._httpd.schedules_get = self.schedules_get
         self._httpd.schedule_create = self.schedule_create
         self._httpd.schedule_cancel = self.schedule_cancel
+        self._httpd.chat_submit = self.chat_submit
+        self._httpd.setup_plan = self.setup_plan
+        self._httpd.setup_profile_save = self.setup_profile_save
+        self._httpd.setup_profile_activate = self.setup_profile_activate
         self._httpd.release_refresher = (
             ReleaseInfoRefresher(self.project) if self.project is not None
             else None)

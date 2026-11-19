@@ -19,6 +19,7 @@ from __future__ import annotations
 import base64
 import io
 import os
+import re
 import time
 import wave
 from pathlib import Path
@@ -85,6 +86,22 @@ def _json_text(payload: dict) -> str:
     return ""
 
 
+def _normalize_transcript(text: str) -> str:
+    """Remove a model's explanatory transcript wrapper before scoring or routing."""
+    clean = " ".join(str(text or "").split()).strip()
+    match = re.match(
+        r"^(?:the\s+)?transcript\s+(?:of\s+the\s+audio\s+)?is\s*:\s*(.+)$",
+        clean,
+        flags=re.IGNORECASE,
+    )
+    if not match:
+        return clean
+    clean = match.group(1).strip()
+    if len(clean) >= 2 and clean[0] in "'\"“‘" and clean[-1] in "'\"”’":
+        clean = clean[1:-1].strip()
+    return clean
+
+
 class QwenRemoteASR:
     """faster-whisper-compatible wrapper around vLLM's audio chat API.
 
@@ -107,6 +124,7 @@ class QwenRemoteASR:
         ))
         self.max_tokens = int(cfg.get("max_tokens", 256))
         self.timeout_s = float(cfg.get("timeout_s", 60))
+        self.connect_timeout_s = float(cfg.get("connect_timeout_s", 4))
         self._load_ms = 0.0
         self.fallback_engine = str(
             cfg.get("fallback_engine") or os.environ.get("ME3_ASR_FALLBACK", "")
@@ -178,7 +196,7 @@ class QwenRemoteASR:
                     headers=_headers(self.api_key),
                     files={"file": ("me3_turn.wav", raw, "audio/wav")},
                     data=data,
-                    timeout=self.timeout_s,
+                    timeout=(self.connect_timeout_s, self.timeout_s),
                 )
             else:
                 audio_url = "data:audio/wav;base64," + base64.b64encode(raw).decode("ascii")
@@ -201,11 +219,13 @@ class QwenRemoteASR:
                     f"{self.base_url}/chat/completions",
                     headers={**_headers(self.api_key), "Content-Type": "application/json"},
                     json=payload,
-                    timeout=self.timeout_s,
+                    timeout=(self.connect_timeout_s, self.timeout_s),
                 )
             response.raise_for_status()
             payload = response.json()
-            text = _json_text(payload if isinstance(payload, dict) else {})
+            text = _normalize_transcript(
+                _json_text(payload if isinstance(payload, dict) else {})
+            )
             if not text:
                 raise RuntimeError("Qwen ASR returned an empty transcript")
             self.last_backend = "qwen_remote"
@@ -215,12 +235,23 @@ class QwenRemoteASR:
             )
             return [SimpleNamespace(text=text)], info
         except Exception as exc:  # noqa: BLE001 - fail over only when configured
+            log.warning("Qwen ASR unavailable (%s); checking configured backups",
+                        type(exc).__name__)
+            try:
+                from . import deepgram_asr, secure_config
+                if secure_config.configured("DEEPGRAM_API_KEY"):
+                    text, latency_ms = deepgram_asr.transcribe_wav(
+                        raw, timeout_s=self.timeout_s)
+                    self.last_backend = "deepgram_fallback"
+                    return [SimpleNamespace(text=text)], SimpleNamespace(
+                        duration=duration, latency_ms=latency_ms)
+            except Exception as backup_exc:  # noqa: BLE001 - continue to local ASR
+                log.warning("Deepgram ASR backup unavailable (%s)",
+                            type(backup_exc).__name__)
             if self.fallback_engine not in {"faster_whisper", "whisper"}:
                 raise
-            log.warning(
-                "Qwen ASR unavailable; using local faster-whisper fallback (%s)",
-                type(exc).__name__,
-            )
+            log.warning("Using local faster-whisper fallback (%s)",
+                        self.fallback_model)
             return self._local_fallback(
                 audio, language=language, sample_rate=sample_rate,
                 duration=duration,
@@ -244,6 +275,7 @@ class QwenRemoteTTS:
         ))
         self.sample_rate = int(cfg.get("sample_rate", 24000))
         self.timeout_s = float(cfg.get("timeout_s", 60))
+        self.connect_timeout_s = float(cfg.get("connect_timeout_s", 4))
         self.config = SimpleNamespace(sample_rate=self.sample_rate)
         self.provider = "qwen3-tts"
         self.last_event = None
@@ -272,7 +304,7 @@ class QwenRemoteTTS:
             f"{self.base_url}/audio/speech",
             headers={**_headers(self.api_key), "Content-Type": "application/json"},
             json=payload,
-            timeout=self.timeout_s,
+            timeout=(self.connect_timeout_s, self.timeout_s),
         )
         response.raise_for_status()
         pcm, sample_rate = self._pcm_payload(
@@ -299,17 +331,29 @@ def config_from_env(cfg: dict, *, api_key: str = "") -> dict:
     """Resolve configured endpoint/key environment names without logging values."""
     out = dict(cfg)
     base_env = out.get("base_url_env")
+    tunnel_base_env = out.get("tunnel_base_url_env")
+    tunnel_base_url = (
+        os.environ.get(tunnel_base_env, "").strip() if tunnel_base_env else ""
+    )
     if base_env:
-        out["base_url"] = os.environ.get(base_env, "")
+        out["base_url"] = tunnel_base_url or os.environ.get(base_env, "")
     key_env = out.get("api_key_env")
     out["api_key"] = api_key or (
-        os.environ.get(key_env, "") if key_env else ""
+        os.environ.get(key_env, "") if key_env else out.get("api_key", "")
     )
     fallback_env = out.get("fallback_engine_env", "ME3_ASR_FALLBACK")
     fallback_model_env = out.get(
         "fallback_model_env", "ME3_ASR_FALLBACK_MODEL"
     )
-    out["fallback_engine"] = os.environ.get(fallback_env, "").strip()
-    out["fallback_model"] = os.environ.get(fallback_model_env, "base").strip()
+    out["fallback_engine"] = os.environ.get(
+        fallback_env, str(out.get("fallback_engine", "faster_whisper"))
+    ).strip() or str(out.get("fallback_engine", "faster_whisper")).strip()
+    out["fallback_model"] = os.environ.get(
+        fallback_model_env, str(out.get("fallback_model", "base"))
+    ).strip() or str(out.get("fallback_model", "base")).strip()
+    out["fallback_compute_type"] = os.environ.get(
+        "ME3_ASR_FALLBACK_COMPUTE_TYPE",
+        str(out.get("fallback_compute_type", "int8")),
+    ).strip() or str(out.get("fallback_compute_type", "int8")).strip()
     return out
 

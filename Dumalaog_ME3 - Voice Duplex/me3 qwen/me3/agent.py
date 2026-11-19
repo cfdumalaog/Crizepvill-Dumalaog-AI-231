@@ -381,6 +381,8 @@ class LocalVoiceLoop:
         self.audio = audio if audio is not None else FullDuplexAudio(self.cfg)
         self._scheduled_announcements: deque[str] = deque(maxlen=64)
         self._scheduled_announcement_lock = threading.Lock()
+        self._text_turns: deque[str] = deque()
+        self._text_turns_lock = threading.Lock()
         action_hub = getattr(self.audio, "hub", None)
         if action_hub is not None and callable(getattr(action_hub, "request_action", None)):
             me2_commands.set_device_action_dispatcher(action_hub.request_action)
@@ -646,6 +648,47 @@ class LocalVoiceLoop:
         with self._scheduled_announcement_lock:
             self._scheduled_announcements.append(message)
 
+    def queue_text_turn(self, text: str) -> dict:
+        """Accept a typed follow-up for the same history and tool brain as voice."""
+        message = str(text or "").strip()
+        if not message or len(message) > 4000:
+            return {"ok": False, "error": "invalid_chat_message"}
+        with self._text_turns_lock:
+            if len(self._text_turns) >= 16:
+                return {"ok": False, "error": "chat_queue_full"}
+            self._text_turns.append(message)
+        if self.status is not None:
+            self.status.report_transcript(message, source="chat")
+        return {"ok": True, "queued": True}
+
+    def _drain_text_turns(self) -> None:
+        if (self._engines is None or self.state not in {"idle", "awaiting"}
+                or self._pending or self._completed
+                or not self.audio.playback_done()):
+            return
+        with self._text_turns_lock:
+            message = self._text_turns.popleft() if self._text_turns else None
+        if message is None:
+            return
+        self.stats.n_turns += 1
+        try:
+            self._process_turn(None, time.perf_counter(),
+                               text_override=message, source="chat")
+        except Exception as exc:  # noqa: BLE001 - keep microphone loop alive
+            log.warning("chat turn failed: %s", type(exc).__name__)
+            self.stats.n_errors += 1
+            self.state = "idle"
+            if self.status is not None:
+                self.status.report_error(
+                    "CHAT",
+                    f"Text/tool model failed ({type(exc).__name__}); "
+                    "check the selected text provider.",
+                )
+                self.status.report_reply(
+                    "I could not complete that turn because the selected text "
+                    "provider is unavailable.",
+                    "error")
+
     def _announce_scheduled_if_idle(self) -> None:
         if (not self._engines or self.state not in ("idle", "awaiting")
                 or not self.audio.playback_done()):
@@ -668,7 +711,8 @@ class LocalVoiceLoop:
         from .vad_onnx import load_vad_model
 
         t0 = time.perf_counter()
-        vad_model = load_vad_model()
+        vad_engine = str(self.cfg.get("vad", {}).get("engine", "silero")).lower()
+        vad_model = None if vad_engine == "energy" else load_vad_model()
         t1 = time.perf_counter()
         asr_engine, asr_cfg = mcp_asr._get_engine()
         t2 = time.perf_counter()
@@ -692,6 +736,7 @@ class LocalVoiceLoop:
         if self.status is not None:
             self.status.report_models(
                 vad_ms=round((t1 - t0) * 1e3, 1),
+                vad_backend=vad_engine,
                 asr_ms=round((t2 - t1) * 1e3, 1),
                 asr_model=asr_cfg.get("model"),
                 asr_backend=getattr(asr_engine, "last_backend", asr_cfg.get("engine")),
@@ -713,6 +758,12 @@ class LocalVoiceLoop:
     def _vad_probs(self, frame: np.ndarray) -> list[float]:
         """Feed one 480-sample frame into the 512-sample silero window."""
         vad_model = self._engines[0]
+        if vad_model is None:
+            # Dependency-free fallback for a deliberately lightweight demo
+            # path.  Silero remains the default and the recommended VAD.
+            rms = float(np.sqrt(np.mean(np.square(frame.astype(np.float32)))))
+            threshold = float(self.cfg.get("vad", {}).get("energy_threshold", 900.0))
+            return [min(1.0, rms / max(1.0, threshold))]
         from .vad_onnx import frame_probability
         self._vad_pending = np.concatenate(
             [self._vad_pending, frame.astype(np.float32) / 32768.0])
@@ -729,7 +780,8 @@ class LocalVoiceLoop:
     # ---- Turn processing ----------------------------------------------------
     def _process_turn(self, utterance: np.ndarray | None, t_start: float,
                       text_override: str | None = None,
-                      asr_ms_override: float | None = None) -> None:
+                      asr_ms_override: float | None = None,
+                      source: str = "voice") -> None:
         _vad_model, _unused, asr_engine, asr_cfg, tts_engine, tts_cfg = self._engines
         self.state = "thinking"
         if self.status is not None:
@@ -766,7 +818,7 @@ class LocalVoiceLoop:
                 self.status.report_state_reason("empty transcript discarded")
             self.orchestrator.set_state(TurnState.LISTENING, "empty transcript")
             return
-        if self._is_recent_spoken_echo(text):
+        if source != "chat" and self._is_recent_spoken_echo(text):
             self._note_transcript_echo_rejected(text, "matches recent ME3 output")
             self.state = "idle"
             self.orchestrator.set_state(TurnState.LISTENING,
@@ -777,7 +829,7 @@ class LocalVoiceLoop:
             self.status.clear_error()
         self.orchestrator.on_transcript_delta(text, final=True,
                                               timestamp=t_start)
-        if self.status is not None:
+        if self.status is not None and source != "chat":
             self.status.report_transcript(text)
 
         brain_input = self._prepare_brain_input(text)
@@ -868,7 +920,22 @@ class LocalVoiceLoop:
             else:
                 message = "Qwen ASR failed; check the protected audio provider configuration."
         else:
-            message = f"{stage} failed; check the ME3 provider status."
+            kind = type(exc).__name__
+            raw = " ".join(str(exc).split()).lower()
+            if any(token in raw for token in (
+                    "connection", "timed out", "timeout", "max retries",
+                    "502", "503", "504")):
+                message = (
+                    f"{stage} text/tool provider is unreachable ({kind}); "
+                    "configure a reachable OpenAI-compatible model endpoint."
+                )
+            elif "required" in raw or "not configured" in raw:
+                message = (
+                    f"{stage} text/tool provider is not configured ({kind}); "
+                    "use the private provider setup form."
+                )
+            else:
+                message = f"{stage} failed ({kind}); check the ME3 provider status."
         if self.status is not None:
             self.status.report_error(stage, message)
             self.status.report_state_reason(message)
@@ -1092,13 +1159,13 @@ class LocalVoiceLoop:
         text, asr_ms = self._transcribe_control_audio(utterance)
         if not text:
             return
-        self.orchestrator.on_transcript_delta(text, final=True,
-                                              timestamp=t_start)
-        if self.status is not None:
-            self.status.report_transcript(text)
         kind = self._voice_command(text)
         if kind:
             self.stats.n_control += 1
+            self.orchestrator.on_transcript_delta(text, final=True,
+                                                  timestamp=t_start)
+            if self.status is not None:
+                self.status.report_transcript(text)
             self._handle_voice_command(kind)
             return
         ratio = (float(echo_suspect_frames) / float(captured_frames)
@@ -1111,6 +1178,15 @@ class LocalVoiceLoop:
             self._note_transcript_echo_rejected(
                 text, reason)
             return
+        # Do not publish a protected-playback candidate as the ordinary
+        # "You said" transcript until it has survived the echo gate.  This is
+        # important for the Pi-mic/laptop-speaker path: the control ASR pass is
+        # diagnostic and must not make a reflected TTS phrase look like a
+        # user-approved task in the UI or in the conversation history.
+        self.orchestrator.on_transcript_delta(text, final=True,
+                                              timestamp=t_start)
+        if self.status is not None:
+            self.status.report_transcript(text)
         # Genuine user speech during protected playback is retained as the
         # newest prompt and dispatched once the current TTS reaches a safe
         # boundary. This preserves overlap handling without admitting echoes.
@@ -1220,6 +1296,7 @@ class LocalVoiceLoop:
         log.info("LISTENING. Playback is protected; say 'stop processing', "
                  "'skip', or 'steer' for voice control. Ctrl+C stops.")
         if self.status is not None:
+            self.status.clear_error()
             self.status.report_started()
 
         try:
@@ -1230,6 +1307,7 @@ class LocalVoiceLoop:
                 self._announce_progress_if_idle()
                 self._announce_scheduled_if_idle()
                 self._announce_completed_if_idle()
+                self._drain_text_turns()
                 self._dispatch_deferred_if_ready()
                 frame = self.audio.read_frame(timeout=0.5)
                 if frame is None:
@@ -1269,6 +1347,14 @@ class LocalVoiceLoop:
 
         if self.state in ("speaking", "awaiting") or self._control_uttr:
             if speech and self.barge_in:
+                # A frame already marked as speaker-correlated belongs to the
+                # protected control path.  It must never stop TTS directly.
+                # Without this check one missed transcript-level rejection can
+                # still turn a room reflection into an immediate new turn.
+                if self._current_frame_echo_suspect():
+                    if self.command_control:
+                        self._capture_protected_speech(speech, frame, t)
+                    return
                 self.stats.n_barge_in += 1
                 _fdbench_mark("interrupted")
                 if self.status is not None:

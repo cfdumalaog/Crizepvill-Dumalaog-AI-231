@@ -7,7 +7,30 @@ deployment:
   rpi_user: dalmacio
   rpi_host: cfdfnjrpi5.local    # current mDNS name on the laptop hotspot; DHCP address can change
   rpi_hostkey_alias: 192.168.254.105 # verified against the previously trusted Pi host key
-  rpi_path: /home/dalmacio/Desktop/dandan
+  rpi_path: /home/dalmacio/Desktop/dandan-qwen
+
+# Default destination for ME3-generated GitHub website output. This is only a
+# convenience default: an explicit owner/repository may target any repository
+# granted to the private GitHub credential. Publishing still requires explicit
+# confirmation is not required for a clear user request to publish.
+github_pages:
+  owner: cfdumalaog
+  repository: Crizepvill-Dumalaog-AI-231
+  branch: main
+  base_path: ""                 # publish the validated site at repository root
+  pages_path: /                  # GitHub Pages source is the repository root
+
+# Agent tools may operate across the Pi service account's filesystem and run
+# arbitrary installed commands. The OS account's permissions still apply.
+# Credential-like paths stay hidden from the voice/file tools.
+agent_access:
+  full_pi_user_access: true
+
+# Bounded identity context for the website-building assistant. Do not infer or
+# invent private biography, contact details, credentials, or other attributes.
+website_user:
+  display_name: Crizepvill F. Dumalaog
+  purpose: personal AI and machine-learning project website
 
 # Filipino-market pilot profile. `fil` is ElevenLabs' language code for
 # Filipino; English is the spoken default while Filipino and Taglish remain
@@ -89,18 +112,24 @@ variants:
     asr:
       engine: qwen_remote
       base_url_env: QWEN_INSTRUCT_ASR_BASE_URL
+      tunnel_base_url_env: ME3_QWEN_ASR_BASE_URL
       model: Qwen/Qwen2-Audio-7B-Instruct
       api_key_env: QWEN_INSTRUCT_API_KEY
       protocol: chat_completions
       prompt: Transcribe the spoken audio exactly. Return only the transcript.
       max_tokens: 256
       timeout_s: 20                 # fail fast enough to keep the live UI responsive
+      connect_timeout_s: 4           # unreachable DGX3 ASR falls over quickly
       language: null
+      fallback_engine: faster_whisper
+      fallback_model: base           # cached multilingual Pi backup model
+      fallback_compute_type: int8
       fallback_engine_env: ME3_ASR_FALLBACK
       fallback_model_env: ME3_ASR_FALLBACK_MODEL
     tts:
       engine: qwen_remote
       base_url_env: QWEN_INSTRUCT_TTS_BASE_URL
+      tunnel_base_url_env: ME3_QWEN_TTS_BASE_URL
       model: Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice
       api_key_env: QWEN_INSTRUCT_API_KEY
       voice: aiden
@@ -113,10 +142,13 @@ variants:
         replies, backchannels, and completion announcements.
       sample_rate: 24000
       timeout_s: 60
+      connect_timeout_s: 4
+      fallback_engine: piper
+      fallback_voice: en_US-ryan-medium
 
 llm:
-  mode: remote                   # remote (vLLM) | openai (GPT-5.6 Luna) | local (ollama)
-  default_provider: qwen         # qwen | luna; auto launch keeps Qwen first
+  mode: remote                   # Pi UI selects Qwen or OpenAI as a complete voice stack
+  default_provider: qwen         # used when no private provider choice has been saved
   remote:
     base_url: http://202.92.159.240:8001/v1
     model: Qwen/Qwen3.8-27B
@@ -125,6 +157,7 @@ llm:
     max_tokens: 4096             # multi-tool turns (web-app builds) need room
     timeout_s: 180               # slow vLLM endpoint: allow long generations
     max_tool_steps: 24           # tool rounds per turn; final no-tool summary if exhausted
+    max_development_steps: 48    # longer bounded tool loop for software tasks
     history_messages: 16         # preserve enough context for multi-step voice actions
     stream: true                  # direct OpenAI-compatible token stream
     fast_mode: true               # voice path: skip Qwen hidden reasoning tokens
@@ -132,7 +165,7 @@ llm:
     name: qwen-tools
   openai:
     base_url: https://api.openai.com/v1
-    model: gpt-5.6-luna
+    model: gpt-4.1-mini
     api_key_env: OPENAI_API_KEY
     reasoning_effort: null       # disabled for direct functional voice responses
     stream: true                  # direct OpenAI-compatible token stream
@@ -140,6 +173,7 @@ llm:
     max_completion_tokens: 4096
     timeout_s: 90
     max_tool_steps: 24
+    max_development_steps: 48
     name: gpt-5.6-luna-medium-tools
   local:
     ollama_host: http://localhost:11434
@@ -202,9 +236,27 @@ agent:
     to media_control, reminders/lists to the reminder tools, and calls/messages
     to call_contact or send_message. You can use the project tools to create
     files, run tests, search the web, and build a webapp when the user asks.
-    For Telegram text or
-    email, first describe the recipient and content and ask for explicit user
-    confirmation; only then set confirm=true. Ordinary voice calls are not
+    For software work, inspect existing code, make changes, run the project's
+    tests, inspect failures, repair them, and verify the final files before
+    saying the task is done. A source syntax check is not a behavior test.
+    For GitHub website output, use the github_pages configuration as a
+    convenience default, unless the user explicitly names another
+    owner/repository. Use github_repositories or github_repository_access when
+    repository visibility or read/write access must be checked. Build and
+    validate the site in agent_workspace, preserve existing repository content,
+    publish when the user clearly requests it without asking for a second
+    approval phrase, and report
+    the resulting commit and Pages URL only after GitHub confirms them. The
+    website owner is Crizepvill F. Dumalaog;
+    when the user asks for a website for me, my website, or the user, treat
+    it as this person's personal AI and machine-learning project website. Use
+    the supplied name in the site identity when appropriate, but never invent
+    biography, employment, education, contact details, achievements, or other
+    personal facts; ask for missing content or label placeholders clearly.
+    For Telegram text, email, calendar meetings, and phone calls, execute a
+    clear user instruction without another approval phrase. Ask only for
+    genuinely missing recipient, message, date, or other required details.
+    Ordinary voice calls are not
     available in Telegram Bot API mode. Never expose credentials, invent
     provider configuration, or claim a call/message/email succeeded unless the
     tool reports success. For a long-running task, use the exact acknowledgement

@@ -26,17 +26,21 @@ configure_me3_path(PROJECT)
 
 from me3.agent import StubBrain, LocalVoiceLoop  # noqa: E402
 from me3.agent_status import LoopStatus, StatusServer, load_release_info  # noqa: E402
-from me3.audio_io import FullDuplexAudio  # noqa: E402
+from me3.audio_io import AudioDeviceError, FullDuplexAudio  # noqa: E402
 from me3.brain import build_system_prompt, build_tool_brain  # noqa: E402
 from me3.config import load_config  # noqa: E402
 from me3 import (google_calendar, me2_commands, scheduled_actions,
-                 spotify_player)  # noqa: E402
+                 spotify_player, deepgram_asr, github_pages, provider_choice,
+                 setup_profiles)  # noqa: E402
+from me3 import layer_choice  # noqa: E402
 from me3.web_audio import BrowserAudioHub, BrowserOutputAudio  # noqa: E402
 
 log = logging.getLogger("me3.pi_server")
 
 
 class AgentController:
+    MIC_RETRY_S = 10.0
+
     def __init__(self, cfg: dict, brain, status: LoopStatus, hub: BrowserAudioHub,
                  input_device=None, output_mode: str = "browser",
                  output_device=None):
@@ -47,9 +51,19 @@ class AgentController:
         self.input_device = input_device
         self.output_mode = output_mode
         self.output_device = output_device
-        self.duplex_mode = (
+        # Browser output is normally the laptop speaker while capture remains
+        # on the Pi.  That is an acoustic, cross-device path: a VAD-positive
+        # speaker reflection must not immediately become a barge-in before the
+        # protected-playback echo/keyword gate can inspect it.  Keep automatic
+        # barge-in available through the UI toggle, but make the safe mode the
+        # default for the Pi/browser transport. Direct Pi speaker output keeps
+        # the configured automatic mode.
+        configured_mode = (
             "automatic" if bool(cfg.get("agent", {}).get("barge_in", True))
             else "keyword_only"
+        )
+        self.duplex_mode = (
+            "keyword_only" if output_mode == "browser" else configured_mode
         )
         self.loop: LocalVoiceLoop | None = None
         self.thread: threading.Thread | None = None
@@ -65,10 +79,29 @@ class AgentController:
         return cfg
 
     def _run(self, loop: LocalVoiceLoop) -> None:
-        try:
-            loop.run()
-        except Exception:  # noqa: BLE001 - status stays reachable on a bad device
-            log.exception("ME3 agent loop stopped with an error")
+        while True:
+            try:
+                loop.run()
+                return
+            except AudioDeviceError as exc:
+                # USB microphones can enumerate a few seconds after boot or
+                # reconnect. Keep the UI and model routes alive and retry the
+                # same capture loop, so plugging the Fifine back in does not
+                # require a service restart.
+                log.exception("ME3 microphone unavailable; retrying capture")
+                self.status.report_error("AUDIO", exc)
+                self.status.report_state_reason(
+                    f"microphone unavailable; retrying in {self.MIC_RETRY_S:g} seconds")
+                stop_event = getattr(loop, "_stop_event", None)
+                if stop_event is not None and stop_event.wait(self.MIC_RETRY_S):
+                    return
+                with self.lock:
+                    if self.loop is not loop:
+                        return
+            except Exception as exc:  # noqa: BLE001 - UI remains reachable
+                self.status.report_error("LOOP", exc)
+                log.exception("ME3 agent loop stopped with an error")
+                return
 
     def start(self) -> None:
         with self.lock:
@@ -139,6 +172,14 @@ class AgentController:
             loop = self.loop
         if loop is not None:
             loop.queue_announcement(due_announcement(item))
+
+    def submit_chat(self, text: str) -> dict:
+        with self.lock:
+            loop = self.loop
+            running = bool(self.thread and self.thread.is_alive())
+        if not running or loop is None:
+            return {"ok": False, "error": "voice_loop_unavailable"}
+        return loop.queue_text_turn(text)
 
     def duplex_mode_info(self) -> dict:
         with self.lock:
@@ -275,6 +316,37 @@ def schedule_systemd_restart(service_name: str = "me3-agent.service") -> dict:
     return {"service": service_name, "restart_scheduled": True}
 
 
+def choose_layers(payload: dict) -> dict:
+    """Save layer choices and restart the Pi service when systemd is present."""
+    result = layer_choice.choose(payload)
+    if not result.get("ok"):
+        return result
+    if shutil.which("systemctl"):
+        result.update(schedule_systemd_restart())
+    else:
+        result["restart_scheduled"] = False
+        result["restart_note"] = "restart the ME3 service to load the new layers"
+    return result
+
+
+def activate_setup_profile(profile_id: str) -> dict:
+    """Activate an adaptive provider profile and reload the Pi service."""
+    result = setup_profiles.activate_profile(profile_id)
+    if not result.get("ok"):
+        return result
+    profile = result.get("profile") or {}
+    role = str(profile.get("role") or "").lower()
+    if role == "llm":
+        selected = provider_choice.choose("custom_vllm")
+    else:
+        selected = layer_choice.choose({role: "custom_vllm"})
+    if not selected.get("ok"):
+        return selected
+    result["activation"] = selected
+    result.update(schedule_systemd_restart())
+    return result
+
+
 def build_brain(cfg: dict, selection: str):
     if selection == "stub":
         return StubBrain()
@@ -295,7 +367,7 @@ def main() -> int:
                         help="HTTP status/UI port")
     parser.add_argument("--audio-port", type=int, default=8127,
                         help="WebSocket PCM speaker port")
-    parser.add_argument("--brain", choices=("auto", "remote", "qwen", "luna", "stub"),
+    parser.add_argument("--brain", choices=("auto", "remote", "qwen", "openai", "luna", "stub"),
                         default="auto")
     parser.add_argument("--variant", choices=("current", "qwen_instruct"),
                         default="qwen_instruct")
@@ -308,7 +380,7 @@ def main() -> int:
     logging.basicConfig(level=logging.INFO,
                         format="%(asctime)s %(levelname)-7s %(name)s: %(message)s")
     try:
-        brain = build_brain(cfg, args.brain)
+        brain = build_brain(cfg, cfg["runtime_provider"] if args.brain == "auto" else args.brain)
     except RuntimeError:
         if args.brain != "auto":
             raise
@@ -351,9 +423,22 @@ def main() -> int:
         telegram_status=me2_commands.telegram_status,
         telegram_token_set=me2_commands.save_telegram_bot_token,
         telegram_connect_target=me2_commands.connect_telegram_target,
+        deepgram_status=deepgram_asr.health,
+        deepgram_key_set=deepgram_asr.configure_api_key,
+        provider_status=provider_choice.status,
+        openai_key_set=provider_choice.save_openai_key,
+        provider_select=lambda payload: provider_choice.choose(payload.get("provider")),
+        layer_status=layer_choice.status,
+        layer_select=choose_layers,
+        chat_submit=controller.submit_chat,
+        github_status=github_pages.health,
+        github_token_set=github_pages.configure_token,
         schedules_get=me2_commands.clock_schedule_snapshot,
         schedule_create=me2_commands.create_clock_action,
         schedule_cancel=me2_commands.cancel_clock_action,
+        setup_plan=setup_profiles.setup_plan,
+        setup_profile_save=setup_profiles.save_profile,
+        setup_profile_activate=activate_setup_profile,
     )
     if not http.start():
         hub.stop()

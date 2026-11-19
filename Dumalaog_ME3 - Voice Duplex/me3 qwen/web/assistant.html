@@ -15,6 +15,13 @@
 }
 *{box-sizing:border-box; margin:0; padding:0;}
 html,body{height:100%;}
+/* Keep every scroll surface visually integrated with the blue ME3 canvas. */
+*{scrollbar-width:thin;scrollbar-color:rgba(59,130,246,.58) rgba(30,64,175,.12);}
+*::-webkit-scrollbar{width:9px;height:9px;}
+*::-webkit-scrollbar-track{background:rgba(30,64,175,.10);border-radius:999px;}
+*::-webkit-scrollbar-thumb{background:linear-gradient(180deg,rgba(96,165,250,.72),rgba(37,99,235,.58));border:2px solid transparent;background-clip:padding-box;border-radius:999px;}
+*::-webkit-scrollbar-thumb:hover{background:linear-gradient(180deg,rgba(147,197,253,.88),rgba(59,130,246,.78));background-clip:padding-box;}
+*::-webkit-scrollbar-corner{background:transparent;}
 body{
   background:radial-gradient(circle at 50% 35%, #0f1929 0%, #080d14 60%, var(--bg) 100%);
   color:var(--text); font-family:"Plus Jakarta Sans",ui-sans-serif,system-ui,sans-serif;
@@ -44,11 +51,11 @@ header{
   flex:0 0 auto; background:#3b0d12; border-bottom:1px solid rgba(239,68,68,.4);
   color:#fecaca; font-size:.85rem; font-weight:600; text-align:center; padding:9px 16px;
 }main{
-  flex:1 1 auto; min-height:0; display:grid; grid-template-columns:minmax(300px,1fr) minmax(300px,360px) minmax(300px,1fr);
+  flex:1 1 auto; min-height:0; display:grid; grid-template-columns:minmax(260px,320px) minmax(400px,1fr) minmax(260px,320px);
   gap:16px; padding:16px 22px 18px;
 }
 .col{display:flex; flex-direction:column; gap:14px; min-height:0; overflow:auto;}
-.col.center{align-items:center; justify-content:center;}
+.col.center{align-items:stretch; justify-content:flex-start; overflow:hidden;}
 .card{
   background:var(--panel); border:1px solid var(--line); border-radius:16px;
   padding:16px; backdrop-filter:blur(8px);
@@ -96,6 +103,19 @@ header{
 .restart-row button:hover{background:rgba(245,158,11,.22);}
 .restart-row.service button{background:rgba(239,68,68,.1);border-color:rgba(239,68,68,.4);color:#fca5a5;}
 .restart-row.service button:hover{background:rgba(239,68,68,.2);}
+.restart-card{padding:7px 9px;}
+.restart-actions{display:flex;align-items:stretch;gap:7px;width:100%;}
+.restart-actions button{flex:1 1 0;min-width:0;white-space:nowrap;padding:7px 8px;font-size:.68rem;font-weight:700;}
+.restart-actions .loop-button{background:rgba(245,158,11,.12);border-color:rgba(245,158,11,.4);color:#fbbf24;}
+.restart-actions .service-button{background:rgba(239,68,68,.1);border-color:rgba(239,68,68,.4);color:#fca5a5;}
+.restart-statuses{display:none;}
+.layer-card{padding:12px;}
+.layer-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;}
+.layer-grid label{display:grid;gap:4px;color:var(--muted);font-size:.68rem;text-transform:uppercase;letter-spacing:.05em;}
+.layer-grid select{min-width:0;width:100%;border:1px solid var(--line);border-radius:8px;background:#0b1220;color:var(--text);padding:8px 6px;font:inherit;font-size:.72rem;text-transform:none;letter-spacing:normal;}
+.layer-apply{width:100%;margin-top:8px;border:1px solid rgba(59,130,246,.45);border-radius:8px;background:rgba(59,130,246,.14);color:var(--text);padding:8px;cursor:pointer;font:inherit;font-size:.74rem;font-weight:700;}
+.layer-apply:hover{background:rgba(59,130,246,.25);}
+.layer-status{font-size:.68rem;color:var(--muted);line-height:1.35;margin-top:6px;}
 .music-handoff{margin-top:10px;padding:9px;border:1px solid rgba(59,130,246,.3);border-radius:9px;background:rgba(59,130,246,.08);font-size:.74rem;line-height:1.35;}
 .music-handoff strong{display:block;color:#93c5fd;margin-bottom:3px;}
 .music-handoff button{margin-top:7px;width:auto;padding:6px 9px;}
@@ -110,6 +130,32 @@ header{
 .spotify-setup .setup-actions{display:flex;gap:8px;flex-wrap:wrap;}
 .spotify-setup button{background:#17243a;color:var(--text);border:1px solid var(--line);border-radius:7px;padding:7px 10px;cursor:pointer;}
 .spotify-setup-status{font-size:.78rem;color:var(--muted);line-height:1.4;}
+.connection-summary{font-size:.78rem;color:var(--muted);line-height:1.5;margin-bottom:9px;}
+.connection-button,.chat-header button,.chat-form button,.setup-actions button,.setup-choices button{background:#17243a;color:var(--text);border:1px solid var(--line);border-radius:9px;padding:8px 12px;cursor:pointer;font:inherit;}
+.connection-button:hover,.chat-header button:hover,.chat-form button:hover,.setup-actions button:hover,.setup-choices button:hover{border-color:var(--blue);}
+.voice-stage{text-align:center;flex:0 0 auto;}
+.voice-stage #orbCanvas{width:150px;height:150px;}
+.voice-stage .orb-hint{margin-top:0;}
+.voice-stage .echo-toggle{max-width:100%;justify-content:center;margin-top:7px;}
+.chat-card{min-height:0;flex:1 1 auto;display:flex;flex-direction:column;padding:0;overflow:hidden;}
+.chat-header{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:13px 15px;border-bottom:1px solid var(--line);}
+.chat-header h2{margin:0;}
+.chat-feed{min-height:160px;flex:1 1 auto;overflow:auto;display:flex;flex-direction:column;gap:10px;padding:15px;user-select:text;}
+.chat-message{max-width:88%;padding:10px 12px;border-radius:13px;line-height:1.45;font-size:.85rem;white-space:pre-wrap;word-break:break-word;}
+.chat-message.user{align-self:flex-end;background:rgba(59,130,246,.23);border:1px solid rgba(59,130,246,.4);}
+.chat-message.assistant,.chat-message.system{align-self:flex-start;background:#111c2d;border:1px solid var(--line);}
+.chat-message.system{color:#bfdbfe;}
+.chat-meta{font-size:.66rem;color:var(--muted);margin-bottom:4px;}
+.chat-form{display:flex;align-items:flex-end;gap:8px;padding:12px 14px;border-top:1px solid var(--line);}
+.chat-form textarea{flex:1;min-height:44px;max-height:135px;resize:vertical;background:#0b1220;color:var(--text);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font:inherit;line-height:1.4;user-select:text;}
+.chat-form button{background:rgba(59,130,246,.25);border-color:rgba(59,130,246,.5);font-weight:700;}
+.setup-prompt{align-self:stretch;border:1px solid rgba(59,130,246,.4);border-radius:12px;background:#0b1626;padding:12px;display:grid;gap:9px;font-size:.82rem;}
+.setup-prompt h3{font-size:.84rem;color:#bfdbfe;}
+.setup-prompt p{color:var(--muted);line-height:1.4;}
+.setup-prompt label{display:grid;gap:4px;color:var(--muted);}
+.setup-prompt input,.setup-prompt select{width:100%;padding:9px;border-radius:8px;border:1px solid var(--line);background:#080f1b;color:var(--text);font:inherit;user-select:text;}
+.setup-actions,.setup-choices{display:flex;flex-wrap:wrap;gap:7px;}
+.setup-prompt .setup-status{font-size:.75rem;color:#bfdbfe;}
 .clock-card .clock-face{font-size:1.8rem;font-variant-numeric:tabular-nums;letter-spacing:.06em;color:#dbeafe;font-weight:700;}
 .clock-card .clock-forms{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:8px;margin:10px 0;}
 .clock-card input{width:100%;box-sizing:border-box;background:#080f1b;color:var(--text);border:1px solid var(--line);border-radius:7px;padding:8px;}
@@ -250,30 +296,23 @@ header{
         <label>Duplex mode<select id="duplexMode"><option value="automatic">Automatic barge-in (default)</option><option value="keyword_only">Keyword-only protected playback</option></select></label>
         <button id="applyDuplexMode" type="button">Apply duplex mode</button>
         <div class="audio-note" id="duplexModeStatus">Automatic mode: genuine speech interrupts; ME3 echo is rejected.</div>
-        <div class="restart-row"><button id="restartMe3" type="button">Restart ME3 loop</button><span class="audio-note" id="restartStatus">Audio-loop reset only; the UI and browser speaker stay online.</span></div>
-        <div class="restart-row service"><button id="restartService" type="button">Restart ME3 service</button><span class="audio-note" id="serviceRestartStatus">Pi only: restarts the canonical systemd service and briefly reloads the UI.</span></div>
         <div class="audio-note" id="audioStatus">Pi audio controls appear when the LAN server is running. Browser output needs one click because browsers block autoplay.</div>
         <div class="audio-note" id="musicStatus">Spotify connection status is being checked.</div>
-        <div class="spotify-setup">
-          <label>Spotify app Client ID<input id="spotifyClientId" type="text" autocomplete="off" spellcheck="false" placeholder="Paste the Client ID after creating the Spotify app"></label>
-          <div class="setup-actions"><button id="saveSpotifyClientId" type="button">Save Client ID on Pi</button><button id="connectSpotify" type="button">Connect Spotify</button></div>
-          <div class="spotify-setup-status" id="spotifySetupStatus">One-time setup. OAuth uses the Pi service through the laptop's ME3 SSH tunnel.</div>
-        </div>
-        <div class="spotify-setup">
-          <strong>Google Calendar · reminders and meetings</strong>
-          <label>OAuth Client ID<input id="googleClientId" type="text" autocomplete="off" spellcheck="false" placeholder="Google Cloud OAuth client ID"></label>
-          <label>OAuth Client Secret<input id="googleClientSecret" type="password" autocomplete="new-password" placeholder="Stored only on Pi"></label>
-          <div class="setup-actions"><button id="saveGoogleConfig" type="button">Save Google setup</button><button id="connectGoogle" type="button">Connect Calendar</button></div>
-          <div class="spotify-setup-status" id="googleSetupStatus">Create a Google OAuth web client, enable Calendar API, and register the callback shown here.</div>
-        </div>
-        <div class="spotify-setup">
-          <strong>Telegram · messages to @mncfrndz</strong>
-          <label>BotFather token<input id="telegramBotToken" type="password" autocomplete="new-password" placeholder="Saved only on Pi"></label>
-          <div class="setup-actions"><button id="saveTelegramToken" type="button">Save bot token</button><button id="connectTelegramTarget" type="button">Connect @mncfrndz</button></div>
-          <div class="spotify-setup-status" id="telegramSetupStatus">Open @BotFather and send /newbot, then save its token here. @mncfrndz must open that bot and send /start once before ME3 can map the chat.</div>
-        </div>
+        <div class="connection-summary" id="connectionSummary">Checking provider and connected services…</div>
+        <button class="connection-button" id="openSetup" type="button">Set up a connection in chat</button>
         <button id="enableNotifications" type="button">Enable desktop reminders and alarms</button>
       </div>
+    </div>
+    <div class="card layer-card">
+      <div class="light-head"><h2>Model layers</h2><span class="light-mode">SELECTABLE</span></div>
+      <div class="audio-note">Choose the provider for each runtime layer. Changes are saved privately on the Pi and restart the service so the real engine changes.</div>
+      <div class="layer-grid">
+        <label>ASR<select id="layerAsr" aria-label="ASR provider"></select></label>
+        <label>TTS<select id="layerTts" aria-label="TTS provider"></select></label>
+        <label>VAD<select id="layerVad" aria-label="VAD provider"></select></label>
+      </div>
+      <button class="layer-apply" id="applyLayers" type="button">Apply model layers</button>
+      <div class="layer-status" id="layerStatus">Loading layer providers…</div>
     </div>
     <div class="card talk">
       <div class="talk-label">You said</div>
@@ -285,11 +324,28 @@ header{
       <div class="talk-text" id="lastReply">-</div>
       <div class="talk-at" id="replyAt"></div>
     </div>
+    <div class="card restart-card">
+      <div class="restart-actions">
+        <button class="loop-button" id="restartMe3" type="button" title="Restart only the ME3 voice loop">Restart loop</button>
+        <button class="service-button" id="restartService" type="button" title="Restart the complete ME3 systemd service">Restart service</button>
+      </div>
+      <div class="restart-statuses">
+        <div class="audio-note" id="restartStatus">Loop reset only; UI and browser speaker stay online.</div>
+        <div class="audio-note" id="serviceRestartStatus">Pi service restart; UI reconnects automatically.</div>
+      </div>
+    </div>
   </section>
   <section class="col center">
-    <canvas id="orbCanvas" width="280" height="280"></canvas>
-    <div class="orb-hint" id="orbHint">full duplex - speak naturally to interrupt</div>
-    <div class="echo-toggle">PCM speaker route is authoritative. Browser speech synthesis is disabled so every response uses the selected ME3 voice only. Echo-protected natural speech interrupts playback; say "stop processing", "skip", or "steer" for explicit control.</div>
+    <div class="voice-stage">
+      <canvas id="orbCanvas" width="280" height="280"></canvas>
+      <div class="orb-hint" id="orbHint">full duplex - speak naturally to interrupt</div>
+      <div class="echo-toggle">Pi microphone and browser speaker stay active while you chat. Voice and typed follow-ups share one agent conversation.</div>
+    </div>
+    <div class="card chat-card">
+      <div class="chat-header"><h2>Conversation <span class="light-mode">VOICE ACTIVE · CHAT WHILE RUNNING</span></h2><button id="chatSetup" type="button">Set up</button></div>
+      <div id="chatFeed" class="chat-feed" role="log" aria-live="polite"><div class="chat-message system">Speak to ME3 or type a request. Say or type “set up OpenAI” to get a private setup prompt.</div></div>
+      <form id="chatForm" class="chat-form"><textarea id="chatInput" maxlength="4000" rows="1" aria-label="Message ME3" placeholder="Message ME3, ask for a task, or say 'set up OpenAI'…"></textarea><button type="submit">Send</button></form>
+    </div>
   </section>
   <section class="col right">
     <div class="card">
@@ -330,7 +386,7 @@ header{
         <ul class="readiness-list">
           <li>Continuous Silero VAD voice loop with automatic ASR, inference, tools, and TTS</li>
           <li>Full-duplex speaking with automatic echo-protected barge-in, explicit voice controls, Pi Fifine input, and browser/PC speaker routing</li>
-          <li>Qwen ASR primary with cached multilingual faster-whisper fallback when the DGX ASR listener is unavailable</li>
+          <li>Selectable Qwen or OpenAI voice stack; Qwen keeps Deepgram/local ASR and Piper TTS fallbacks</li>
           <li>One fixed voice per profile for replies, backchannels, and completion notices</li>
           <li>Bounded MCP tools for files, commands, websites/web servers, timers, Git, and system tasks</li>
           <li>Direct LLM response streaming; hidden reasoning is disabled from spoken/UI output</li>
@@ -348,7 +404,7 @@ header{
       <div class="readiness-group provide">
         <h3>Provide when moving to production</h3>
         <ul class="readiness-list">
-          <li>Keep the Qwen VPN/API endpoint and protected key available for the Qwen profile</li>
+          <li>Provide a working provider endpoint and key through the contextual private setup prompt when the live provider is unavailable</li>
           <li>Telegram bot identity, approved chat mapping, consent, disclosure, retention, and handoff policy</li>
           <li>Run only one profile at a time on the shared Fifine microphone during the presentation</li>
         </ul>
@@ -373,7 +429,7 @@ async function apiState(){
 }
 const HUES = { idle: 220, listening: 150, thinking: 265, awaiting: 45, speaking: 200 };
 
-let last = null, online = false;
+let last = null, online = false, activeProvider = 'qwen';
 let smoothRms = 0, orbHue = 220, orbPhase = 0;
 let bargeFlashUntil = 0, seenBargeAt = null;
 let prevState = null, stateSince = 0, seenTranscriptAt = null, seenReplyAt = null;
@@ -646,11 +702,12 @@ function kvRow(k, v){ const div = document.createElement('div'); const a = docum
 function renderRuntime(d){
   const box = $('runtime'); box.innerHTML = '';
   box.appendChild(kvRow('brain', d.brain || '-'));
-  const label = d.variant === 'qwen_instruct' ? 'ME3 QWEN INSTRUCT' : 'ME3 QWEN INSTRUCT (compatibility profile)';
+  const label = activeProvider === 'openai' ? 'ME3 OPENAI' :
+    (d.variant === 'qwen_instruct' ? 'ME3 QWEN INSTRUCT' : 'ME3 QWEN INSTRUCT (compatibility profile)');
   const pill = $('variantPill');
   pill.textContent = label;
   pill.className = 'variant-pill qwen';
-  box.appendChild(kvRow('variant', label));
+  box.appendChild(kvRow('voice stack', label));
   const m = d.models || {};
   if(m.asr_model) box.appendChild(kvRow('ASR model', m.asr_model + (m.asr_ms != null ? '  (' + m.asr_ms + ' ms load)' : '')));
   if(m.asr_backend) box.appendChild(kvRow('ASR backend', m.asr_backend + (m.asr_backend === 'faster_whisper_fallback' ? ' / Qwen unavailable' : '')));
@@ -678,6 +735,7 @@ function renderRelease(d){
 function applyState(d){
   if(prevState !== d.state){ stateSince = Date.now(); prevState = d.state; }
   renderState(d); renderRuntimeError(d); renderTools(d); renderTerminal(d); renderBackground(d); renderLatency(d); renderRuntime(d); renderRelease(d);
+  if(window.ME3Chat) window.ME3Chat.render(d);
 }
 
 function fillAudioDevices(d){
@@ -876,94 +934,6 @@ $('enableNotifications').addEventListener('click', async () => {
   } catch(e) { button.textContent = 'In-page alerts enabled'; }
 });
 
-async function loadSpotifyStatus(){
-  try {
-    const r = await fetch(STATUS_BASE + '/api/spotify/status', {cache:'no-store'});
-    const d = await r.json();
-    if(d.client_id_configured) $('spotifyClientId').placeholder = 'Client ID saved securely on Pi';
-    $('connectSpotify').disabled = !d.client_id_configured;
-    $('musicStatus').textContent = d.connected
-      ? 'Spotify connected. Playback requires Spotify Premium and an active Spotify Connect player.'
-      : d.client_id_configured ? 'Client ID saved. Connect your Spotify account once to enable playback.'
-      : 'Create the Spotify app, then paste its Client ID here once.';
-    $('spotifySetupStatus').textContent = d.missing && d.missing.length
-      ? d.missing.join(' · ') + ' · Callback: ' + (d.redirect_uri || '')
-      : 'Connected. The refresh token is stored on the Pi with private file permissions.';
-  } catch(e) { $('musicStatus').textContent = 'Spotify setup status unavailable: ' + e.message; }
-}
-$('saveSpotifyClientId').addEventListener('click', async () => {
-  const button = $('saveSpotifyClientId'), label = $('spotifySetupStatus');
-  button.disabled = true;
-  try {
-    const r = await fetch(STATUS_BASE + '/api/spotify/client-id', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({client_id:$('spotifyClientId').value})});
-    const d = await r.json();
-    if(!r.ok || !d.ok) throw new Error(d.error || 'Client ID was not saved');
-    $('spotifyClientId').value = '';
-    label.textContent = 'Client ID saved securely on the Pi.';
-    await loadSpotifyStatus();
-  } catch(e) { label.textContent = 'Spotify Client ID setup failed: ' + e.message; }
-  finally { button.disabled = false; }
-});
-$('connectSpotify').addEventListener('click', () => {
-  window.location.href = STATUS_BASE + '/api/spotify/connect';
-});
-async function loadGoogleStatus(){
-  try {
-    const r = await fetch(STATUS_BASE + '/api/google/status', {cache:'no-store'}), d = await r.json();
-    $('connectGoogle').disabled = !d.client_configured;
-    $('googleSetupStatus').textContent = d.authorized
-      ? 'Google Calendar is connected. Reminders and meeting events will be written to Calendar.'
-      : 'Missing: ' + (d.missing_env || []).join(' · ') + ' · callback: ' + (d.redirect_uri || '');
-  } catch(e) { $('googleSetupStatus').textContent = 'Google Calendar status unavailable: ' + e.message; }
-}
-$('saveGoogleConfig').addEventListener('click', async () => {
-  const button = $('saveGoogleConfig'), label = $('googleSetupStatus'); button.disabled = true;
-  try {
-    const r = await fetch(STATUS_BASE + '/api/integrations/google-config', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({client_id:$('googleClientId').value,client_secret:$('googleClientSecret').value})});
-    const d = await r.json();
-    if(!r.ok || !d.ok) throw new Error(d.error || 'Google credentials were not saved');
-    $('googleClientId').value = ''; $('googleClientSecret').value = '';
-    label.textContent = 'Google OAuth settings saved securely on the Pi.';
-    await loadGoogleStatus();
-  } catch(e) { label.textContent = 'Google setup failed: ' + e.message; }
-  finally { button.disabled = false; }
-});
-$('connectGoogle').addEventListener('click', () => {
-  window.location.href = STATUS_BASE + '/api/google/connect';
-});
-async function loadTelegramStatus(){
-  try {
-    const r = await fetch(STATUS_BASE + '/api/telegram/status', {cache:'no-store'}), d = await r.json();
-    $('connectTelegramTarget').disabled = !d.bot_configured;
-    $('telegramSetupStatus').textContent = d.configured
-      ? 'Telegram bot connected and @mncfrndz is mapped. Clear voice requests send directly through Telegram.'
-      : d.bot_configured ? 'Bot token saved. Ask @mncfrndz to press Start in your bot, then connect the target.'
-      : 'Create a bot with BotFather, save its token, then have @mncfrndz press Start once.';
-  } catch(e) { $('telegramSetupStatus').textContent = 'Telegram setup status unavailable: ' + e.message; }
-}
-$('saveTelegramToken').addEventListener('click', async () => {
-  const button = $('saveTelegramToken'), label = $('telegramSetupStatus'); button.disabled = true;
-  try {
-    const r = await fetch(STATUS_BASE + '/api/integrations/telegram-token', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({bot_token:$('telegramBotToken').value})});
-    const d = await r.json();
-    if(!r.ok || !d.ok) throw new Error(d.error || 'Telegram bot token was not saved');
-    $('telegramBotToken').value = '';
-    label.textContent = 'Telegram bot token saved privately on the Pi.';
-    await loadTelegramStatus();
-  } catch(e) { label.textContent = 'Telegram setup failed: ' + e.message; }
-  finally { button.disabled = false; }
-});
-$('connectTelegramTarget').addEventListener('click', async () => {
-  const button = $('connectTelegramTarget'), label = $('telegramSetupStatus'); button.disabled = true;
-  try {
-    const r = await fetch(STATUS_BASE + '/api/telegram/connect-target', {method:'POST'}), d = await r.json();
-    if(!r.ok || !d.ok) throw new Error(d.error || 'Target not found; have @mncfrndz press Start in the bot first.');
-    label.textContent = 'Connected @mncfrndz. ME3 can now send Telegram messages to this account.';
-    await loadTelegramStatus();
-  } catch(e) { label.textContent = 'Telegram target setup: ' + e.message; }
-  finally { button.disabled = false; }
-});
-
 async function loadDuplexMode(){
   try {
     const r = await fetch(STATUS_BASE + '/api/duplex-mode', {cache:'no-store'});
@@ -1018,12 +988,6 @@ loadDemoLight();
 setInterval(loadDemoLight, 1000);
 loadClockSchedules();
 setInterval(loadClockSchedules, 1000);
-loadSpotifyStatus();
-setInterval(loadSpotifyStatus, 15000);
-loadGoogleStatus();
-setInterval(loadGoogleStatus, 15000);
-loadTelegramStatus();
-setInterval(loadTelegramStatus, 15000);
 pollNotifications();
 setInterval(pollNotifications, 2500);
 
@@ -1084,5 +1048,6 @@ function drawOrb(){
 }
 requestAnimationFrame(drawOrb);
 </script>
+<script src="/assistant-chat.js"></script>
 </body>
 </html>

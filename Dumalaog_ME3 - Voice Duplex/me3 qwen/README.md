@@ -8,7 +8,37 @@ Built with **Pipecat** (harness) + **MCP** servers (ASR/TTS/VAD/tasks) that
 we own and run on the Pi. Commercial APIs allowed for the LLM brain; the
 MCP servers and VAD are ours.
 
-## Run locally (like ME2)
+## Voice provider at Pi launch
+
+The Pi UI now offers a complete **Qwen** or **OpenAI** voice stack, including
+ASR, tool-using LLM, and one consistent TTS voice. The center of the Assistant
+is a single Codex-style conversation: voice turns and typed turns share the
+same history, tool loop, approvals, and follow-up questions. Type or say
+`set up OpenAI`, `set up Spotify`, `set up Google Calendar`, `set up Telegram`,
+or `set up GitHub` and ME3 inserts the appropriate contextual setup prompt.
+Credential values go directly to the existing private Pi setup endpoints and
+are never sent to `/api/chat` or stored in conversation telemetry. OpenAI uses
+`gpt-transcribe`, `gpt-4.1-mini`, and `gpt-4o-mini-tts` with the fixed Onyx
+voice. [Provider setup and limits](docs/PROVIDER_SELECTION.md) describes the
+private setup flow and current limits. The **Model layers** card independently
+selects ASR, TTS, and VAD (Qwen, Deepgram, faster-whisper, Piper, ElevenLabs,
+OpenAI, Silero, or the energy fallback) and restarts the Pi service after a
+change. The compact restart controls live at the bottom of the left column.
+
+The center layout intentionally resembles a coding-agent chat: a persistent
+conversation feed, a single composer, typed approvals/setup answers, voice
+turns from the Pi microphone, live progress, tool activity, and sanitized
+background-process output. A voice turn and a typed turn enter the same
+history, so the operator can ask a follow-up in chat while a software task is
+still running. ME3 does not expose hidden chain-of-thought; it shows safe
+phase/tool status instead.
+
+The Android project is a parity client, not a second secret-bearing server.
+See [docs/APK_MIGRATION_PLAN.md](docs/APK_MIGRATION_PLAN.md) for the staged
+plan. Raw provider keys must not be seeded into an APK: the Pi private store
+remains authoritative, or a future direct-phone mode uses Android Keystore.
+
+## Historical local development path (like ME2)
 
 Double-click `launchers\Start-ME3.bat`. It starts the full-duplex voice loop
 in a console window using the shared workspace `.venv` — the mic stays live
@@ -19,16 +49,18 @@ explicit voice controls (`stop processing`, `skip`, or `steer`) remain
 available. `Ctrl+C` or
 closing the window stops it. See [launchers/README.md](launchers/README.md).
 
-This is the primary ME3 interaction. There is no Send button: the loop listens
-continuously, Silero VAD detects the start and end of a turn, Whisper transcribes
-the captured utterance internally, Qwen or GPT-5.6 Luna may execute tools automatically, and
+This is the primary ME3 interaction. The voice loop has no manual trigger:
+it listens continuously, Silero VAD detects the start and end of a turn, the selected ASR transcribes
+the captured utterance internally, the selected tool brain may execute tools automatically, and
 the reply is spoken. New speech while ME3 is speaking is captured continuously;
 the echo guard rejects the agent's own output, while genuine overlap triggers
 barge-in, flushes the current audio, and enters the new turn. Explicit voice
 controls stop or redirect playback immediately.
-The browser UI below is
-a secondary text and diagnostic console for inspection; it is not the
-definition of the voice agent.
+The optional chat composer is a second input channel for typed requests,
+approvals, and answers to setup questions. It enters the same live history as
+voice and waits behind protected playback when the speaker is busy. The
+Runtime terminal remains an observability panel for sanitized state and tool
+events.
 
 The Pi web UI also executes clock, Spotify, Google Calendar, Telegram message,
 and Android call actions through their provider/device adapters. See
@@ -37,9 +69,9 @@ account setup and current execution limits. Local alarms and reminders do not
 need Google; laptop-speaker ringing needs the browser connected and laptop
 awake.
 
-### Single active audio profile: Qwen Instruct
+### Qwen audio profile
 
-The active ME3 release is **ME3 QWEN INSTRUCT**. It uses local Silero VAD plus
+The Qwen selection is **ME3 QWEN INSTRUCT**. It uses local Silero VAD plus
 the supplied DGX3 vLLM services: `Qwen2-Audio-7B-Instruct` for ASR and
 `Qwen3-TTS-12Hz-1.7B-CustomVoice` for TTS. The Qwen text ToolBrain, MCP tools,
 web-app creation, channel safety gates, and protected-playback control state
@@ -48,18 +80,21 @@ machine are all part of this same release line.
 The former local faster-whisper/Piper Own deployment has been archived and is
 not an active launch target. The internal `current` profile remains only as a
 legacy compatibility option for old comparison scripts; new launchers,
-defaults, Pi service files, and the UI use `qwen_instruct`. It is not a
-separately trained ME3 model. The text/tool brain is shared Qwen3.8-27B by
-default, with GPT-5.6 Luna selectable as the alternative.
+defaults, Pi service files, and the UI use `qwen_instruct` as the active code
+line. It is not a separately trained ME3 model. The text/tool brain uses
+Qwen3.8-27B when Qwen is selected; the OpenAI choice switches ASR, brain, and
+TTS together to the models listed above.
 
 The Qwen handoff file is read only by the launcher into process memory. Qwen
-ASR remains the primary provider. The Pi also has an explicit availability
-failover: when the Qwen ASR listener is unavailable, cached multilingual
-faster-whisper `base` transcribes locally; the Runtime card labels this as
-`faster_whisper_fallback`. Qwen3-TTS remains the only spoken output voice. If
-both ASR paths fail, the profile reports a bounded provider error rather than
-silently claiming that audio succeeded. Fallback transcripts are functional
-demo evidence, not Qwen2-Audio benchmark evidence.
+ASR remains primary. When DGX3 ASR is unavailable, the Pi tries optional
+Deepgram Nova-3 multilingual (English/Tagalog), then cached faster-whisper
+`base`; the Runtime card identifies the backend that produced each transcript.
+Qwen3-TTS `aiden` remains primary. If it fails before returning audio, cached
+Piper `en_US-ryan-medium` speaks instead and stays selected until service
+restart, keeping the voice consistent during an outage. The Runtime card
+reports the active TTS backend. If every ASR path fails, the profile reports a
+bounded provider error rather than silently claiming success. Fallback
+transcripts are functional demo evidence, not Qwen2-Audio benchmark evidence.
 
 ### Full-duplex playback and the runtime terminal
 
@@ -153,10 +188,13 @@ play through the PC while the microphone remains attached to the Pi.
 The Pi desktop launcher enables/restarts the service and checks the voice loop.
 ```
 
-Use the paired launchers for a demo: click **ME3 Qwen Demo** on the Pi desktop,
-then run **ME3 Qwen Laptop Demo** on the laptop. The Pi keeps the Fifine mic;
-SSH forwards Pi HTTP/audio ports `8126/8127` to laptop `8100/8101`, where the
-browser speaker plays the response. Spotify's OAuth callback at
+For a laptop-hotspot demo, run **ME3 Qwen Laptop Demo** on the VPN-connected
+laptop. The launcher discovers the Pi's current hotspot lease, restarts the
+canonical Pi service, and forwards HTTP/audio ports `8126/8127` to laptop
+`8100/8101`. It also creates reverse SSH routes for the Qwen text, ASR, and TTS
+services through the laptop's VPN. Keep the launcher window open while using
+the demo; closing it ends those model routes. The Pi keeps the Fifine mic and
+the laptop browser plays the response. Spotify's OAuth callback at
 `http://127.0.0.1:8100/api/spotify/callback` is carried by the same HTTP
 tunnel. Calendar and Telegram calls are outbound from the Pi and need their
 own account setup.
@@ -169,9 +207,12 @@ ssh -o HostKeyAlias=192.168.254.105 dalmacio@cfdfnjrpi5.local
 ```
 
 The laptop launcher resolves `cfdfnjrpi5.local` automatically when both devices
-are on the same network and mDNS/client isolation permits it. `localhost` is
-this PC, not the Pi. If the network blocks mDNS, create a DHCP reservation for
-the Pi's Wi-Fi MAC address in that network's router.
+are on the same network and mDNS/client isolation permits it. If Windows VPN
+software blocks mDNS, it discovers the current lease from the Pi's stable Wi-Fi
+MAC (`2C-CF-67-70-8D-47`) in the local neighbor table and uses that address
+for SSH and tunnelling. `localhost` is this PC, not the Pi. A DHCP
+reservation is still useful for a fixed address on one router, but it cannot
+remain universal across different demo networks.
 The live Pi page serves `/`, `/roadmap`, and `/console` from the same origin;
 navigation deliberately uses relative links so a browser opened through a
 tunnel does not jump to the viewer's unavailable `127.0.0.1:8124`.
@@ -202,9 +243,9 @@ Windows handoff only in memory and never prints the key):
 
 With the Pi SHARC VPN installed, the default endpoints are direct:
 `10.153.60.233:8000` for ASR and `10.153.60.233:8001` for TTS. If the serving
-address changes, pass it explicitly with `-DgxIp`. Use `-UseReverseTunnel` only
-when the Pi VPN is intentionally unavailable and the laptop is connected to
-the institutional VPN. Use `-UsePiBrainCredential` only when the routed
+address changes, pass it explicitly with `-DgxIp`. Use `-UseReverseTunnel` when
+the laptop is connected to the institutional VPN and the Pi cannot reach the
+protected model endpoints directly. Use `-UsePiBrainCredential` only when the routed
 endpoint accepts the Pi's existing Qwen brain credential.
 
 The canonical Qwen service is the Pi user unit on 8126/8127. Do not start a
@@ -452,8 +493,53 @@ and ordinary Telegram voice calls are outside the active project.
 | FR19 | Optional transactional email integration | ✅ implemented, credential-gated | `me3/channels.py` (`send_email`) + Resend Send Email API |
 | FR20 | Telephone calls / SMS | ⚠️ Android call path implemented; SMS out of scope | `call_contact` through the connected Android companion; no Twilio or SMS provider |
 | FR21 | Optional Qwen Instruct audio variant | ✅ live ASR/TTS + shared tool loop verified over VPN | `me3/qwen_audio.py`, `--variant qwen_instruct`, `scripts/compare_audio_variants.py` |
+| FR22 | GitHub Pages website build and deployment | ✅ implemented, credential-gated | `me3/github_pages.py`, `deploy_github_pages`, `docs/GITHUB_PAGES_DEPLOYMENT.md` |
 
 ## Tool brain (agentic capabilities)
+
+### Autonomous software development
+
+Ask for a concrete software task such as “Build a responsive inventory web app
+under `agent_workspace/inventory`, test it, and serve it on the LAN.” ME3 uses
+the same Qwen function-tool loop to inspect files, search, edit, run commands,
+and start background builds. Software requests get up to 48 tool rounds instead
+of the 24-round conversational limit. If the model only promises to work, ME3
+asks it once to take real tool actions before returning a reply.
+
+After file or command actions, ME3 automatically calls `verify_project` on the
+changed project. That tool checks Python/JSON/JavaScript syntax and local
+static-site asset paths without executing the application. Failed checks are
+fed back to the model for up to two repair passes; unresolved failures are
+reported instead of being described as success. The model should also run the
+project's own tests through `run_command` and inspect the result. The Runtime
+terminal shows the verification stage and tool result. A passing source check
+does not prove the app's behavior, deployment, or GitHub publication; those
+need their corresponding tool results. Benchmark mode keeps tools disabled.
+
+### Adaptive provider setup
+
+The service buttons in the Assistant are quick-start shortcuts, not a closed
+list of supported providers. If the request mentions another vLLM server,
+OpenAI-compatible endpoint, model server, or base URL, ME3 generates a
+service-specific private setup form from that request. The form asks only for
+the applicable role (text brain, ASR, or TTS), base URL, model name, API key,
+protocol, voice, and fallback. The key is sent only to the Pi's protected
+setup route, stored beside the private credentials with restrictive file
+permissions, and omitted from conversation history and status responses.
+
+The operator can save the profile or save and activate it. Activation selects
+the matching ME3 provider/layer and restarts the canonical Pi service. LLM
+profiles use OpenAI-compatible chat completions; ASR and TTS profiles use the
+corresponding Qwen/vLLM audio protocols. This makes a new compatible provider
+plug-and-play without editing source code, while the endpoint still needs to
+actually expose the selected protocol and model. Provider writes are available
+through the loopback SSH-tunnel surface so a LAN viewer cannot submit a secret.
+
+The Qwen audio notice supplied for this project provisions ASR and TTS only:
+DGX3 port 8000 is Qwen2-Audio and port 8001 is Qwen3-TTS. The text/tool brain
+is a separate model endpoint; if that endpoint is unavailable, ME3 can still
+transcribe and synthesize audio but cannot complete an agent turn until a
+reachable text provider is configured.
 
 The complete Qwen Instruct path is shown in the [ME3 Qwen Instruct system-flow
 infographic](docs/ME3_QWEN_INSTRUCT_SYSTEM_FLOW.svg). It covers the Pi Fifine
@@ -479,7 +565,12 @@ Available tools include file ops (`list_files`, `read_file`, `write_file`,
 `task_status`, `task_output`, `cancel_task`), web serving
 (`start_web_server`, `stop_web_server`, `web_servers`), research
 (`fetch_url`, `web_search`), system (`system_info`, `git_status`), and
-timers (`set_timer`, `list_timers`, `cancel_timer`). The channel tools are
+timers (`set_timer`, `list_timers`, `cancel_timer`). GitHub tools report
+credential status, list visible repositories, check read/write access to an
+explicit target, and publish an existing `agent_workspace` site to any
+repository the credential can write after a clear user request; see
+[`docs/GITHUB_PAGES_DEPLOYMENT.md`](docs/GITHUB_PAGES_DEPLOYMENT.md).
+The channel tools are
 `channel_health`, `send_telegram_message`, and the optional `send_email`; a
 clear user request is passed as the explicit authorization flag, and protected
 provider configuration is required. Telegram Bot API text is supported. Ordinary Telegram
@@ -509,9 +600,12 @@ PKCE authorization through the Pi UI, and an active Connect player. ME3 does
 not treat a browser handoff as successful playback and never copies browser
 cookies to the Pi.
 
-Safety: all file paths are confined to the ME3 project; commands run
-tokenized (no shell) against an allowlist; secret-looking files are refused;
-tool output never contains environment variables or key material.
+The active Pi profile gives the voice agent file and command access under the
+`dalmacio` service account, including paths outside the project and shell
+commands. Direct file tools reject credential-like names and cap output size;
+the operating system still decides which files and commands the service user
+can access. Set `agent_access.full_pi_user_access=false` to restore the
+project-only path and command allowlist policy.
 
 Requirements: `VLLM_API_KEY` must be present for Qwen calls, or
 `OPENAI_API_KEY` must be present for GPT-5.6 Luna calls. The agent never writes
