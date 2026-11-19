@@ -31,7 +31,7 @@ from me3.brain import build_system_prompt, build_tool_brain  # noqa: E402
 from me3.config import load_config  # noqa: E402
 from me3 import (google_calendar, me2_commands, scheduled_actions,
                  spotify_player, deepgram_asr, github_pages, provider_choice,
-                 setup_profiles)  # noqa: E402
+                 setup_profiles, permission_policy)  # noqa: E402
 from me3 import layer_choice  # noqa: E402
 from me3.web_audio import BrowserAudioHub, BrowserOutputAudio  # noqa: E402
 
@@ -430,6 +430,8 @@ def main() -> int:
         provider_select=lambda payload: provider_choice.choose(payload.get("provider")),
         layer_status=layer_choice.status,
         layer_select=choose_layers,
+        permission_status=permission_policy.status,
+        permission_set=permission_policy.set_mode,
         chat_submit=controller.submit_chat,
         github_status=github_pages.health,
         github_token_set=github_pages.configure_token,

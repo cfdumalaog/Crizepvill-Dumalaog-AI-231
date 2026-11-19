@@ -869,6 +869,28 @@ The exact source-to-code boundary is recorded in
 five-scenario engineering driver must not be reported as the paper's four
 scenario, 499-utterance v1.5 evaluation.
 
+### Runtime permission modes
+
+The Assistant exposes three real execution policies in its **Action
+permissions** card. The choice is stored as a small private policy file beside
+the Pi credentials; it does not store tool arguments or keys.
+
+- **Ask for approval** pauses before internet use, shell commands, edits
+  outside `agent_workspace`, or outbound actions.
+- **Approve for me** runs ordinary requested work automatically and pauses for
+  potentially unsafe external side effects such as GitHub publishing,
+  Telegram/email/calls, calendar writes, or external file edits.
+- **Full access** removes ME3 approval pauses. The service still runs as the
+  configured Pi OS user, and credential-like files and credential values remain
+  protected by the existing tool safeguards.
+
+When a pause occurs, the action is held only in memory and the UI shows
+**Approve action** and **Cancel action** buttons. Saying “approve” or “cancel”
+has the same effect. The centralized dispatcher applies this policy to direct
+ME2 routes, Qwen/Luna model tool calls, and GitHub Pages publishing, fixing the
+old split behavior where a confirmation could be accepted in one route but not
+another.
+
 ## Known limitations (local run)
 - Endpointing waits for **800 ms of continuous silence** before dispatching a
   voice turn. This is intentionally longer than the old 450 ms so a natural

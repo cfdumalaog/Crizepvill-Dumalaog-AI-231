@@ -125,3 +125,25 @@ completed. OpenAI ASR and ElevenLabs TTS were correctly reported as not
 configured on the Pi. The fixture test is adapter evidence only; it is not a
 human microphone or physical speaker/echo-gate result. The text/tool brain
 remains a separate reachability gate.
+
+## Action permission policy
+
+Provider selection and action authorization are separate controls. The
+Assistant's **Action permissions** card exposes the same three policies as the
+Codex-style reference UI:
+
+1. **Ask for approval** — pause before internet, shell, external-file, and
+   outbound side-effect tools.
+2. **Approve for me** — run ordinary requested work, but pause for potentially
+   unsafe external side effects such as GitHub publishing, channel messages,
+   calls, calendar writes, and external file changes.
+3. **Full access** — no ME3 approval pause. Existing OS-user and protected
+   credential-path safeguards still apply; this is not root access and does
+   not reveal provider keys.
+
+The selected mode is persisted privately on the Pi. A blocked action returns a
+credential-free summary and creates one in-memory pending action. The operator
+can click **Approve action**/**Cancel action** or say “approve”/“cancel”. The
+central dispatcher enforces this for both deterministic voice commands and
+model-generated tool calls, including `deploy_github_pages`, so GitHub actions
+no longer depend on a hidden, route-specific confirmation flag.

@@ -116,6 +116,14 @@ header{
 .layer-apply{width:100%;margin-top:8px;border:1px solid rgba(59,130,246,.45);border-radius:8px;background:rgba(59,130,246,.14);color:var(--text);padding:8px;cursor:pointer;font:inherit;font-size:.74rem;font-weight:700;}
 .layer-apply:hover{background:rgba(59,130,246,.25);}
 .layer-status{font-size:.68rem;color:var(--muted);line-height:1.35;margin-top:6px;}
+.permission-card{padding:12px;}
+.permission-grid{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:end;}
+.permission-grid label{display:grid;gap:4px;color:var(--muted);font-size:.68rem;text-transform:uppercase;letter-spacing:.05em;}
+.permission-grid select{width:100%;border:1px solid var(--line);border-radius:8px;background:#0b1220;color:var(--text);padding:8px 7px;font:inherit;font-size:.72rem;text-transform:none;letter-spacing:normal;}
+.permission-apply{border:1px solid rgba(59,130,246,.45);border-radius:8px;background:rgba(59,130,246,.14);color:var(--text);padding:8px 10px;cursor:pointer;font:inherit;font-size:.72rem;font-weight:700;white-space:nowrap;}
+.permission-apply:hover{background:rgba(59,130,246,.25);}
+.permission-status{font-size:.68rem;color:var(--muted);line-height:1.35;margin-top:7px;}
+.permission-status strong{color:#bfdbfe;}
 .music-handoff{margin-top:10px;padding:9px;border:1px solid rgba(59,130,246,.3);border-radius:9px;background:rgba(59,130,246,.08);font-size:.74rem;line-height:1.35;}
 .music-handoff strong{display:block;color:#93c5fd;margin-bottom:3px;}
 .music-handoff button{margin-top:7px;width:auto;padding:6px 9px;}
@@ -223,14 +231,45 @@ header{
   main{grid-template-columns:1fr;}
   .col.center{order:-1;}
 }
+
+/* APK/operator surface: sound identity plus the single conversation lane. */
+body.apk-focus{overflow:hidden;background:
+  radial-gradient(circle at 50% 4%,rgba(37,99,235,.18),transparent 34%),
+  linear-gradient(180deg,#050b16 0%,#07111f 55%,#050b16 100%);}
+body.apk-focus header{max-width:980px;margin:0 auto;padding:18px 24px 8px;}
+body.apk-focus header .nav a{display:none;}
+body.apk-focus header .sub{color:#93c5fd;}
+body.apk-focus main{display:block;max-width:980px;height:calc(100vh - 80px);margin:0 auto;padding:8px 24px 24px;}
+body.apk-focus .col.left,body.apk-focus .col.right{display:none;}
+body.apk-focus .col.center{height:100%;display:flex;flex-direction:column;gap:16px;}
+body.apk-focus .voice-stage{position:relative;flex:0 0 min(38vh,350px);min-height:250px;display:flex;flex-direction:column;align-items:center;justify-content:center;border:1px solid rgba(96,165,250,.18);border-radius:24px;background:radial-gradient(circle at 50% 40%,rgba(37,99,235,.16),rgba(7,17,31,.35) 55%,rgba(2,6,23,.65));box-shadow:0 20px 70px rgba(2,6,23,.45),inset 0 0 70px rgba(59,130,246,.06);}
+body.apk-focus .voice-stage::before{content:'ME3';position:absolute;font-size:2rem;font-weight:800;letter-spacing:.22em;color:rgba(219,234,254,.92);text-indent:.22em;pointer-events:none;text-shadow:0 0 24px rgba(96,165,250,.7);}
+body.apk-focus #orbCanvas{position:relative;width:min(58vw,280px);height:min(58vw,280px);filter:drop-shadow(0 0 46px rgba(59,130,246,.42));}
+body.apk-focus .orb-hint{font-size:.78rem;color:#bfdbfe;letter-spacing:.06em;text-transform:uppercase;}
+body.apk-focus .echo-toggle{max-width:520px;color:#94a3b8;font-size:.76rem;}
+body.apk-focus .chat-card{flex:1 1 auto;min-height:0;width:100%;max-width:none;border:1px solid rgba(96,165,250,.2);border-radius:18px;background:rgba(7,17,31,.88);box-shadow:0 18px 50px rgba(2,6,23,.32);}
+body.apk-focus .chat-header{padding:11px 14px;background:rgba(15,32,56,.7);}
+body.apk-focus .chat-header h2{font-size:.76rem;letter-spacing:.13em;color:#dbeafe;}
+body.apk-focus .chat-header .light-mode{color:#60a5fa;}
+body.apk-focus .chat-feed{padding:14px;gap:9px;}
+body.apk-focus .chat-form{padding:10px 12px;background:rgba(5,11,22,.75);}
+body.apk-focus .chat-form textarea{background:#081322;border-color:rgba(96,165,250,.24);}
+body.apk-focus .chat-form button{min-width:72px;background:rgba(37,99,235,.36);}
+@media(max-width:680px){
+  body.apk-focus{overflow:auto;}
+  body.apk-focus header{padding:12px 14px 6px;}
+  body.apk-focus main{height:auto;min-height:calc(100vh - 64px);padding:6px 14px 16px;}
+  body.apk-focus .voice-stage{flex-basis:300px;min-height:240px;}
+  body.apk-focus .chat-card{min-height:52vh;}
+}
 </style>
-</head><body>
+</head><body class="apk-focus">
 <div id="offlineBanner" hidden>Status server offline - reconnect the ME3 page or check the Pi tunnel/service.</div>
 <div class="notification-stack" id="notificationStack" aria-live="assertive"></div>
 <header>
   <div class="brand">
     <span class="dot" id="statusDot"></span>
-    <div><div class="title-line"><h1>ME3 Voice Duplex</h1><span class="variant-pill qwen" id="variantPill">ME3 QWEN INSTRUCT</span></div><div class="sub">live assistant - full duplex, echo-protected automatic barge-in</div></div>
+    <div><div class="title-line"><h1>ME3 Voice Duplex</h1><span class="variant-pill qwen" id="variantPill">ME3 QWEN INSTRUCT</span></div><div class="sub">sound-first assistant · conversation and approvals</div></div>
   </div>
   <div class="nav">
     <a id="linkConsole" href="/#runtime-terminal">Runtime terminal</a>
@@ -314,6 +353,19 @@ header{
       <button class="layer-apply" id="applyLayers" type="button">Apply model layers</button>
       <div class="layer-status" id="layerStatus">Loading layer providers…</div>
     </div>
+    <div class="card permission-card">
+      <div class="light-head"><h2>Action permissions</h2><span class="light-mode">POLICY</span></div>
+      <div class="audio-note">Controls when ME3 pauses before tools, internet use, file changes, and external actions. The selected policy is stored privately on the Pi.</div>
+      <div class="permission-grid">
+        <label>Approval mode<select id="permissionMode" aria-label="ME3 permission mode">
+          <option value="ask_approval">Ask for approval</option>
+          <option value="approve_for_me">Approve for me</option>
+          <option value="full_access">Full access</option>
+        </select></label>
+        <button class="permission-apply" id="applyPermission" type="button">Apply</button>
+      </div>
+      <div class="permission-status" id="permissionStatus">Loading permission policy…</div>
+    </div>
     <div class="card talk">
       <div class="talk-label">You said</div>
       <div class="talk-text" id="lastTranscript">-</div>
@@ -336,14 +388,14 @@ header{
     </div>
   </section>
   <section class="col center">
-    <div class="voice-stage">
+      <div class="voice-stage">
       <canvas id="orbCanvas" width="280" height="280"></canvas>
-      <div class="orb-hint" id="orbHint">full duplex - speak naturally to interrupt</div>
-      <div class="echo-toggle">Pi microphone and browser speaker stay active while you chat. Voice and typed follow-ups share one agent conversation.</div>
+        <div class="orb-hint" id="orbHint">full duplex · speak naturally to interrupt</div>
+        <div class="echo-toggle">The logo responds to ME3 sound and listening state. Voice and typed follow-ups share one conversation.</div>
     </div>
     <div class="card chat-card">
       <div class="chat-header"><h2>Conversation <span class="light-mode">VOICE ACTIVE · CHAT WHILE RUNNING</span></h2><button id="chatSetup" type="button">Set up</button></div>
-      <div id="chatFeed" class="chat-feed" role="log" aria-live="polite"><div class="chat-message system">Speak to ME3 or type a request. Say or type “set up OpenAI” to get a private setup prompt.</div></div>
+      <div id="chatFeed" class="chat-feed" role="log" aria-live="polite"><div class="chat-message system">ME3 is ready. Qwen3.8-27B brain · Qwen2-Audio ASR · Qwen3-TTS Aiden. Speak or type a request; approvals and private provider setup stay in this chat.</div></div>
       <form id="chatForm" class="chat-form"><textarea id="chatInput" maxlength="4000" rows="1" aria-label="Message ME3" placeholder="Message ME3, ask for a task, or say 'set up OpenAI'…"></textarea><button type="submit">Send</button></form>
     </div>
   </section>

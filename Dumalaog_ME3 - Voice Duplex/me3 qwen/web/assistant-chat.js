@@ -319,7 +319,11 @@
         const intent = setupIntent(event.text);
         if(intent) { if(intent === 'menu') setupMenu(); else if(intent === 'custom_vllm') showDynamicSetup(event.text); else showSetup(intent); }
       }
-      if(role === 'assistant' && /\?/.test(event.text) &&
+      if(role === 'assistant' && /\bapproval is required\b/i.test(event.text)) {
+        const choices = document.createElement('div'); choices.className = 'setup-choices'; box.appendChild(choices);
+        button('Approve action', () => sendChat('Approve.'), choices);
+        button('Cancel action', () => sendChat('Cancel.'), choices);
+      } else if(role === 'assistant' && /\?/.test(event.text) &&
          /\b(confirm|approve|shall i|should i|would you like me to|go ahead|permission)\b/i.test(event.text)) {
         const choices = document.createElement('div'); choices.className = 'setup-choices'; box.appendChild(choices);
         button('Yes, proceed', () => sendChat('Yes, go ahead.'), choices);
@@ -337,9 +341,9 @@
 
   async function refreshSummary() {
     try {
-      const [provider, deepgram, spotify, google, telegram, github] = await Promise.all([
+      const [provider, deepgram, spotify, google, telegram, github, permission] = await Promise.all([
         '/api/provider/status','/api/deepgram/status','/api/spotify/status',
-        '/api/google/status','/api/telegram/status','/api/github/status'
+        '/api/google/status','/api/telegram/status','/api/github/status','/api/permissions'
       ].map(url => jsonRequest(url).catch(() => ({}))));
       activeProvider = provider.selected || 'qwen';
       el('variantPill').textContent = activeProvider === 'openai' ? 'ME3 OPENAI' : 'ME3 QWEN INSTRUCT';
@@ -352,7 +356,8 @@
         + ' · Spotify: ' + (spotify.connected ? 'connected' : 'setup')
         + ' · Calendar: ' + (google.authorized ? 'connected' : 'setup')
         + ' · Telegram: ' + (telegram.configured ? 'connected' : 'setup')
-        + ' · GitHub: ' + (github.configured ? 'ready' : 'setup') + layerText;
+        + ' · GitHub: ' + (github.configured ? 'ready' : 'setup')
+        + ' · Permissions: ' + (permission.label || permission.mode || 'unavailable') + layerText;
     } catch(_) { el('connectionSummary').textContent = 'Connection status unavailable.'; }
   }
 
@@ -379,6 +384,17 @@
     } catch(err) { el('layerStatus').textContent = 'Layer providers unavailable: ' + err.message; }
   }
 
+  async function loadPermissions() {
+    try {
+      const data = await jsonRequest('/api/permissions');
+      const select = el('permissionMode');
+      if(data.mode && [...select.options].some(option => option.value === data.mode)) select.value = data.mode;
+      const state = data.persisted ? 'saved privately on the Pi' : 'using the ME3 default';
+      el('permissionStatus').innerHTML = '<strong>' + (data.label || data.mode || 'Unavailable')
+        + '</strong> · ' + (data.description || '') + ' (' + state + ').';
+    } catch(err) { el('permissionStatus').textContent = 'Permission policy unavailable: ' + err.message; }
+  }
+
   el('applyLayers').addEventListener('click', async () => {
     const button = el('applyLayers'), label = el('layerStatus');
     button.disabled = true; label.textContent = 'Saving layers privately on the Pi…';
@@ -394,6 +410,20 @@
     finally { button.disabled = false; }
   });
 
+  el('applyPermission').addEventListener('click', async () => {
+    const button = el('applyPermission'), label = el('permissionStatus');
+    button.disabled = true; label.textContent = 'Saving permission policy privately on the Pi…';
+    try {
+      const result = await jsonRequest('/api/permissions', {method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({mode:el('permissionMode').value})});
+      label.innerHTML = '<strong>' + (result.label || result.mode) + '</strong> · '
+        + (result.description || '') + ' (saved privately on the Pi).';
+      message('system', 'ME3 permission mode saved: ' + (result.label || result.mode) + '.');
+      refreshSummary();
+    } catch(err) { label.textContent = 'Permission update failed: ' + err.message; }
+    finally { button.disabled = false; }
+  });
+
   el('chatForm').addEventListener('submit', ev => {
     ev.preventDefault(); const value = input.value; input.value = ''; sendChat(value);
   });
@@ -403,5 +433,6 @@
   el('chatSetup').addEventListener('click', setupMenu);
   el('openSetup').addEventListener('click', setupMenu);
   window.ME3Chat = {render, showSetup, setupMenu};
-  refreshSummary(); loadLayers(); setInterval(refreshSummary, 15000); setInterval(loadLayers, 15000);
+  refreshSummary(); loadLayers(); loadPermissions();
+  setInterval(refreshSummary, 15000); setInterval(loadLayers, 15000); setInterval(loadPermissions, 15000);
 })();

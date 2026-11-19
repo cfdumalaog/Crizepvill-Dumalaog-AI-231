@@ -16,6 +16,7 @@ import requests
 from .config import load_config, project_root
 from .dev_workflow import is_software_request, verification_root
 from .tools import dispatch, tool_definitions
+from . import permission_policy
 from .secure_config import get as get_credential
 from .provider_choice import openai_key
 
@@ -538,6 +539,18 @@ def _direct_tool_reply(name: str, args: dict, result) -> str:
     return "The requested command completed successfully."
 
 
+def _approval_prompt(result: dict | None = None, *, summary: str = "the requested action") -> str:
+    """Return the only approval prompt spoken by the agent.
+
+    The action arguments stay in the private in-memory queue.  Only a bounded,
+    credential-free summary is shown in the conversation and UI.
+    """
+    if isinstance(result, dict):
+        summary = str(result.get("summary") or summary)
+    return (f"Approval is required for {summary}. Say approve to continue, "
+            "or cancel to stop this action.")
+
+
 def resolve_llm_config(cfg: dict, selection: str = "auto") -> tuple[str | None, dict | None]:
     """Resolve a user-facing brain choice to a configured provider.
 
@@ -638,6 +651,46 @@ class ToolBrain:
     def _progress(self, stage: str, task: str) -> None:
         if self.on_progress:
             self.on_progress(stage, task)
+
+    def _resolve_pending_approval(self, user_text: str) -> str | None:
+        """Resolve one pending policy action before accepting another turn."""
+        pending = permission_policy.pending()
+        if pending is None:
+            return None
+        choice = permission_policy.decision(user_text)
+        if choice == "deny":
+            permission_policy.clear_pending()
+            self._progress("response", "Approval cancelled")
+            return "Cancelled. The pending action was not executed."
+        if choice != "approve":
+            return (f"I am waiting for approval for {pending['summary']}. "
+                    "Say approve to continue or cancel to stop it.")
+        item = permission_policy.take_pending()
+        if item is None:
+            return "The pending approval expired. Please ask me to perform the action again."
+        name = str(item["tool"])
+        args = dict(item.get("arguments") or {})
+        args["_permission_approved"] = True
+        self._progress("planning", f"Approved action: {name}")
+        if self.on_tool:
+            self.on_tool("start", name, args)
+        started = time.perf_counter()
+        try:
+            result = self.dispatch_fn(name, args)
+        except Exception as exc:  # noqa: BLE001 - preserve a safe spoken error
+            result = {"ok": False, "error": f"{type(exc).__name__}: {exc}"}
+        tool_ms = (time.perf_counter() - started) * 1e3
+        self.metrics["tool_calls"].append({
+            "name": name, "ms": round(tool_ms),
+            "ok": (bool(result.get("ok")) if isinstance(result, dict) else True),
+        })
+        if self.on_tool:
+            self.on_tool("finish", name, result)
+        self._progress(
+            "tool",
+            f"Finished tool: {name} ({'ok' if (result.get('ok') if isinstance(result, dict) else True) else 'error'})",
+        )
+        return _direct_tool_reply(name, args, result)
 
     def _request(self, messages: list[dict], include_tools: bool = True) -> dict:
         body = {
@@ -875,7 +928,7 @@ class ToolBrain:
         recent.append(str(current or ""))
         return " ".join(recent)
 
-    def _run_web_search_preflight(self, messages: list[dict], query: str) -> None:
+    def _run_web_search_preflight(self, messages: list[dict], query: str) -> dict:
         """Run one grounded search before the model answers a current query."""
         args = {"query": query[:500], "max_results": 5}
         self._progress("planning", "Searching the web for current information")
@@ -931,6 +984,7 @@ class ToolBrain:
             "name": "web_search",
             "content": json.dumps(payload, ensure_ascii=False)[:50000],
         })
+        return result if isinstance(result, dict) else {"ok": True, "result": result}
 
     def chat(self, history: list[dict], user_text: str) -> str:
         self.metrics = {
@@ -941,6 +995,9 @@ class ToolBrain:
             "prompt_tokens": 0,
             "completion_tokens": 0,
         }
+        pending_reply = self._resolve_pending_approval(user_text)
+        if pending_reply is not None:
+            return pending_reply
         system = (self.cfg.get("system_prompt") or "") + "\n" + _runtime_date_context()
         messages = [{"role": "system", "content": system}]
         software_task = self.allow_tools and is_software_request(user_text)
@@ -967,7 +1024,9 @@ class ToolBrain:
 
         web_query = _web_search_query(history, user_text) if self.allow_tools else None
         if web_query:
-            self._run_web_search_preflight(messages, web_query)
+            web_result = self._run_web_search_preflight(messages, web_query)
+            if isinstance(web_result, dict) and web_result.get("error") == "approval_required":
+                return _approval_prompt(web_result)
 
         # Short ME2 commands are routed through the same bounded tool
         # dispatcher before asking Qwen to plan.  This prevents repeated
@@ -1002,6 +1061,8 @@ class ToolBrain:
                 "tool",
                 f"Finished tool: {name} ({'ok' if (result.get('ok') if isinstance(result, dict) else True) else 'error'})",
             )
+            if isinstance(result, dict) and result.get("error") == "approval_required":
+                return _approval_prompt(result)
             return _direct_tool_reply(name, args, result)
 
         github_verified_result: dict | None = None
@@ -1146,6 +1207,15 @@ class ToolBrain:
                         result = {"ok": False, "error": "github_publish_request_required"}
                     else:
                         result = self.dispatch_fn(name, args)
+                    if isinstance(result, dict) and result.get("error") == "approval_required":
+                        tool_ms = (time.perf_counter() - t_call) * 1e3
+                        self.metrics["tool_calls"].append({
+                            "name": name, "ms": round(tool_ms), "ok": False,
+                        })
+                        if self.on_tool:
+                            self.on_tool("finish", name, result)
+                        self._progress("tool", f"Approval required before: {name}")
+                        return _approval_prompt(result)
                     if software_task and name in {
                             "write_file", "run_command", "start_background_task"}:
                         development_actions += 1

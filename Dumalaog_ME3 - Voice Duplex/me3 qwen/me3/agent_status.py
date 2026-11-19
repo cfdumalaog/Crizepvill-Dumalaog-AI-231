@@ -417,6 +417,12 @@ class _StatusHandler(BaseHTTPRequestHandler):
             self._send(200, json.dumps(payload).encode("utf-8"),
                        "application/json; charset=utf-8")
             return
+        if path == "/api/permissions":
+            callback = getattr(self.server, "permission_status", None)
+            payload = callback() if callback is not None else {"ok": False}
+            self._send(200, json.dumps(payload).encode("utf-8"),
+                       "application/json; charset=utf-8")
+            return
         if path == "/api/github/status":
             callback = getattr(self.server, "github_status", None)
             payload = callback() if callback is not None else {
@@ -661,6 +667,27 @@ class _StatusHandler(BaseHTTPRequestHandler):
                 self._send(400, json.dumps({
                     "ok": False, "error": type(exc).__name__,
                     "message": str(exc)[:300],
+                }).encode("utf-8"), "application/json; charset=utf-8")
+            return
+        if path == "/api/permissions":
+            callback = getattr(self.server, "permission_set", None)
+            if callback is None:
+                self._send(503, b'{"ok":false,"error":"permission_policy_unavailable"}',
+                           "application/json; charset=utf-8")
+                return
+            try:
+                length = int(self.headers.get("Content-Length", "0"))
+                if length <= 0 or length > 2000:
+                    raise ValueError("invalid JSON body")
+                payload = json.loads(self.rfile.read(length).decode("utf-8"))
+                result = callback(str(payload.get("mode") or ""))
+                self._send(200 if result.get("ok") else 400,
+                           json.dumps(result).encode("utf-8"),
+                           "application/json; charset=utf-8")
+            except Exception as exc:  # noqa: BLE001 - bounded operator endpoint
+                self._send(400, json.dumps({
+                    "ok": False, "error": type(exc).__name__,
+                    "message": str(exc)[:200],
                 }).encode("utf-8"), "application/json; charset=utf-8")
             return
         if path in {"/api/schedules", "/api/schedules/cancel"}:
@@ -967,7 +994,8 @@ class StatusServer:
                  telegram_token_set=None, telegram_connect_target=None,
                  deepgram_status=None, deepgram_key_set=None,
                  provider_status=None, openai_key_set=None, provider_select=None,
-                 layer_status=None, layer_select=None,
+                  layer_status=None, layer_select=None,
+                  permission_status=None, permission_set=None,
                  github_status=None, github_token_set=None,
                  schedules_get=None, schedule_create=None,
                  schedule_cancel=None, chat_submit=None,
@@ -1008,6 +1036,8 @@ class StatusServer:
         self.provider_select = provider_select
         self.layer_status = layer_status
         self.layer_select = layer_select
+        self.permission_status = permission_status
+        self.permission_set = permission_set
         self.github_status = github_status
         self.github_token_set = github_token_set
         self.schedules_get = schedules_get
@@ -1062,6 +1092,8 @@ class StatusServer:
         self._httpd.provider_select = self.provider_select
         self._httpd.layer_status = self.layer_status
         self._httpd.layer_select = self.layer_select
+        self._httpd.permission_status = self.permission_status
+        self._httpd.permission_set = self.permission_set
         self._httpd.github_status = self.github_status
         self._httpd.github_token_set = self.github_token_set
         self._httpd.schedules_get = self.schedules_get
