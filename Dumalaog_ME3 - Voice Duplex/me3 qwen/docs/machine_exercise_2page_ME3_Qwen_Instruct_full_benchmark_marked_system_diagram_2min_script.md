@@ -6,7 +6,7 @@
 
 ME3 Qwen Instruct is a full-duplex voice agent on a Raspberry Pi. The Fifine microphone is captured at 16-kilohertz mono. Echo guard and Silero VAD detect speech, reject self-echo, and keep capture open while TTS plays. User overlap is queued; stop, skip, and steer are explicit controls.
 
-Speech flows through Qwen2-Audio ASR, the Qwen3.8-27B ToolBrain, four owned MCP servers with 54 tools, and Qwen3-TTS 1.7B using Aiden. Sixteen-kilohertz PCM travels through a browser WebSocket to the laptop speaker. The Pi owns VAD, echo, safety, and duplex state; Qwen services are reached over VPN. No training is required.
+Speech flows through Qwen2-Audio ASR, the Qwen3.6-27B ToolBrain, four owned MCP servers with 54 tools, and Qwen3-TTS 1.7B using Aiden. Sixteen-kilohertz PCM travels through a browser WebSocket to the laptop speaker. The Pi owns VAD, echo, safety, and duplex state; Qwen services are reached over VPN. No training is required.
 
 The prompt defines a Philippines customer-support assistant for Filipino, English, and Taglish. It requires formal, concise speech, Pi-user tools, no credentials, and no unsupported claims. For long work it says, "I am processing your request now." Context management keeps fast mode and hidden thinking off, uses 24 tool rounds for ordinary turns and up to 48 for software tasks, retains short history and tool results, queues the latest prompt, reports background status, and exposes only sanitized terminal information.
 

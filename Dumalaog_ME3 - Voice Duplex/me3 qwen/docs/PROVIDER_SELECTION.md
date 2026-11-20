@@ -6,7 +6,7 @@ browser speaker route. No model training is required.
 
 | Selection | Speech recognition | Tool-using text model | Speech output |
 |---|---|---|---|
-| Qwen | DGX3 Qwen2-Audio (with existing Deepgram/local ASR fallback) | Qwen3.8-27B | DGX3 Qwen3-TTS Aiden (with Piper fallback) |
+| Qwen | DGX3 Qwen2-Audio (with existing Deepgram/local ASR fallback) | Qwen3.6-27B via `202.92.159.240:8000/v1` | DGX3 Qwen3-TTS Aiden (with Piper fallback) |
 | OpenAI | `gpt-transcribe` | `gpt-4.1-mini` | `gpt-4o-mini-tts`, Onyx, 24 kHz PCM |
 | Gemini | Qwen2-Audio DGX3 by default | Gemini OpenAI-compatible `gemini-2.5-flash` | Qwen3-TTS Aiden by default |
 
@@ -96,7 +96,9 @@ protocol. ME3 validates this role/protocol pairing before activation and never
 returns the API key in status or conversation data.
 
 The supplied DGX3 configuration is intentionally separate from this custom
-text-provider form: port 8000 is Qwen2-Audio ASR and port 8001 is Qwen3-TTS.
+text-provider form: DGX3 port 8000 is Qwen2-Audio ASR and port 8001 is
+Qwen3-TTS. The new Qwen3.6 text/tool brain is served separately at
+`202.92.159.240:8000/v1`.
 Those two live audio services do not provide the Qwen text/tool brain. A
 reachable text/vLLM or OpenAI brain is still required for a transcript to turn
 into a tool-using agent response.

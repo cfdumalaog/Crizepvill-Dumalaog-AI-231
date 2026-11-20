@@ -10,7 +10,7 @@ Version: 0.2, 26 October 2026
 
 ## Decision in one paragraph
 
-ME3 keeps Qwen/Qwen3.8-27B as the default reasoning and tool-calling model;
+ME3 keeps Qwen/Qwen3.6-27B as the default reasoning and tool-calling model;
 GPT-5.6 Luna is an optional alternative. ElevenLabs
 is added as an optional streaming voice renderer, using raw 16 kHz PCM so the
 existing microphone, VAD, ASR, playback, and barge-in path remains intact.

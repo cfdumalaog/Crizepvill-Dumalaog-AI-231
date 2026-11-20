@@ -89,7 +89,7 @@ not an active launch target. The internal `current` profile remains only as a
 legacy compatibility option for old comparison scripts; new launchers,
 defaults, Pi service files, and the UI use `qwen_instruct` as the active code
 line. It is not a separately trained ME3 model. The text/tool brain uses
-Qwen3.8-27B when Qwen is selected; the OpenAI choice switches ASR, brain, and
+Qwen3.6-27B when Qwen is selected; the OpenAI choice switches ASR, brain, and
 TTS together to the models listed above.
 
 The Qwen handoff file is read only by the launcher into process memory. Qwen
@@ -265,8 +265,10 @@ If ASR reports an empty transcript even though the Fifine signal is nonzero,
 check the SHARC VPN route and the protected Qwen audio provider before changing
 microphone settings. The Pi audio URLs should point directly to
 `10.153.60.233:8000/8001` when the Pi VPN is active. The public
-`202.92.159.240:8000/8001` endpoints expose the text Qwen3.8-27B service and
-are not valid Qwen2-Audio/TTS endpoints.
+`202.92.159.240:8000` exposes the Qwen3.6-27B text/tool service. The separate
+DGX3 audio endpoints remain `10.153.60.233:8000` for Qwen2-Audio ASR and
+`10.153.60.233:8001` for Qwen3-TTS; the text endpoint is not a valid
+Qwen2-Audio/TTS endpoint.
 
 If the Fifine appears in the UI but speech is not triggering, check the USB
 capture control on the Pi. The current Fifine card is ALSA card 2; its capture

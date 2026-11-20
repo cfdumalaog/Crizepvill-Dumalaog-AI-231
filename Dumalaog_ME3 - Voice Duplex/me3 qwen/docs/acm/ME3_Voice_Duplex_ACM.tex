@@ -193,7 +193,7 @@ OpenAI-compatible multimodal \texttt{/v1/chat/completions} request carrying
 the WAV as an \texttt{audio\_url} data URL. Replies are rendered by
 \texttt{Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice} through
 \texttt{/v1/audio/speech}. The text ToolBrain remains the existing
-\texttt{Qwen/Qwen3.8-27B} or optional Luna provider, so requests such as
+\texttt{Qwen/Qwen3.6-27B} or optional Luna provider, so requests such as
 ``build a web app'' retain the same file and verification tools. Endpoint and
 key values are runtime-only. An ASR/TTS pair is therefore not a replacement
 for the general text tool-calling model.
@@ -245,7 +245,7 @@ protocol is illustrated below.
 
 \begin{lstlisting}
 {
-  "model": "Qwen/Qwen3.8-27B",
+  "model": "Qwen/Qwen3.6-27B",
   "messages": [{"role":"user", "content":"build a web app"}],
   "tools": [{"type":"function", "function":
     {"name":"write_file", "parameters": {}}}],

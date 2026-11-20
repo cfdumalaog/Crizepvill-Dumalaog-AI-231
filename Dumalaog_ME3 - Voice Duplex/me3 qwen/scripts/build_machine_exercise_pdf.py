@@ -135,7 +135,7 @@ def diagram(c: canvas.Canvas, x: float, y: float, w: float, h: float) -> None:
     boxes = [
         (x + 9, "Fifine mic\n16 kHz mono USB\necho guard + Silero VAD", TEAL),
         (x + 101, "Qwen2-Audio\n7B / ASR MCP / 3 tools\nvLLM over VPN", colors.HexColor("#4C6FFF")),
-        (x + 193, "Qwen ToolBrain\nQwen3.8-27B\n4 servers / 54 tools", TEAL),
+        (x + 193, "Qwen ToolBrain\nQwen3.6-27B\n4 servers / 54 tools", TEAL),
         (x + 285, "Qwen3-TTS Aiden\n1.7B / TTS MCP / 4 tools\n16 kHz PCM -> browser", colors.HexColor("#4C6FFF")),
     ]
     bw, bh = 80, 50
@@ -299,7 +299,7 @@ def build() -> Path:
         ["Component", "MCP server / transport", "Tools", "Model", "Served where / notes"],
         ["ASR", "me3-asr / FastMCP", "transcribe(audio) -> text", "Qwen2-Audio-7B-Instruct", "Pi service; scoring used faster-whisper/small"],
         ["TTS", "me3-tts / FastMCP", "speak(text) -> audio", "Qwen3-TTS-12Hz-1.7B-CustomVoice; Aiden", "Pi service; Qwen vLLM over VPN; one formal voice"],
-        ["LLM", "ToolBrain / MCP client", "function calling", "Qwen/Qwen3.8-27B", "Remote vLLM; fast_mode=true; hidden thinking=false"],
+        ["LLM", "ToolBrain / MCP client", "function calling", "Qwen/Qwen3.6-27B", "Remote vLLM; fast_mode=true; hidden thinking=false"],
         ["VAD", "me3-vad / FastMCP", "detect_speech(frames)", "Silero ONNX", "On-device Pi CPU; 16 kHz mono; endpointing"],
         ["Task + channels", "me3-tasks / FastMCP + REST", "files, web, build, timers, ME2 parity, channels", "n/a / provider APIs", "Pi-owned tools; lights/thermostat simulated; APIs need setup"],
     ]

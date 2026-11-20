@@ -108,7 +108,7 @@ if ($DryRun) {
     Write-Host '[dry-run] no SSH command executed.'
     if ($StartServer) { Write-Host "[dry-run] start: $startRemote" }
     if ($StopServer) { Write-Host "[dry-run] stop : $stopRemote" }
-    $reverse = if ($Variant -eq 'qwen_instruct' -and $UseReverseTunnel) { ' -R 18000:10.153.60.233:8000 -R 18001:10.153.60.233:8001 -R 18002:202.92.159.240:8001' } else { '' }
+    $reverse = if ($Variant -eq 'qwen_instruct' -and $UseReverseTunnel) { ' -R 18000:10.153.60.233:8000 -R 18001:10.153.60.233:8001 -R 18002:202.92.159.240:8000' } else { '' }
     Write-Host "[dry-run] tunnel: ssh -N -L $LocalPort`:127.0.0.1`:$RemotePort -L $LocalAudioPort`:127.0.0.1`:$RemoteAudioPort$reverse $SshTarget"
     exit 0
 }
@@ -134,7 +134,7 @@ $sshArgs = @(
 )
 if ($Variant -eq 'qwen_instruct' -and $UseReverseTunnel) {
     $sshArgs += @('-R', '18000:10.153.60.233:8000', '-R', '18001:10.153.60.233:8001',
-                  '-R', '18002:202.92.159.240:8001')
+                  '-R', '18002:202.92.159.240:8000')
 }
 $sshArgs += $SshTarget
 & ssh @sshArgs

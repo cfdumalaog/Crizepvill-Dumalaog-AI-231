@@ -1201,7 +1201,7 @@ def main() -> None:
         "model": getattr(brain, "model", "stub"),
         "endpoint": getattr(brain, "base_url", None),
         "brain_description": (
-            "Brain = remote vLLM Qwen/Qwen3.8-27B (key kept in process "
+            "Brain = remote vLLM Qwen/Qwen3.6-27B (key kept in process "
             "memory, never persisted)."
             if args.brain == "remote"
             else "Brain = offline stub (no remote LLM network call)."

@@ -60,7 +60,7 @@ def main() -> int:
     replace_text(slide.shapes[9], "Fifine mic\nPCM 16 kHz → VAD\n→ echo guard", size=10.5)
     replace_text(slide.shapes[10], "input + endpointing")
     replace_text(slide.shapes[13], "INFERENCE")
-    replace_text(slide.shapes[14], "Qwen2-Audio ASR\n→ Gemini ToolBrain", size=10.5)
+    replace_text(slide.shapes[14], "Qwen2-Audio ASR\n→ Qwen3.6 ToolBrain", size=10.5)
     replace_text(slide.shapes[15], "DGX3/API or fallback")
     replace_text(slide.shapes[18], "MCP ACTIONS")
     replace_text(slide.shapes[19], "files • web • jobs\ncalendar • Telegram", size=10.5)

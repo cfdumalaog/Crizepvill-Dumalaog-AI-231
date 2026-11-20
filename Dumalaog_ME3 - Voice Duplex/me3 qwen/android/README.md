@@ -60,7 +60,7 @@ the trusted LAN/VPN boundary described by the ME3 runbook.
 The APK is seeded with the deployed runtime identity through the Pi page:
 
 - provider stack: Qwen Instruct;
-- text model: `Qwen/Qwen3.8-27B`;
+- text model: `Qwen/Qwen3.6-27B`;
 - ASR model: `Qwen/Qwen2-Audio-7B-Instruct`;
 - TTS model/voice: `Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice` / `aiden`;
 - default Pi service: `http://cfdfnjrpi5.local:8126/` (editable for a changed

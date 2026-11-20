@@ -108,7 +108,7 @@
     <rect x="784" y="160" width="235" height="260" rx="16"/>
     <circle cx="810" cy="191" r="15" fill="#c4b5fd"/><text x="810" y="197" text-anchor="middle" class="number">4</text>
     <text x="836" y="187" class="box-kicker">INFERENCE · STREAMING</text><text x="836" y="211" class="box-title">Qwen ToolBrain</text>
-    <text x="804" y="247" class="body-strong">Qwen3.8-27B via vLLM</text>
+    <text x="804" y="247" class="body-strong">Qwen3.6-27B via vLLM</text>
     <text x="804" y="269" class="body">OpenAI-compatible direct stream</text>
     <text x="804" y="288" class="body">reasoning controls disabled</text>
     <text x="804" y="323" class="body-strong">Agent policy</text>
@@ -240,6 +240,6 @@
     <text x="935" y="1166" class="code">scripts/me3_pi_server.py</text><text x="1208" y="1166" class="body">Pi HTTP + WebSocket server; ME2-style browser access</text>
   </g>
 
-  <text x="40" y="1220" class="tiny">Current runtime labels: ME3 QWEN INSTRUCT · Qwen ASR: Qwen/Qwen2-Audio-7B-Instruct · LLM: Qwen/Qwen3.8-27B · TTS: Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice / Aiden</text>
+  <text x="40" y="1220" class="tiny">Current runtime labels: ME3 QWEN INSTRUCT · Qwen ASR: Qwen/Qwen2-Audio-7B-Instruct · LLM: Qwen/Qwen3.6-27B · TTS: Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice / Aiden</text>
   <text x="1760" y="1220" text-anchor="end" class="tiny">System flow v1 · 2026-11-05 · implementation-grounded</text>
 </svg>
