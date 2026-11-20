@@ -139,6 +139,12 @@ class QwenRemoteASR:
                 "ME3_ASR_FALLBACK_COMPUTE_TYPE", "int8"
             )
         ).strip()
+        # The class direct-feed benchmark must isolate the selected Qwen ASR
+        # path and its declared local fallback.  It can disable the network
+        # backup explicitly without changing the live service's failover chain.
+        self.skip_backups = os.environ.get(
+            "ME3_ASR_SKIP_BACKUPS", ""
+        ).strip().lower() in {"1", "true", "yes", "on"}
         self._fallback = None
         self._fallback_load_ms = 0.0
         self.last_backend = "qwen_remote"
@@ -237,17 +243,18 @@ class QwenRemoteASR:
         except Exception as exc:  # noqa: BLE001 - fail over only when configured
             log.warning("Qwen ASR unavailable (%s); checking configured backups",
                         type(exc).__name__)
-            try:
-                from . import deepgram_asr, secure_config
-                if secure_config.configured("DEEPGRAM_API_KEY"):
-                    text, latency_ms = deepgram_asr.transcribe_wav(
-                        raw, timeout_s=self.timeout_s)
-                    self.last_backend = "deepgram_fallback"
-                    return [SimpleNamespace(text=text)], SimpleNamespace(
-                        duration=duration, latency_ms=latency_ms)
-            except Exception as backup_exc:  # noqa: BLE001 - continue to local ASR
-                log.warning("Deepgram ASR backup unavailable (%s)",
-                            type(backup_exc).__name__)
+            if not self.skip_backups:
+                try:
+                    from . import deepgram_asr, secure_config
+                    if secure_config.configured("DEEPGRAM_API_KEY"):
+                        text, latency_ms = deepgram_asr.transcribe_wav(
+                            raw, timeout_s=self.timeout_s)
+                        self.last_backend = "deepgram_fallback"
+                        return [SimpleNamespace(text=text)], SimpleNamespace(
+                            duration=duration, latency_ms=latency_ms)
+                except Exception as backup_exc:  # noqa: BLE001 - continue to local ASR
+                    log.warning("Deepgram ASR backup unavailable (%s)",
+                                type(backup_exc).__name__)
             if self.fallback_engine not in {"faster_whisper", "whisper"}:
                 raise
             log.warning("Using local faster-whisper fallback (%s)",

@@ -163,7 +163,7 @@ def make_brain(cfg: dict, mode: str, *, benchmark_mode: bool = True):
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--url", default="ws://127.0.0.1:8791")
-    parser.add_argument("--brain", choices=("auto", "remote", "qwen", "luna", "stub"),
+    parser.add_argument("--brain", choices=("auto", "remote", "qwen", "gemini", "openai", "luna", "stub"),
                         default="auto")
     parser.add_argument("--variant", choices=("current", "qwen_instruct"),
                         default="current")
@@ -176,6 +176,11 @@ def main() -> int:
         print(f"ME3 fdbench adapter ready; websockets={websockets.__version__}; url={args.url}")
         return 0
     os.environ["ME3_VARIANT"] = args.variant
+    if not args.allow_tools:
+        # The class protocol measures the selected audio path and its declared
+        # fallback.  Do not let an unrelated network backup add a variable
+        # timeout to every injected trial.
+        os.environ.setdefault("ME3_ASR_SKIP_BACKUPS", "1")
     cfg = load_config()
     if not args.allow_tools:
         # Class latency excludes fillers and background task announcements.
