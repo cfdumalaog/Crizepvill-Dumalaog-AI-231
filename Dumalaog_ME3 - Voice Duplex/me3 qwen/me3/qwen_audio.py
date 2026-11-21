@@ -1,7 +1,7 @@
 """Remote Qwen audio adapters used by the optional ME3 variant.
 
-The existing ME3 release keeps VAD local and uses faster-whisper plus Piper or
-ElevenLabs.  The ``qwen_instruct`` variant swaps only the ASR/TTS engines for
+The existing ME3 release keeps VAD local and uses faster-whisper plus Piper.
+The ``qwen_instruct`` variant swaps only the ASR/TTS engines for
 the protected DGX3 OpenAI-compatible services:
 
 * Qwen2-Audio-7B-Instruct through vLLM's multimodal

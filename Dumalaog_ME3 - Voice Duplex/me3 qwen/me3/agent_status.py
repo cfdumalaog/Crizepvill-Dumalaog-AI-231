@@ -776,31 +776,6 @@ class _StatusHandler(BaseHTTPRequestHandler):
                     "error": type(exc).__name__}).encode("utf-8"),
                     "application/json; charset=utf-8")
             return
-        if path == "/api/integrations/elevenlabs":
-            if not self._is_loopback_request():
-                self._send(403, b"use the local SSH tunnel to save credentials",
-                           "text/plain; charset=utf-8")
-                return
-            callback = getattr(self.server, "elevenlabs_set", None)
-            if callback is None:
-                self._send(404, b"ElevenLabs setup is not enabled",
-                           "text/plain; charset=utf-8")
-                return
-            try:
-                length = int(self.headers.get("Content-Length", "0"))
-                if length <= 0 or length > 5000:
-                    raise ValueError("invalid JSON body")
-                payload = json.loads(self.rfile.read(length).decode("utf-8"))
-                result = callback(str(payload.get("api_key") or ""),
-                                  str(payload.get("voice_id") or ""))
-                code = 200 if result.get("ok") else 400
-                self._send(code, json.dumps(result).encode("utf-8"),
-                           "application/json; charset=utf-8")
-            except Exception as exc:  # noqa: BLE001 - never log or echo the key
-                self._send(400, json.dumps({"ok": False,
-                    "error": type(exc).__name__}).encode("utf-8"),
-                    "application/json; charset=utf-8")
-            return
         if path in {"/api/integrations/openai-key",
                     "/api/integrations/gemini-key",
                     "/api/provider/select"}:
@@ -886,7 +861,15 @@ class _StatusHandler(BaseHTTPRequestHandler):
                 self._send(404, b"Telegram setup is not enabled", "text/plain; charset=utf-8")
                 return
             try:
-                result = callback()
+                length = int(self.headers.get("Content-Length", "0"))
+                payload = {}
+                if length:
+                    if length > 5000:
+                        raise ValueError("invalid JSON body")
+                    payload = json.loads(self.rfile.read(length).decode("utf-8"))
+                    if not isinstance(payload, dict):
+                        raise ValueError("invalid JSON body")
+                result = callback(str(payload.get("username") or "mncfrndz"))
                 code = 200 if result.get("ok") else 409
                 self._send(code, json.dumps(result).encode("utf-8"),
                            "application/json; charset=utf-8")
@@ -1044,7 +1027,6 @@ class StatusServer:
                  google_client_set=None, telegram_status=None,
                  telegram_token_set=None, telegram_connect_target=None,
                  deepgram_status=None, deepgram_key_set=None,
-                 elevenlabs_set=None,
                  provider_status=None, openai_key_set=None, gemini_key_set=None,
                  provider_select=None,
                   layer_status=None, layer_select=None,
@@ -1084,7 +1066,6 @@ class StatusServer:
         self.telegram_connect_target = telegram_connect_target
         self.deepgram_status = deepgram_status
         self.deepgram_key_set = deepgram_key_set
-        self.elevenlabs_set = elevenlabs_set
         self.provider_status = provider_status
         self.openai_key_set = openai_key_set
         self.gemini_key_set = gemini_key_set
@@ -1142,7 +1123,6 @@ class StatusServer:
         self._httpd.telegram_connect_target = self.telegram_connect_target
         self._httpd.deepgram_status = self.deepgram_status
         self._httpd.deepgram_key_set = self.deepgram_key_set
-        self._httpd.elevenlabs_set = self.elevenlabs_set
         self._httpd.provider_status = self.provider_status
         self._httpd.openai_key_set = self.openai_key_set
         self._httpd.gemini_key_set = self.gemini_key_set

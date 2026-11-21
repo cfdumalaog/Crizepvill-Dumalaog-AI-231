@@ -31,7 +31,7 @@ from me3.brain import build_system_prompt, build_tool_brain  # noqa: E402
 from me3.config import load_config  # noqa: E402
 from me3 import (google_calendar, me2_commands, scheduled_actions,
                  spotify_player, deepgram_asr, github_pages, provider_choice,
-                 setup_profiles, permission_policy, elevenlabs_tts)  # noqa: E402
+                 setup_profiles, permission_policy)  # noqa: E402
 from me3 import layer_choice  # noqa: E402
 from me3.web_audio import BrowserAudioHub, BrowserOutputAudio  # noqa: E402
 
@@ -252,6 +252,13 @@ class AgentController:
                         })
                 except (OSError, subprocess.SubprocessError):
                     pass
+            inputs.insert(0, {
+                "id": "browser",
+                "name": "This browser / connected PC microphone",
+                "sample_rate": 16000,
+                "channels": 1,
+                "transport": "websocket",
+            })
             with self.lock:
                 selected_input = self.input_device
                 selected_output = ("browser" if self.output_mode == "browser"
@@ -421,7 +428,6 @@ def main() -> int:
         telegram_connect_target=me2_commands.connect_telegram_target,
         deepgram_status=deepgram_asr.health,
         deepgram_key_set=deepgram_asr.configure_api_key,
-        elevenlabs_set=elevenlabs_tts.configure_private,
         provider_status=provider_choice.status,
         openai_key_set=provider_choice.save_openai_key,
         gemini_key_set=provider_choice.save_gemini_key,

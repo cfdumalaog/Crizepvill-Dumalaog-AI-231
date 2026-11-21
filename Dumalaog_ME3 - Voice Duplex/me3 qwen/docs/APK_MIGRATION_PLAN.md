@@ -54,7 +54,7 @@ hardware-backed storage where available, Android app-private storage, provider
 scope minimization, key rotation, and no logging. The Pi mode should remain the
 default for the demo because it keeps the model/tool permissions and the
 institutional VPN boundary in one host. Never put the Qwen, OpenAI, Deepgram,
-ElevenLabs, Spotify, Google, Telegram, or GitHub secret values in a manifest,
+Spotify, Google, Telegram, or GitHub secret values in a manifest,
 resource, Java/Kotlin constant, WebView local storage, or Git commit.
 
 ## Recommended implementation phases

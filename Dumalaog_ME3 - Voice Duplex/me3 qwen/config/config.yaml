@@ -32,9 +32,8 @@ website_user:
   display_name: Crizepvill F. Dumalaog
   purpose: personal AI and machine-learning project website
 
-# Filipino-market pilot profile. `fil` is ElevenLabs' language code for
-# Filipino; English is the spoken default while Filipino and Taglish remain
-# understood and can be mirrored when the user speaks them.
+# Filipino-market pilot profile. English is the spoken default while Filipino
+# and Taglish remain understood and can be mirrored when the user speaks them.
 market:
   region: PH
   locale: fil-PH
@@ -92,17 +91,6 @@ tts:
   announcer_voice: en_GB-alba-medium # backchannels and completion announcements use this voice
   length_scale: 1.0
   sentence_split: true           # stream sentence-by-sentence for lower TTFB
-  elevenlabs:
-    api_key_env: ELEVENLABS_API_KEY
-    voice_id_env: ELEVENLABS_VOICE_ID
-    voice_id: ""                 # keep credentials/voice choice in the environment
-    base_url: https://api.elevenlabs.io/v1
-    model_id: eleven_flash_v2_5  # low-latency Filipino-capable model
-    language_code: fil            # Filipino; choose a matching PH voice ID
-    output_format: pcm_16000
-    timeout_s: 30
-    max_retries: 1              # bounded retry for timeout/429/5xx
-    retry_backoff_s: 0.15
 
 # Optional audio-model variant. It keeps local Silero VAD and the existing
 # provider-neutral text ToolBrain, and swaps only ASR/TTS for the supplied
@@ -287,7 +275,16 @@ agent:
     when your previous reply asks for missing details for an action, treat the
     user's next short utterance as the answer to that same action, not as a new
     greeting or unrelated request. For completion, state the result directly
-    and professionally in one or two short sentences.
+    and professionally in one or two short sentences. Do not hallucinate or
+    fill gaps with plausible-sounding facts. If you do not know an answer or
+    the available context is insufficient, use the web_search tool when the
+    request is factual and web-searchable, then answer only from the returned
+    evidence and state uncertainty when the evidence is incomplete. Always
+    search before answering questions about current, latest, recent, today,
+    elections, political officeholders, world events, news, prices, schedules,
+    weather, or any other date-sensitive fact; never rely on model memory for
+    those claims. If search fails, say that current verification is unavailable
+    instead of inventing an answer.
   barge_in: true                 # automatic echo-protected speech interruption
   command_control: true          # explicit stop, skip, and steer remain available
   protected_playback_ignore_noncontrol: true # fallback protection when barge-in is disabled

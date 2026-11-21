@@ -165,14 +165,6 @@ def main() -> int:
                         lambda: _qwen_tts_with_fallback(cfg["tts"])))
     results.append(_run("piper_tts", lambda: _piper_tts(cfg["tts"])))
 
-    eleven_key = bool(os.environ.get("ELEVENLABS_API_KEY", "").strip())
-    # ElevenLabs voice IDs are intentionally not read into output. The active
-    # config keeps the voice ID in the private environment when provisioned.
-    results.append({
-        "provider": "elevenlabs_tts",
-        "status": "configured_key_only" if eleven_key else "not_configured",
-        "voice_id_not_reported": True,
-    })
     results.append(
         _run("silero_vad", lambda: _silero_probe())
     )

@@ -1504,7 +1504,7 @@ def main() -> None:
                         default="auto", help="LLM brain selection")
     parser.add_argument("--variant", choices=("current", "qwen_instruct"),
                         default=None,
-                        help="audio path: current local/ElevenLabs or qwen_instruct DGX3 ASR/TTS")
+                        help="audio path: current local or qwen_instruct DGX3 ASR/TTS")
     parser.add_argument("--text", default=None,
                         help="run one text turn through the selected brain and exit")
     parser.add_argument("--status-port", type=int, default=8126,

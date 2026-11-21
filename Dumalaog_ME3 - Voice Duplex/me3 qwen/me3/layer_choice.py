@@ -16,7 +16,7 @@ from . import secure_config
 
 LAYER_OPTIONS = {
     "asr": ("qwen_remote", "deepgram", "faster_whisper", "openai"),
-    "tts": ("qwen_remote", "piper", "elevenlabs", "openai"),
+    "tts": ("qwen_remote", "piper", "openai"),
     "vad": ("silero", "energy"),
 }
 _STORAGE_OPTIONS = {
@@ -88,7 +88,6 @@ def _option_labels() -> dict[str, str]:
         "faster_whisper": "faster-whisper local",
         "openai": "OpenAI",
         "piper": "Piper local",
-        "elevenlabs": "ElevenLabs Filipino",
         "silero": "Silero local",
         "energy": "Energy gate fallback",
         "qwen": "Qwen text/tool brain",

@@ -30,7 +30,7 @@ def _targeted_setup_request(text: str) -> bool:
         return False
     return bool(re.search(
         r"\b(?:openai|gpt|gemini|google ai|qwen|dgx|vllm|deepgram|"
-        r"elevenlabs?|spotify|calendar|telegram|botfather|github|"
+        r"spotify|calendar|telegram|botfather|github|"
         r"model endpoint|model server|provider)\b", value))
 
 
@@ -1375,7 +1375,12 @@ proposed GitHub action when the immediately preceding assistant turn described
 that action. The runtime date is supplied separately on every turn;
 use it for today's date. For current events, elections, latest or recent facts,
 and any other date-sensitive claim, use the `web_search` tool before answering.
-Do not rely on model memory for those claims. If search fails or does not provide
-enough evidence, say that clearly instead of guessing.
+Do not hallucinate or fill gaps with plausible-sounding facts. Do not rely on
+model memory for those claims. If search fails or does not provide
+enough evidence, say that clearly instead of guessing. The same rule applies
+when you are uncertain about a factual answer: search when the question is
+web-searchable, use only the returned evidence, and label unresolved
+uncertainty. Never manufacture names, dates, prices, election results, world
+events, citations, tool outcomes, or deployment status.
 """
 

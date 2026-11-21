@@ -16,15 +16,13 @@ Tools:
 Run:  python scripts/run_me3_module.py me3.mcp_tts
 
 Piper voice models live in <project>/models/tts/<voice>.onnx and are downloaded
-on first use via `python -m piper.download_voices`. ElevenLabs reads
-`ELEVENLABS_API_KEY` and `ELEVENLABS_VOICE_ID` from the runtime environment only.
+on first use via `python -m piper.download_voices`.
 """
 from __future__ import annotations
 
 import base64
 import io
 import logging
-import os
 import subprocess
 import sys
 import time
@@ -41,26 +39,6 @@ log = logging.getLogger("me3.mcp_tts")
 _engine = None
 _cfg = None
 _voice_dir = project_root() / "models" / "tts"
-
-
-def _elevenlabs_status(cfg: dict) -> dict:
-    """Return credential presence without exposing credential contents."""
-    options = cfg.get("elevenlabs", {})
-    key_env = options.get("api_key_env", "ELEVENLABS_API_KEY")
-    voice_env = options.get("voice_id_env", "ELEVENLABS_VOICE_ID")
-    from . import secure_config
-    key_configured = bool(os.environ.get(key_env, "").strip()
-                          or secure_config.get(key_env))
-    voice_configured = bool(
-        os.environ.get(voice_env, "").strip()
-        or secure_config.get(voice_env)
-        or options.get("voice_id", "").strip()
-    )
-    return {
-        "key_configured": key_configured,
-        "voice_configured": voice_configured,
-        "configured": key_configured and voice_configured,
-    }
 
 
 def _ensure_voice(voice_name: str) -> Path:
@@ -92,63 +70,6 @@ def _load_piper(cfg: dict):
     engine = PiperVoice.load(voice_path)
     engine._load_ms = (time.perf_counter() - t0) * 1000
     return engine
-
-
-class _AutoFallbackTTS:
-    """Legacy adapter-only ElevenLabs/Piper fallback used by unit tests.
-
-    The active profile selector never instantiates this wrapper; the presentable
-    runtime stays on one fixed voice.
-    """
-
-    def __init__(self, primary, fallback_loader):
-        self.primary = primary
-        self._fallback_loader = fallback_loader
-        self._fallback = None
-        self.config = primary.config
-        self._load_ms = getattr(primary, "_load_ms", 0.0)
-        self.provider = "elevenlabs"
-        self.last_event = None
-
-    def synthesize(self, text: str):
-        if not str(text or "").strip():
-            return
-        emitted = False
-        try:
-            for chunk in self.primary.synthesize(text):
-                emitted = True
-                yield chunk
-            event = getattr(self.primary, "last_event", None)
-            if not emitted:
-                raise RuntimeError("ElevenLabs returned no audio")
-            self.provider = "elevenlabs"
-            self.config = self.primary.config
-            self.last_event = event
-            return
-        except Exception as exc:  # noqa: BLE001
-            if emitted:
-                self.provider = "elevenlabs"
-                self.last_event = {
-                    "backend": "elevenlabs",
-                    "ok": False,
-                    "error_class": type(exc).__name__,
-                    "fallback": "not_safe_after_partial_audio",
-                }
-                raise
-            log.warning(
-                "ElevenLabs produced no audio; using Piper fallback "
-                "error_class=%s", type(exc).__name__)
-            if self._fallback is None:
-                self._fallback = self._fallback_loader()
-            self.provider = "piper_fallback"
-            self.config = self._fallback.config
-            for chunk in self._fallback.synthesize(text):
-                yield chunk
-            self.last_event = {
-                "backend": "piper_fallback",
-                "ok": True,
-                "reason": type(exc).__name__,
-            }
 
 
 class _ProfileFallbackTTS:
@@ -262,16 +183,6 @@ def _get_engine():
             _cfg["engine"] = "qwen_remote"
             _cfg["fallback_engine"] = cfg.get("fallback_engine", "piper")
             _cfg["fallback_voice"] = fallback_cfg["voice"]
-        elif requested == "elevenlabs":
-            from .elevenlabs_tts import ElevenLabsTTS
-            t0 = time.perf_counter()
-            primary = ElevenLabsTTS.from_config(cfg)
-            primary._load_ms = (time.perf_counter() - t0) * 1000
-            _engine = primary
-            _cfg = dict(cfg)
-            _cfg["engine"] = "elevenlabs"
-            _cfg["voice"] = primary.voice_id
-            _cfg["auto_fallback"] = False
         elif requested == "piper":
             _engine = _load_piper(cfg)
             _cfg = dict(cfg)
@@ -367,9 +278,6 @@ def voices() -> dict:
         if _cfg and _cfg.get("engine") in {"qwen_remote", "openai"}:
             return {"ok": True, "engine": _cfg["engine"],
                     "voices": [_cfg.get("voice", "aiden")]}
-        if _cfg and _cfg.get("engine") == "elevenlabs":
-            return {"ok": True, "engine": "elevenlabs",
-                    "voices": [_cfg["voice"]]}
         names = sorted(p.stem for p in _voice_dir.glob("*.onnx"))
         return {"ok": True, "engine": "piper", "voices": names,
                 "dir": str(_voice_dir)}
@@ -379,14 +287,9 @@ def voices() -> dict:
 
 @mcp.tool()
 def health() -> dict:
-    """Report active backend and credential-gated ElevenLabs status.
-
-    This is deliberately network-free. A live provider call belongs to the
-    explicit acceptance test, not the ordinary import/health smoke test.
-    """
+    """Report the active backend without making a network call."""
     try:
         engine, cfg = _get_engine()
-        eleven = _elevenlabs_status(cfg)
         return {
             "ok": True,
             "engine": getattr(engine, "provider", cfg.get("engine", "piper")),
@@ -394,9 +297,6 @@ def health() -> dict:
             "voice": cfg["voice"],
             "sample_rate": _engine_sample_rate(engine),
             "load_ms": round(getattr(engine, "_load_ms", 0.0), 1),
-            "elevenlabs_configured": eleven["configured"],
-            "elevenlabs_key_configured": eleven["key_configured"],
-            "elevenlabs_voice_configured": eleven["voice_configured"],
             "auto_fallback": bool(cfg.get("auto_fallback", False)),
             "last_event": getattr(engine, "last_event", None),
             "fallback_engine": cfg.get("fallback_engine"),

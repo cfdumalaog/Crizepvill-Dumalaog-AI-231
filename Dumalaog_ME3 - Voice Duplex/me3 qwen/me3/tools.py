@@ -688,7 +688,11 @@ def tool_definitions() -> list[dict]:
         spec("fetch_url", "Fetch a public HTTP(S) page for research; do not send secrets.", {
             "url": {"type": "string"}, "max_chars": {"type": "integer", "default": 20000},
         }, ("url",)),
-        spec("web_search", "Search the public web and return result links.", {
+        spec("web_search", (
+            "Search the public web and return result links. Use this before "
+            "answering current, latest, recent, election, news, world-event, "
+            "price, schedule, weather, or otherwise uncertain factual questions; "
+            "do not guess when search is required."), {
             "query": {"type": "string"}, "max_results": {"type": "integer", "default": 5},
         }, ("query",)),
         spec("github_pages_health", (

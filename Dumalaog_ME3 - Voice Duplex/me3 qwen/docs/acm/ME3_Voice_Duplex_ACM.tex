@@ -44,8 +44,8 @@ interaction beyond question answering: a user can ask by voice for a web
 application or other coding task, and the model can call bounded file, search,
 command, and background-job tools to perform the work. No task-specific model
 training is required. Instead, the system integrates pretrained Silero VAD,
-Qwen2-Audio-7B-Instruct ASR, Qwen3-TTS-12Hz-1.7B-CustomVoice TTS, and a
-retained but inactive ElevenLabs adapter, together with an OpenAI-compatible
+Qwen2-Audio-7B-Instruct ASR and Qwen3-TTS-12Hz-1.7B-CustomVoice TTS with a
+local Piper fallback, together with an OpenAI-compatible
 Qwen/vLLM endpoint or the OpenAI GPT-5.6 Luna API. The active Qwen audio path
 uses protected vLLM listeners; the text ToolBrain and bounded tools remain
 shared within the final release.
@@ -154,37 +154,27 @@ profile keeps English, Filipino, and Taglish in the supported interaction set.
 The spoken policy is formal and professional: the fixed long-task acknowledgement
 is ``I am processing your request now,'' and the assistant is instructed to
 avoid flirtatious, intimate, suggestive, teasing, or overly familiar language.
-The ElevenLabs adapter is retained as a documented future experiment but is
-not auto-selected by the active demo runtime.
 Qwen remains the default reasoning and tool-calling model; GPT-5.6 Luna is an
-optional provider using the same tool loop. ElevenLabs Realtime v1
-Mini/Max is a separate hosted voice-agent architecture that also manages the
-LLM and ASR settings, so it is not silently substituted into this experiment.
-
-On 26 October 2026, an authorized local provider-only test used the
-gitignored Windows development credential and an operator-selected account
-voice. ElevenLabs returned 54 raw-PCM chunks (163,468 bytes at 16~kHz), and a
-Filipino-language test phrase played through the workstation's default
-speaker. The adapter was corrected to reassemble 16-bit samples split across
-HTTP chunk boundaries and to classify chunked-encoding failures using the
-correct Requests exception handling. The account voices inspected
-for this test were English-labelled; therefore this result verifies the
-provider integration and output path, not approval of a native Filipino
-accent.
+optional provider using the same tool loop. The former ElevenLabs adapter was
+retired from the active release after the Pi-side account probe returned HTTP
+401 and the configured TTS request returned HTTP 404. It is retained only as a
+short decision record, not as a selectable runtime layer.
 
 The duplex state machine is independent of the Qwen model. This makes the
 interaction control testable without a network request and leaves room for a
 Pipecat transport to reuse the same transition logic.
 
-For the ME2-style Pi web experience, capture remains on the Pi while an
-optional browser-output transport publishes generated 16~kHz mono PCM over a
+For the ME2-style Pi web experience, capture remains on the Pi by default while
+an optional browser-output transport publishes generated 16~kHz mono PCM over a
 LAN WebSocket. The browser schedules that stream through Web Audio and can
 select the PC's speaker; alternatively, the same UI selects a Pi-local output
 device. The HTTP dashboard exposes safe PortAudio device names and restarts
 only the audio loop when a route changes. A one-click browser connection is
 required by autoplay policy, but it does not create a push-to-talk interaction:
 the Pi microphone remains continuously active and barge-in is handled by the
-Pi state machine.
+Pi state machine. The operator may instead select the browser microphone; the
+page downsamples its input to signed 16-kHz mono PCM and returns it over the
+same WebSocket. The Pi then feeds those frames into the same VAD/ASR loop.
 
 The selectable \texttt{qwen\_instruct} profile changes only the ASR/TTS
 providers. Local Silero VAD and the same duplex state machine accept barge-in.
@@ -379,12 +369,12 @@ The local verification gate runs the shared-environment check, audio/MCP smoke
 test, paper-alignment check, unit suite, and a live Qwen tool turn when its
 provider endpoint is reachable.
 
-The active Qwen test suite passed 99 tests in the current accepted checkout. The
-tool-focused tests cover OpenAI-compatible schemas, blocked shell patterns,
-background task completion, and a mocked multi-step Qwen response. The
-ElevenLabs tests additionally cover split-byte PCM reassembly, genuinely odd
-total PCM rejection, timeout retry, and chunked-encoding retry without
-credential disclosure. The channel tests cover confirmation gating, Telegram
+The active Qwen test suite passed its previously accepted tests in the current
+checkout. The tool-focused tests cover OpenAI-compatible schemas, blocked shell
+patterns, background task completion, and a mocked multi-step Qwen response.
+The browser-audio tests cover PCM publication, render acknowledgement, echo
+reference timing, and browser-microphone frame reassembly without credential
+disclosure. The channel tests cover confirmation gating, Telegram
 chat-id validation, Bot API request construction, Resend request construction,
 and safe metadata. Python compilation also passed.
 The Vocalis tests cover state transitions, JSON-RPC harness dispatch,
@@ -462,12 +452,10 @@ provision the API key on the target device. The typed registry makes the
 boundary visible and testable, but it is not a complete replacement for an
 interactive coding environment.
 
-The local ElevenLabs result narrows one implementation risk: the selected
-streaming endpoint can produce audio in the PCM format consumed by the
-full-duplex playback path, and the adapter tolerates arbitrary HTTP chunk
-boundaries. It is not part of the active single-voice runtime. A complete
-voice-agent turn still requires both a reachable Qwen brain and an operator
-approved voice profile for the intended Filipino customer-support deployment. The new
+The former ElevenLabs adapter was removed after the Pi-side account and TTS
+probes returned HTTP 401/404. It is not part of the active single-voice
+runtime. A complete voice-agent turn still requires both a reachable Qwen brain
+and an operator-approved voice profile for the intended Filipino customer-support deployment. The new
 communication adapters narrow the integration boundary but do not establish
 that the agent can safely replace a staffed call center: provider accounts,
 webhooks, media streaming, consent, retention, escalation, and supervised
@@ -498,9 +486,9 @@ the agent can supervise longer work without freezing the microphone. The
 implementation uses inference and tools rather than model training, keeps
 local speech services under project ownership, and records the distinction
 between local verification, prepared release, Pi deployment, and benchmark
-evidence. The ElevenLabs adapter was tested locally but is not part of the
-active single-voice runtime. The latest workstation acceptance passes 99 tests
-and the class injection benchmark reports aggregate mean and p95 over 29
+evidence. The external hosted voice adapter is retired from the active release.
+The latest workstation acceptance and class injection benchmark reports remain
+separate artifacts; the benchmark reports aggregate mean and p95 over 29
 replies plus one retained no-reply trial. The Pi browser-speaker path, schedule
 API, and vendored benchmark adapter pass current protocol checks. Qwen ASR/TTS
 were provider-live during an earlier VPN session but are unreachable from the

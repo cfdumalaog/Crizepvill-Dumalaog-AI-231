@@ -51,7 +51,6 @@ INCLUDE = [
     "plan",                # 10-page plan + generator (for the class record)
     "docs/PAPER_ALIGNMENT.md",
     "docs/PHILIPPINE_CALL_CENTER_PILOT.md",
-    "docs/ELEVENLABS_INTEGRATION.md",
     "docs/ME3_MANUAL_ELI5_AND_DEEP.md",
     "docs/CHANNEL_INTEGRATIONS.md",
     "docs/DEMO_RUNBOOK.md",

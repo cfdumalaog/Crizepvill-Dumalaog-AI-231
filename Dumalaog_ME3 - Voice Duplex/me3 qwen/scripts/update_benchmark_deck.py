@@ -75,10 +75,10 @@ def main() -> int:
     slide.shapes[15].text_frame.paragraphs[0].runs[0].font.size = Pt(11)
 
     # Slide 7: the active demo defaults to English; Filipino/Taglish support is
-    # available, while ElevenLabs remains optional rather than silently active.
+    # available, while the retired external voice adapter is not silently active.
     slide = deck.slides[6]
     replace_text(slide.shapes[5], "fil-PH\nEnglish by default\nFilipino + Taglish understood")
-    replace_text(slide.shapes[6], "Qwen3-TTS Aiden is the active demo voice. ElevenLabs Filipino remains an optional selectable layer.")
+    replace_text(slide.shapes[6], "Qwen3-TTS Aiden is the active demo voice. Piper is the local fallback.")
     replace_text(slide.shapes[13], "Pilot first. Measure quality, safety, cost, and handoff.")
     slide.shapes[13].text_frame.paragraphs[0].runs[0].font.size = Pt(11)
 

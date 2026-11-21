@@ -41,8 +41,6 @@ def _setup_kind(request: str) -> str | None:
         return "qwen"
     if re.search(r"\bdeepgram\b", text):
         return "deepgram"
-    if re.search(r"\b(?:elevenlabs|eleven labs)\b", text):
-        return "elevenlabs"
     if re.search(r"\bspotify\b", text):
         return "spotify"
     if re.search(r"\b(?:google calendar|calendar|meet)\b", text):
@@ -104,15 +102,6 @@ def setup_form(request: str) -> dict:
             "help": "Deepgram is an ASR fallback only. Enter its key privately; it does not replace the text/tool brain.",
             "fields": [_field("api_key", "Deepgram API key", "password", autocomplete="new-password")],
             "private_save": {"endpoint": "/api/integrations/deepgram-key", "fields": ["api_key"]},
-        },
-        "elevenlabs": {
-            "title": "Set up ElevenLabs voice output",
-            "help": "Enter the API key and, if needed, the selected voice ID privately. The voice remains one consistent ME3 voice after activation.",
-            "fields": [
-                _field("api_key", "ElevenLabs API key", "password", autocomplete="new-password"),
-                _field("voice_id", "ElevenLabs voice ID", "text"),
-            ],
-            "private_save": {"endpoint": "/api/integrations/elevenlabs", "fields": ["api_key", "voice_id"]},
         },
         "spotify": {
             "title": "Set up Spotify music",

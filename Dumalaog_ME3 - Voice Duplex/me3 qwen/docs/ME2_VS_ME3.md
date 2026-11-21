@@ -20,8 +20,8 @@ ME3:  Pi microphone -> Silero VAD -> ASR -> Qwen/Luna tool reasoning
                     ^ continuous capture + barge-in while speaking ^
 ```
 
-No ME3 model training is required. Qwen/Luna and the optional ElevenLabs or
-Qwen audio services are inference APIs; ME3 supplies the orchestration,
+No ME3 model training is required. Qwen/Luna and the configured Qwen audio
+services are inference APIs; ME3 supplies the orchestration,
 MCP servers, VAD policy, tool safety gates, device transport, benchmark
 adapter, and deployment package.
 
@@ -33,8 +33,8 @@ adapter, and deployment package.
 | Language | Dataset labels and fixed phrase variation | Filipino/English/Taglish ASR and open-ended requests |
 | Interaction | Wake, listen, classify, execute one coded intent | Always listening, endpointing, thinking, speaking, and interruptible barge-in |
 | Actions | Code paths for a finite 31-label set | MCP/tool registry for files, commands, web apps, research, timers, system status, and gated channels |
-| Voice | Bundled response WAVs / local output | Piper, ElevenLabs Filipino-capable voice, or Qwen3-TTS |
-| Network | Offline-first; weather is a bounded demo API | Qwen/Luna/ElevenLabs are optional remote services; local stub/injection lanes remain available |
+| Voice | Bundled response WAVs / local output | Piper, Qwen3-TTS, or another configured active provider |
+| Network | Offline-first; weather is a bounded demo API | Qwen/Luna are optional remote services; local stub/injection lanes remain available |
 | Browser | ME2 dashboard and recorder controls | ME2-style live dashboard plus thinking/task progress, model/tool timing, variant, routing, and browser PCM speaker |
 | Audio topology | Pi microphone and Pi output device | Pi microphone stays on Pi; output is selectable as Pi speaker or connected PC browser speaker over LAN/SSH tunnel |
 | Evaluation | Static/live classifier accuracy and inference latency | Full-duplex turn-taking, missed/false turn-taking, interruption, stop/response latency, and v1.5 behavior categories |

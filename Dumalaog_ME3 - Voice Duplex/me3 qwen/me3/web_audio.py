@@ -1,10 +1,11 @@
-"""Browser-speaker transport for the ME2-style Pi web experience.
+"""Browser audio transport for the ME2-style Pi web experience.
 
-The Raspberry Pi remains the capture host.  ``BrowserOutputAudio`` delegates
-mic capture to the normal PortAudio transport but publishes generated 16-kHz
-mono PCM to the current browser client over a small WebSocket hub.  The
-browser is responsible for selecting its own physical speaker through the
-standard Web Audio output device picker.
+The Raspberry Pi normally remains the capture host. ``BrowserOutputAudio``
+publishes generated 16-kHz mono PCM to the current browser client over a small
+WebSocket hub. When the operator selects the browser microphone, the same
+connection carries 16-kHz mono PCM back to the Pi and becomes the live input
+source. The browser is responsible for selecting its own physical speaker
+through the standard Web Audio output device picker.
 
 There is deliberately only one active audio output client. Additional
 device-only clients (for example, the Android companion used for phone calls)
@@ -15,6 +16,7 @@ from __future__ import annotations
 
 import json
 import logging
+import queue
 import threading
 import time
 import uuid
@@ -36,6 +38,9 @@ class BrowserAudioHub:
         self._thread: threading.Thread | None = None
         self._clients: set = set()
         self._audio_client = None
+        self._input_client = None
+        self._input_queue: "queue.Queue[np.ndarray]" = queue.Queue(maxsize=200)
+        self._input_buffers: dict = {}
         self._lock = threading.RLock()
         self._send_lock = threading.Lock()
         self._started = threading.Event()
@@ -85,14 +90,20 @@ class BrowserAudioHub:
         with self._lock:
             self._clients.add(conn)
             self._client_info[conn] = {
-                "client_type": "web", "capabilities": [], "audio_output": True,
+                "client_type": "web", "capabilities": [],
+                "audio_output": True, "audio_input": False,
             }
             if self._audio_client is None:
                 self._audio_client = conn
         log.info("ME3 browser/device client connected; clients=%d", len(self._clients))
         try:
             for message in conn:
-                if isinstance(message, str):
+                if isinstance(message, (bytes, bytearray, memoryview)):
+                    with self._lock:
+                        is_input = conn is self._input_client
+                    if is_input:
+                        self._accept_input_bytes(conn, bytes(message))
+                elif isinstance(message, str):
                     try:
                         parsed = json.loads(message)
                         event_data = parsed if isinstance(parsed, dict) else {}
@@ -125,6 +136,7 @@ class BrowserAudioHub:
                             "client_type": str(event_data.get("client_type") or "web")[:40],
                             "capabilities": [str(x)[:60] for x in caps[:20]],
                             "audio_output": bool(event_data.get("audio_output", True)),
+                            "audio_input": bool(event_data.get("audio_input", False)),
                         }
                         with self._lock:
                             self._client_info[conn] = info
@@ -136,6 +148,12 @@ class BrowserAudioHub:
                                     if candidate is not conn and
                                     self._client_info.get(candidate, {}).get("audio_output")
                                 ), None)
+                            if info["audio_input"]:
+                                self._input_client = conn
+                                self._input_buffers[conn] = bytearray()
+                            elif self._input_client is conn:
+                                self._input_client = None
+                                self._input_buffers.pop(conn, None)
                     elif event == "device_action_result":
                         action_id = str(event_data.get("action_id") or "")
                         with self._action_lock:
@@ -154,11 +172,52 @@ class BrowserAudioHub:
             with self._lock:
                 self._clients.discard(conn)
                 self._client_info.pop(conn, None)
+                self._input_buffers.pop(conn, None)
                 if self._audio_client is conn:
                     self._audio_client = next((
                         candidate for candidate in self._clients
                         if self._client_info.get(candidate, {}).get("audio_output")
                     ), None)
+                if self._input_client is conn:
+                    self._input_client = None
+
+    def _accept_input_bytes(self, conn, payload: bytes) -> None:
+        """Accept browser microphone PCM and expose fixed 30-ms frames."""
+        if not payload:
+            return
+        # BrowserAudio uses signed little-endian 16-bit mono PCM at 16 kHz.
+        usable = len(payload) - (len(payload) % 2)
+        if usable <= 0:
+            return
+        with self._lock:
+            buffer = self._input_buffers.setdefault(conn, bytearray())
+            buffer.extend(payload[:usable])
+            frame_bytes = 480 * 2  # 30 ms at 16 kHz
+            while len(buffer) >= frame_bytes:
+                frame = np.frombuffer(bytes(buffer[:frame_bytes]),
+                                      dtype="<i2").copy()
+                del buffer[:frame_bytes]
+                try:
+                    self._input_queue.put_nowait(frame)
+                except queue.Full:
+                    try:
+                        self._input_queue.get_nowait()
+                    except queue.Empty:
+                        pass
+                    try:
+                        self._input_queue.put_nowait(frame)
+                    except queue.Full:
+                        pass
+
+    def has_input_client(self) -> bool:
+        with self._lock:
+            return self._input_client is not None
+
+    def read_input_frame(self, timeout: float = 0.5) -> np.ndarray | None:
+        try:
+            return self._input_queue.get(timeout=timeout)
+        except queue.Empty:
+            return None
 
     def has_client(self) -> bool:
         with self._lock:
@@ -270,6 +329,7 @@ class BrowserAudioHub:
             call_clients = sum(
                 "call_phone" in info.get("capabilities", [])
                 for info in self._client_info.values())
+            input_connected = self._input_client is not None
         return {
             "enabled": True,
             "host": self.host,
@@ -281,6 +341,7 @@ class BrowserAudioHub:
             "dropped_frames": self.dropped_frames,
             "client_policy": "single_audio_sink_with_device_action_clients",
             "active_client": client_info,
+            "browser_input_connected": input_connected,
             "device_action_clients": call_clients,
             "chunk_samples": 480,
             "render_ack_count": self.render_ack_count,
@@ -298,7 +359,7 @@ class BrowserAudioHub:
 
 
 class BrowserOutputAudio:
-    """Capture on the Pi and play TTS in a browser through ``hub``."""
+    """Play TTS in a browser and capture either Pi or browser microphone PCM."""
 
     def __init__(self, config: dict, hub: BrowserAudioHub):
         self.capture = FullDuplexAudio(config)
@@ -308,6 +369,7 @@ class BrowserOutputAudio:
         self.frame_n = self.capture.frame_n
         self.in_idx = None
         self.out_idx = "browser"
+        self.browser_input = str(self.capture.in_dev_cfg or "").strip().lower() == "browser"
         self.io_in_rate = None
         self.io_out_rate = self.sr
         self._playing = False
@@ -323,14 +385,29 @@ class BrowserOutputAudio:
         self.output_events: list[dict] = []
 
     def start_capture(self):
+        if self.browser_input:
+            self.in_idx = "browser"
+            self.io_in_rate = self.sr
+            log.info("capture delegated to browser microphone WebSocket")
+            return
         self.capture.start_capture()
         self.in_idx = self.capture.in_idx
         self.io_in_rate = self.capture.io_in_rate
 
     def startup_signal_check(self, seconds: float = 1.5) -> bool:
+        if self.browser_input:
+            t0 = time.perf_counter()
+            peak = 0.0
+            while time.perf_counter() - t0 < seconds:
+                frame = self.read_frame(timeout=0.25)
+                if frame is not None and len(frame):
+                    peak = max(peak, float(np.abs(frame).max()))
+            return peak > 0.0
         return self.capture.startup_signal_check(seconds)
 
     def read_frame(self, timeout: float = 0.5):
+        if self.browser_input:
+            return self.hub.read_input_frame(timeout)
         return self.capture.read_frame(timeout)
 
     def play(self, pcm: np.ndarray, blocking: bool = False):

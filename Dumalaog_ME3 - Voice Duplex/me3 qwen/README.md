@@ -239,6 +239,16 @@ cannot be matched by one microphone echo reference. Browser-native
 `speechSynthesis` is disabled in both the live assistant and diagnostic UI;
 the selected profile TTS is the only response voice.
 
+The audio card also exposes **Connect browser microphone**. Selecting the
+`This browser / connected PC microphone` input and clicking that button asks
+the browser for microphone permission, downsamples the stream to signed
+16-kHz mono PCM, and sends it over the existing audio WebSocket to the Pi.
+The browser speaker remains the TTS output, and the Pi-side echo reference
+still protects the loop. The default remains the Pi Fifine microphone; browser
+input is an explicit alternative and requires a live browser tab with
+microphone permission. The browser's own echo-cancellation and noise
+suppression constraints are enabled as an additional front-end measure.
+
 For the Qwen Instruct audio deployment, install the SHARC OpenVPN client on the
 Pi first, as documented in `docs/SHARC_VPN_PI_SETUP.md`. Then provision the
 protected audio endpoint values once after the first sync (the script reads the
@@ -352,7 +362,7 @@ Dumalaog_ME3 - Voice Duplex/
 ├── docs/VOCALIS_PROTOCOL.md # full-duplex input/output event contract
 ├── docs/ME3_MANUAL_ELI5_AND_DEEP.md # ELI5 + deep technical manual
 ├── docs/ME3_QWEN_INSTRUCT_SYSTEM_FLOW.svg # full layer-by-layer process infographic
-├── docs/ELEVENLABS_INTEGRATION.md # Qwen voice backend and Realtime decision
+├── docs/ELEVENLABS_INTEGRATION.md # retired provider decision and live failure record
 ├── docs/CHANNEL_INTEGRATIONS.md # call, SMS/text, email API requirements
 ├── docs/acm/ME3_Voice_Duplex_ACM.tex # ACM two-column LaTeX source
 ├── docs/acm/ME3_Voice_Duplex_ACM.pdf # ACM two-column paper
@@ -497,7 +507,7 @@ and ordinary Telegram voice calls are outside the active project.
 | FR14 | Local-dev-before-deploy pipeline (ME2 pattern) | ✅ built | `scripts/` + `deployment/` state files |
 | FR15 | Local quick launch like ME2 | ✅ built | `launchers/Start-ME3.bat` + `scripts/Start-Local-ME3.ps1` |
 | FR16 | Agentic tool calling (build real artifacts from voice) | ✅ verified | `me3/brain.py` provider-neutral Qwen/Luna tool loop + `me3/tools.py` (project, web, task, ME2-parity, and channel tools) + `me3/task_runner.py` |
-| FR17 | Optional ElevenLabs adapter | ✅ implemented, inactive in the single-voice demo path | `me3/elevenlabs_tts.py`; active profiles stay on one fixed voice |
+| FR17 | External voice adapter | retired from the active release | Qwen3-TTS Aiden is the active voice; Piper remains the local fallback |
 | FR18 | Telegram text integration | ✅ implemented, credential-gated | `me3/channels.py` (`send_telegram_message`) + Telegram Bot API `sendMessage` |
 | FR19 | Optional transactional email integration | ✅ implemented, credential-gated | `me3/channels.py` (`send_email`) + Resend Send Email API |
 | FR20 | Telephone calls / SMS | ⚠️ Android call path implemented; SMS out of scope | `call_contact` through the connected Android companion; no Twilio or SMS provider |
@@ -531,8 +541,8 @@ Setup is an agent interaction, not a collection of browser shortcuts. Clicking
 **Set up** sends a setup-intent message to the same `/api/chat` route used by
 typed and voice requests. If the request is vague, the ToolBrain asks one
 useful clarification question in the conversation. If the target is clear—such
-as Gemini, Spotify, Google Calendar, Telegram, GitHub, ElevenLabs, or a custom
-vLLM—the ToolBrain calls the local `setup_form` tool. That tool returns a
+as Gemini, Spotify, Google Calendar, Telegram, GitHub, or a custom vLLM—the
+ToolBrain calls the local `setup_form` tool. That tool returns a
 credential-free schema containing only the fields needed for that request.
 
 The browser renders that schema as a card in the conversation feed. The card is
@@ -701,33 +711,16 @@ are in [docs/ME3_QWEN_STAGE_BENCHMARK_20261107.md](docs/ME3_QWEN_STAGE_BENCHMARK
 
 ## Pi deployment (tool brain key)
 
-## ElevenLabs voice backend
+## Retired external voice adapter
 
-ME3 keeps Qwen as the reasoning/tool model and can render its responses with
-ElevenLabs streaming PCM. The adapter is retained and documented for future
-experiments, but the active demo profile deliberately does not auto-select it:
-Own is locked to Piper `en_GB-alba-medium` and Qwen is locked to Qwen3-TTS
-CustomVoice `aiden`. This preserves one voice for replies, backchannels, and
-completion announcements while keeping the full-duplex microphone, VAD, ASR,
-playback, and barge-in path. See
-docs/ELEVENLABS_INTEGRATION.md.
-
-The ElevenLabs CLI onboarding flow stores the local development key in the
-gitignored project `.env`. ME3 loads that file locally without overriding
-explicit process/service variables; the Pi continues to use its protected
-`~/.config/me3/me3.env` runtime file. Do not commit or print either file.
-
-The old auto/fallback behavior is kept only in the adapter tests; it is not
-reachable from the active profile selector. `ME3_TTS_ENGINE`,
-`ME3_TTS_VOICE`, and `ME3_ANNOUNCER_VOICE` cannot change the live profile voice.
-
-The local provider path was exercised on 2026-10-26 using an operator-selected
-test voice: ElevenLabs returned 16-kHz raw PCM and the Filipino-language test
-phrase played through the workstation's default speaker. The runtime now uses
-the multilingual Whisper model with automatic Filipino/English detection and
-passes `language_code=fil` to ElevenLabs. A native Filipino/Philippine-English
-accent still requires the operator to select and provision an approved voice
-ID; that ID is never committed.
+ElevenLabs is no longer an active ME3 provider. The Pi-side checks on
+2026-11-21 returned HTTP 401 for the account probe and HTTP 404 for the
+configured text-to-speech request, so the adapter, selector entry, setup form,
+dependency, and private Pi entries were removed. The active Qwen profile uses
+one Qwen3-TTS CustomVoice `aiden` voice for replies, backchannels, and
+completion announcements, with Piper as the local fallback. The historical
+decision and evidence are retained in `docs/ELEVENLABS_INTEGRATION.md`; it is
+not an installation or configuration guide.
 
 ### Speaker feedback protection
 
@@ -781,10 +774,9 @@ near silence, and the output was suppressed before VAD/ASR. The raw ASR
 loopback diagnostic remains available without the flag; it disables the guard
 deliberately so that TTS-to-capture-to-ASR can be measured.
 
-ElevenLabs Realtime v1 Mini/Max is a complete hosted voice-agent mode that also
-manages the LLM and speech recognition. It is documented as an optional
-alternative, but is not silently substituted because ME3's Qwen tool loop is
-an explicit project requirement.
+Other hosted realtime voice products are outside the active ME3 release. They
+are not silently substituted because ME3's Qwen tool loop and explicit ASR,
+TTS, VAD, and tool-brain layers are project requirements.
 
 ### Standardized Qwen voice output
 

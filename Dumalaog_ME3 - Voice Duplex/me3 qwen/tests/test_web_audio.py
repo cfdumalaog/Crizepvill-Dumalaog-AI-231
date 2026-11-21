@@ -47,6 +47,20 @@ def test_browser_audio_hub_publishes_pcm_and_clear_event():
         hub.stop()
 
 
+def test_browser_audio_hub_accepts_microphone_pcm_in_30ms_frames():
+    hub = BrowserAudioHub("127.0.0.1", 0)
+    client = object()
+    hub._input_client = client
+    samples = np.arange(960, dtype=np.int16)
+    hub._accept_input_bytes(client, samples.astype("<i2").tobytes())
+    first = hub.read_input_frame(timeout=0.1)
+    second = hub.read_input_frame(timeout=0.1)
+    assert hub.has_input_client() is True
+    assert np.array_equal(first, samples[:480])
+    assert np.array_equal(second, samples[480:])
+    assert hub.read_input_frame(timeout=0.01) is None
+
+
 def test_browser_output_registers_speaker_reference_for_echo_guard():
     cfg = {
         "audio": {

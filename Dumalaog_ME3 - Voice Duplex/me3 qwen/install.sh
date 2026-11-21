@@ -95,13 +95,6 @@ fi
 # runtime env file so it cannot corrupt an HTTP Authorization header.
 VLLM_KEY="${VLLM_KEY//$'\r'/}"
 VLLM_KEY="${VLLM_KEY//$'\n'/}"
-ELEVENLABS_KEY="${ELEVENLABS_API_KEY:-}"
-if [ -z "$ELEVENLABS_KEY" ] && [ -f "$ENV_DIR/elevenlabs-api-key.txt" ]; then
-  ELEVENLABS_KEY="$(cat "$ENV_DIR/elevenlabs-api-key.txt")"
-fi
-ELEVENLABS_KEY="${ELEVENLABS_KEY//$'\r'/}"
-ELEVENLABS_KEY="${ELEVENLABS_KEY//$'\n'/}"
-ELEVENLABS_VOICE="${ELEVENLABS_VOICE_ID:-}"
 # The active Qwen profile is intentionally single-voice Qwen3-TTS.
 TTS_ENGINE="qwen_remote"
 # Preserve channel credentials already provisioned in the protected runtime
@@ -121,8 +114,6 @@ done
 cat > "$ENV_DIR/me3.env" <<EOF
 ME3_ASR_MODEL=$ASR_MODEL
 ME3_TTS_ENGINE=$TTS_ENGINE
-ELEVENLABS_API_KEY=${ELEVENLABS_KEY:-}
-ELEVENLABS_VOICE_ID=${ELEVENLABS_VOICE:-}
 VLLM_API_KEY=${VLLM_KEY:-${VLLM_API_KEY:-}}
 OPENAI_API_KEY=${OPENAI_KEY:-${OPENAI_API_KEY:-}}
 TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
@@ -144,11 +135,6 @@ if [ -n "$OPENAI_KEY" ] || [ -n "${OPENAI_API_KEY:-}" ]; then
   echo "  OPENAI_API_KEY: set (GPT-5.6 Luna available when selected)"
 else
   echo "  OPENAI_API_KEY: not configured (Qwen remains the default brain)"
-fi
-if [ -n "$ELEVENLABS_KEY" ]; then
-  echo "  ELEVENLABS_API_KEY: set (value hidden; retained for future experiments, not active)"
-else
-  echo "  ELEVENLABS_API_KEY: not configured (optional; inactive in the Qwen profile)"
 fi
 if [ -n "${TELEGRAM_BOT_TOKEN:-}" ]; then
   echo "  Telegram Bot API: set (value hidden; text messaging enabled)"

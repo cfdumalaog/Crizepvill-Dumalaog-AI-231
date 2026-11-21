@@ -334,15 +334,16 @@ body.apk-focus .chat-form button{min-width:72px;background:rgba(37,99,235,.36);}
     <div class="card">
       <h2>Pi audio routing</h2>
       <div class="audio-controls">
-        <label>Pi microphone<input type="text" id="piInputSelect" list="piInputList" placeholder="auto / device name / index"><datalist id="piInputList"></datalist></label>
+        <label>Microphone input<input type="text" id="piInputSelect" list="piInputList" placeholder="Pi Fifine, browser, device name, or index"><datalist id="piInputList"></datalist></label>
         <label>ME3 output<select id="piOutputSelect"><option value="browser">This browser / connected PC speaker</option></select></label>
         <label>Browser speaker<select id="browserSinkSelect"><option value="default">Browser default speaker</option></select></label>
-        <button id="applyAudio" type="button">Apply Pi audio routing</button>
+        <button id="applyAudio" type="button">Apply audio routing</button>
         <button id="connectAudio" type="button">Connect browser speaker</button>
+        <button id="connectBrowserMic" type="button">Connect browser microphone</button>
         <label>Duplex mode<select id="duplexMode"><option value="automatic">Automatic barge-in (default)</option><option value="keyword_only">Keyword-only protected playback</option></select></label>
         <button id="applyDuplexMode" type="button">Apply duplex mode</button>
         <div class="audio-note" id="duplexModeStatus">Automatic mode: genuine speech interrupts; ME3 echo is rejected.</div>
-        <div class="audio-note" id="audioStatus">Pi audio controls appear when the LAN server is running. Browser output needs one click because browsers block autoplay.</div>
+        <div class="audio-note" id="audioStatus">Pi audio controls appear when the LAN server is running. Choose the browser microphone to send this device's mic to the Pi; browser output needs one click because browsers block autoplay.</div>
         <div class="audio-note" id="musicStatus">Spotify connection status is being checked.</div>
         <div class="connection-summary" id="connectionSummary">Checking provider and connected services…</div>
         <button class="connection-button" id="openSetup" type="button">Set up a connection in chat</button>
@@ -494,6 +495,8 @@ let smoothRms = 0, orbHue = 220, orbPhase = 0;
 let bargeFlashUntil = 0, seenBargeAt = null;
 let prevState = null, stateSince = 0, seenTranscriptAt = null, seenReplyAt = null;
 let audioSocket = null, audioContext = null, audioNextTime = 0, audioNodes = [];
+let browserMicStream = null, browserMicSource = null, browserMicProcessor = null, browserMicMute = null;
+let browserMicEnabled = false;
 let currentPlaybackId = null, renderAckSent = false;
 let lightState = null;
 const seenNotifications = new Set(), alarmToneTimers = new Map();
@@ -809,7 +812,8 @@ function fillAudioDevices(d){
   if(old && [...out.options].some(o => o.value === old)) out.value = old;
   const ba = d.browser_audio || {};
   const sync = ba.render_ack_count ? (' Echo reference synced ' + ba.render_ack_count + ' time' + (ba.render_ack_count === 1 ? '' : 's') + '.') : '';
-  $('audioStatus').textContent = (ba.clients ? 'Browser speaker connected. ' : 'Browser speaker not connected. ') + 'One active browser audio client is allowed; stale tabs are replaced.' + sync + ' Pi input/output selection is applied by restarting only the audio loop.';
+  const input = ba.browser_input_connected ? ' Browser microphone connected.' : '';
+  $('audioStatus').textContent = (ba.clients ? 'Browser speaker connected. ' : 'Browser speaker not connected. ') + 'One active browser audio client is allowed; stale tabs are replaced.' + input + sync + ' Input/output selection is applied by restarting only the audio loop.';
 }
 
 async function loadAudioDevices(){
@@ -840,23 +844,32 @@ async function connectBrowserAudio(){
     audioContext = audioContext || new Ctx(); await audioContext.resume();
     const sink = $('browserSinkSelect').value;
     if(sink !== 'default' && audioContext.setSinkId) await audioContext.setSinkId(sink);
+    stopBrowserMic();
     if(audioSocket) audioSocket.close();
     const p = Number(location.port || (location.protocol === 'https:' ? 443 : 80));
     const audioPort = p === 8126 ? 8127 : (p === 8090 ? 8091 : p + 1);
     const scheme = location.protocol === 'https:' ? 'wss' : 'ws';
-    audioSocket = new WebSocket(scheme + '://' + location.hostname + ':' + audioPort + '/audio');
+    const socket = new WebSocket(scheme + '://' + location.hostname + ':' + audioPort + '/audio');
+    audioSocket = socket;
     audioSocket.binaryType = 'arraybuffer';
-    audioSocket.onopen = () => {
+      audioSocket.onopen = async () => {
       const nativePhone = !!window.Me3Native;
       audioSocket.send(JSON.stringify({event:'client_info',
         client_type:nativePhone ? 'android' : 'browser',
         capabilities:nativePhone ? ['call_phone'] : [],
-        audio_output:!nativePhone}));
+        audio_output:!nativePhone,
+        audio_input:!nativePhone && $('piInputSelect').value.trim().toLowerCase() === 'browser'}));
       $('audioStatus').textContent = nativePhone
         ? 'Android phone actions connected.'
-        : 'Browser speaker connected; TTS will play here.';
+        : ($('piInputSelect').value.trim().toLowerCase() === 'browser'
+          ? 'Browser speaker connected; requesting this device microphone…'
+          : 'Browser speaker connected; TTS will play here.');
+      if(!nativePhone && $('piInputSelect').value.trim().toLowerCase() === 'browser') {
+        try { await startBrowserMic(); }
+        catch(e) { $('audioStatus').textContent = 'Browser microphone unavailable: ' + e.message; }
+      }
     };
-    audioSocket.onclose = () => { $('audioStatus').textContent = 'Browser speaker disconnected.'; };
+    audioSocket.onclose = () => { if(audioSocket !== socket) return; stopBrowserMic(); $('audioStatus').textContent = 'Browser audio disconnected.'; };
     audioSocket.onerror = () => { $('audioStatus').textContent = 'Could not connect to Pi audio stream; check port ' + audioPort + '.'; };
     audioSocket.onmessage = ev => {
       if(typeof ev.data === 'string'){
@@ -896,8 +909,57 @@ async function connectBrowserAudio(){
     };
   } catch(e) { $('audioStatus').textContent = 'Browser audio unavailable: ' + e.message; }
 }
+
+function stopBrowserMic(){
+  browserMicEnabled = false;
+  try { if(browserMicProcessor) browserMicProcessor.disconnect(); } catch(e) {}
+  try { if(browserMicSource) browserMicSource.disconnect(); } catch(e) {}
+  try { if(browserMicMute) browserMicMute.disconnect(); } catch(e) {}
+  if(browserMicStream) browserMicStream.getTracks().forEach(t => t.stop());
+  browserMicStream = browserMicSource = browserMicProcessor = browserMicMute = null;
+}
+
+function downsampleTo16k(input, inputRate){
+  const ratio = inputRate / 16000;
+  const length = Math.max(1, Math.round(input.length / ratio));
+  const pcm = new Int16Array(length);
+  for(let i=0;i<length;i++){
+    const pos = i * ratio, left = Math.floor(pos), right = Math.min(left + 1, input.length - 1);
+    const sample = input[left] + (input[right] - input[left]) * (pos - left);
+    pcm[i] = Math.max(-32768, Math.min(32767, Math.round(sample * 32767)));
+  }
+  return pcm;
+}
+
+async function startBrowserMic(){
+  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) throw new Error('browser microphone capture is unavailable');
+  if(!audioSocket || audioSocket.readyState !== WebSocket.OPEN) throw new Error('connect the browser audio transport first');
+  browserMicStream = await navigator.mediaDevices.getUserMedia({audio:{channelCount:1, echoCancellation:true, noiseSuppression:true, autoGainControl:false}});
+  const Ctx = window.AudioContext || window.webkitAudioContext;
+  audioContext = audioContext || new Ctx(); await audioContext.resume();
+  browserMicSource = audioContext.createMediaStreamSource(browserMicStream);
+  browserMicProcessor = audioContext.createScriptProcessor(4096, 1, 1);
+  browserMicMute = audioContext.createGain(); browserMicMute.gain.value = 0;
+  browserMicProcessor.onaudioprocess = ev => {
+    if(!browserMicEnabled || !audioSocket || audioSocket.readyState !== WebSocket.OPEN) return;
+    const pcm = downsampleTo16k(ev.inputBuffer.getChannelData(0), audioContext.sampleRate);
+    if(pcm.length) audioSocket.send(pcm.buffer);
+  };
+  browserMicEnabled = true;
+  browserMicSource.connect(browserMicProcessor);
+  browserMicProcessor.connect(browserMicMute);
+  browserMicMute.connect(audioContext.destination);
+  $('audioStatus').textContent = 'Browser microphone connected; this device is now the ME3 input. Browser speaker remains the TTS output.';
+}
+
+async function connectBrowserMic(){
+  $('piInputSelect').value = 'browser';
+  await applyAudio();
+  await connectBrowserAudio();
+}
 $('applyAudio').addEventListener('click', applyAudio);
 $('connectAudio').addEventListener('click', connectBrowserAudio);
+$('connectBrowserMic').addEventListener('click', connectBrowserMic);
 $('browserSinkSelect').addEventListener('change', () => { if(audioSocket && audioSocket.readyState === WebSocket.OPEN) connectBrowserAudio(); });
 
 window.me3CompleteDeviceAction = function(actionId, ok, status, error){

@@ -16,8 +16,9 @@ _CHAT_KEY = re.compile(r"^ME3_TELEGRAM_CHAT_[A-Z0-9_]{1,64}$")
 _ALLOWED = {
     "TELEGRAM_BOT_TOKEN", "GOOGLE_OAUTH_CLIENT_ID",
     "GOOGLE_OAUTH_CLIENT_SECRET", "GOOGLE_CALENDAR_REFRESH_TOKEN",
-    "DEEPGRAM_API_KEY", "ELEVENLABS_API_KEY", "ELEVENLABS_VOICE_ID",
+    "DEEPGRAM_API_KEY",
     "GITHUB_TOKEN", "OPENAI_API_KEY", "GEMINI_API_KEY",
+    "ME3_TELEGRAM_TARGET_USERNAME",
 }
 
 
@@ -71,6 +72,8 @@ def set_values(values: dict) -> dict:
             return {"ok": False, "error": "invalid_telegram_bot_token_format"}
         if name.startswith("ME3_TELEGRAM_CHAT_") and not re.fullmatch(r"-?\d{1,24}", value):
             return {"ok": False, "error": "telegram_chat_id_must_be_numeric"}
+        if name == "ME3_TELEGRAM_TARGET_USERNAME" and not re.fullmatch(r"@?[A-Za-z0-9_]{3,32}", value):
+            return {"ok": False, "error": "invalid_telegram_username"}
         accepted[name] = value
 
     path = _path()

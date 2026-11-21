@@ -81,7 +81,7 @@ bundle:
 ```
 
 The transfer installs the exact hashed archive. It does not copy the Windows
-`.env`, Qwen credentials, ElevenLabs credentials, Telegram credentials, Resend
+`.env`, Qwen credentials, retired external voice credentials, Telegram credentials, Resend
 credentials, local run logs, model caches, or unrelated course files.
 
 ## Pi acceptance after promotion
@@ -107,13 +107,13 @@ results.
 
 It proves that the presentable software bundle is internally consistent and
 eligible for deployment. It can cover Qwen/tool tests, injected audio, local
-MCP servers, Windows microphone/speaker tests, ElevenLabs playback, local web
+MCP servers, Windows microphone/speaker tests, Qwen/Piper playback, local web
 apps, and fake-request channel tests.
 
 It does not by itself prove:
 
 - a live Telegram message or Resend email;
 - a production Telegram webhook/MTProto voice bridge;
-- a Filipino ElevenLabs voice until the approved voice ID is tested;
+- a native Filipino accent beyond the configured Qwen voice;
 - Raspberry Pi microphone or speaker operation;
 - a paper-native 499-trial overlap result.

@@ -50,6 +50,14 @@ def test_current_event_questions_get_grounded_web_search_queries():
     assert brain._web_search_query([], "what is the current date?") is None
 
 
+def test_system_prompt_forbids_fabricated_current_facts():
+    prompt = brain.build_system_prompt("You are ME3.").lower()
+    assert "do not hallucinate" in prompt
+    assert "elections" in prompt
+    assert "web_search" in prompt
+    assert "instead of guessing" in prompt
+
+
 def test_runtime_date_context_is_fresh_and_localized():
     from datetime import datetime
     from zoneinfo import ZoneInfo

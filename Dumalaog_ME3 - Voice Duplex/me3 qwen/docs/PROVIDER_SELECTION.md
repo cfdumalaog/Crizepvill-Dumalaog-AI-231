@@ -114,7 +114,7 @@ the audio layers:
 - Tool brain: Qwen, OpenAI, Gemini, or a configured custom LLM profile;
 - ASR: Qwen2-Audio DGX3, Deepgram Nova-3, faster-whisper local, OpenAI
   transcription, or a configured custom ASR profile;
-- TTS: Qwen3-TTS Aiden, Piper local, ElevenLabs Filipino, OpenAI Onyx, or a
+- TTS: Qwen3-TTS Aiden, Piper local, OpenAI Onyx, or a
   configured custom TTS profile;
 - VAD: local Silero or the lightweight energy-gate fallback.
 
@@ -150,8 +150,9 @@ The 2026-11-19 Pi run verified the following after selecting the Qwen audio
 layers: Qwen ASR completed directly through DGX3 in about 1.0 s, Qwen3-TTS
 completed directly through DGX3 in about 1.4 s at 24 kHz using `aiden`, local
 faster-whisper and Piper also completed, and both Silero and energy VAD probes
-completed. OpenAI ASR and ElevenLabs TTS were correctly reported as not
-configured on the Pi. The fixture test is adapter evidence only; it is not a
+completed. OpenAI ASR was correctly reported as not configured on the Pi. The
+retired ElevenLabs adapter is no longer included in the provider matrix. The
+fixture test is adapter evidence only; it is not a
 human microphone or physical speaker/echo-gate result. The text/tool brain
 remains a separate reachability gate.
 

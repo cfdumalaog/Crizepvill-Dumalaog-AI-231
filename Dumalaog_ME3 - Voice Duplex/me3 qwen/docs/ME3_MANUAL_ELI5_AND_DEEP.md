@@ -107,19 +107,12 @@ backchannel is exactly `I am processing your request now.`, and the assistant
 must avoid flirtatious, intimate, suggestive, teasing, or overly familiar
 language.
 
-The ElevenLabs adapter remains available for a deliberate future experiment,
-but the active selector does not auto-select it. During a Qwen TTS outage only,
-the local `en_US-ryan-medium` Piper voice takes over and stays selected until
-service restart; this is an availability failover, not a matched-voice claim.
-Eleven
-Realtime Mini and Max remain an alternative hosted architecture, not a silent
-replacement for the Qwen/tool loop.
-
-ElevenLabs Realtime v1 Mini and Max are complete hosted voice-agent modes that
-also manage the LLM and speech-to-text configuration. Using them would be an
-alternative architecture, not simply a voice switch for Qwen. The exact
-configuration and acceptance gate are documented in
-docs/ELEVENLABS_INTEGRATION.md.
+The former ElevenLabs adapter was retired from the active release after the
+Pi-side account and TTS probes returned HTTP 401/404. During a Qwen TTS outage
+only, the local `en_US-ryan-medium` Piper voice takes over and stays selected
+until service restart; this is an availability failover, not a matched-voice
+claim. Other hosted realtime voice products would be alternative architectures,
+not silent replacements for the Qwen/tool loop.
 
 ### Qwen fast mode and long-task visibility
 
@@ -420,9 +413,10 @@ API model ID `gpt-5.6-luna`; hidden reasoning is disabled and direct response
 streaming is enabled when supported. ASR and TTS remain the Pi-local ME3
 services.
 
-The ElevenLabs adapter remains documented and tested, but it is not active in
-the single-voice demo path. Qwen is locked to Qwen3-TTS `aiden` with a formal
-style instruction; environment overrides cannot switch the voice at runtime.
+The former ElevenLabs adapter was retired from the active release after the
+Pi-side provider probes failed. Qwen is locked to Qwen3-TTS `aiden` with a
+formal style instruction; environment overrides cannot switch the voice at
+runtime.
 The former Own variant is archived rather than supported as another live demo.
 
 Before enabling the user service, run the read-only Pi audio gate:
@@ -453,7 +447,7 @@ python scripts/injection_eval.py \
 The evaluator uses `InjectedDuplexAudio`. It delivers 16-kHz PCM frames at
 wall-clock cadence, appends a controlled silence tail so VAD can close the
 turn, and sends the frames through the same VAD, faster-whisper, Qwen/tool,
-Piper-or-ElevenLabs, and barge-in code. Synthesized TTS is discarded by a
+Qwen3-TTS-or-Piper, and barge-in code. Synthesized TTS is discarded by a
 virtual sink while its duration and stop events are recorded. An interrupt
 WAV scheduled during virtual TTS tests whether the agent can listen and act
 while it is speaking, without acoustic speaker feedback.

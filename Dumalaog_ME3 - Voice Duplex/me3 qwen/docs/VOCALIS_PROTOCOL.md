@@ -23,7 +23,7 @@ endpointed utterance -> faster-whisper ASR -> Qwen OpenAI-compatible API
                                                 +-> web/file/system task result
         ^                                       |
         |                                       v
-        +-- protected playback / voice control -- TTS (ElevenLabs or Piper fallback)
+        +-- protected playback / voice control -- TTS (Qwen3-TTS Aiden or Piper fallback)
 ```
 
 The Qwen path is text-compatible internally because the configured Qwen

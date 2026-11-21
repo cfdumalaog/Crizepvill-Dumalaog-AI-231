@@ -203,8 +203,8 @@ It captures from the Pi and plays TTS through the Windows workstation speakers.
 - Browser reachability: HTTP 200 from the Pi page and local page.
 - Physical mic/speaker: only claim after `pi_audio_preflight.py` passes and a
   human turn is recorded with the hardware owner/process state documented.
-- ElevenLabs Filipino voice: the adapter is not active in the demo profile;
-  use the fixed Piper or Qwen3-TTS profile voice shown in the UI.
+- External hosted voice adapter: not active in this release; use the fixed
+  Qwen3-TTS Aiden voice or Piper fallback shown in the UI.
 - Call/SMS/email tools: run `channel_health` for a network-free configuration
   check. Do not set `confirm=true` in a classroom demo; live Telegram/Resend
   tests require an operator-owned destination and an explicit out-of-band

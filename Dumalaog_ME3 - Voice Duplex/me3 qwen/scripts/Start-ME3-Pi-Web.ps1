@@ -36,11 +36,13 @@ $directHost = $null
 if (-not $DryRun) {
     $targetParts = $SshTarget -split '@', 2
     if ($targetParts.Count -eq 2) {
+        $piMac = '2C-CF-67-70-8D-47'
         try {
             Resolve-DnsName -Name $targetParts[1] -ErrorAction Stop | Out-Null
+            $sshReachable = Test-NetConnection -ComputerName $targetParts[1] -Port 22 -InformationLevel Quiet -WarningAction SilentlyContinue
+            if (-not $sshReachable) { throw "SSH is not reachable at $($targetParts[1])" }
             $directHost = $targetParts[1]
         } catch {
-            $piMac = '2C-CF-67-70-8D-47'
             $neighbor = Get-NetNeighbor -AddressFamily IPv4 -ErrorAction SilentlyContinue |
                 Where-Object { $_.LinkLayerAddress -eq $piMac -and
                     $_.State -notin @('Unreachable', 'Incomplete') } |
@@ -49,6 +51,22 @@ if (-not $DryRun) {
                 $SshTarget = "$($targetParts[0])@$($neighbor.IPAddress)"
                 $directHost = $neighbor.IPAddress
                 Write-Host "Pi hostname did not resolve; using current hotspot lease $($neighbor.IPAddress)."
+            } elseif ($HostKeyAlias -match '^\d{1,3}(?:\.\d{1,3}){3}$') {
+                # A freshly connected Pi may not be present in the Windows
+                # neighbor table yet. Probe the last host-key address once;
+                # only accept it after its MAC proves it is the Pi.
+                try {
+                    $candidateReachable = Test-NetConnection -ComputerName $HostKeyAlias -Port 22 -InformationLevel Quiet -WarningAction SilentlyContinue
+                    $candidateNeighbor = Get-NetNeighbor -AddressFamily IPv4 -IPAddress $HostKeyAlias -ErrorAction SilentlyContinue
+                    if ($candidateReachable -and $candidateNeighbor.LinkLayerAddress -eq $piMac) {
+                        $SshTarget = "$($targetParts[0])@$HostKeyAlias"
+                        $directHost = $HostKeyAlias
+                        Write-Host "Pi hostname did not resolve; confirmed the Pi at $HostKeyAlias from its stable Wi-Fi MAC."
+                    }
+                } catch {
+                    # Leave the original hostname in place so OpenSSH reports
+                    # the connection failure clearly if no safe fallback exists.
+                }
             }
         }
     }

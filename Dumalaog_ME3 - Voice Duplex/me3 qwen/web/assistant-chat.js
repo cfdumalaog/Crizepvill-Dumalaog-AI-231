@@ -21,7 +21,7 @@
     },
     tts: {
       qwen_remote: 'Qwen3-TTS Aiden', piper: 'Piper local',
-      elevenlabs: 'ElevenLabs Filipino', openai: 'OpenAI Onyx',
+      openai: 'OpenAI Onyx',
       custom_vllm: 'Custom vLLM/API'
     },
     vad: {silero: 'Silero local', energy: 'Energy gate fallback'}
@@ -139,12 +139,20 @@
     try {
       const privateSave = form.private_save || null;
       let saved = null;
+      let targetError = '';
       if(privateSave && privateSave.endpoint) {
         const privatePayload = {};
         (privateSave.fields || fields.map(field => field.name)).forEach(name => {
           if(values[name] !== undefined) privatePayload[name] = values[name];
         });
         saved = await jsonRequest(privateSave.endpoint, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(privatePayload)});
+      }
+      if(form.form_kind === 'telegram' && String(values.target || '').trim()) {
+        try {
+          await jsonRequest('/api/telegram/connect-target', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:String(values.target).trim()})});
+        } catch(err) {
+          targetError = err.message || 'Telegram target mapping needs one message to the bot.';
+        }
       }
       if(form.activation && form.activation.provider) {
         await jsonRequest('/api/provider/select', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(form.activation)});
@@ -154,8 +162,10 @@
         await jsonRequest('/api/restart-service', {method:'POST'});
       }
       Object.keys(values).forEach(name => { if(secretFieldNames.has(name)) values[name] = ''; });
-      state.textContent = 'Submitted. Private fields were saved on the Pi; the non-secret details are continuing in the conversation.';
-      await sendChat('I submitted the generated setup form for "' + (form.title || 'this setup') + '". Non-secret details: ' + setupSummary(form, values) + '. Any credential fields were entered through the protected setup card. Continue the setup and tell me what remains or whether it is ready.', {setupFollowup:true});
+      state.textContent = targetError
+        ? 'Token saved. Telegram could not map the target yet: ' + targetError
+        : 'Submitted. Private fields were saved on the Pi; the non-secret details are continuing in the conversation.';
+      await sendChat('I submitted the generated setup form for "' + (form.title || 'this setup') + '". Non-secret details: ' + setupSummary(form, values) + (targetError ? '. Telegram target mapping still needs attention: ' + targetError : '') + '. Any credential fields were entered through the protected setup card. Continue the setup and tell me what remains or whether it is ready.', {setupFollowup:true});
       await refreshSummary();
       setTimeout(loadLayers, 5000);
     } catch(err) {
@@ -214,7 +224,7 @@
       if(seen.has(event.id)) continue;
       seen.add(event.id);
       const role = event.role === 'user' ? 'user' : 'assistant';
-      const meta = role === 'user' ? (event.source === 'chat' ? 'typed' : 'Pi microphone')
+      const meta = role === 'user' ? (event.source === 'chat' ? 'typed' : 'voice microphone')
         : (event.kind === 'backchannel' ? 'progress' : 'ME3');
       const box = message(role, event.text, meta);
       if(role === 'assistant' && /\bapproval is required\b/i.test(event.text)) {

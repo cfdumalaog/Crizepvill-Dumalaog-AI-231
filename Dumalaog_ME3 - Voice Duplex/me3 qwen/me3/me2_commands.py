@@ -437,6 +437,7 @@ def send_message(contact: str, body: str, channel: str = "telegram",
         "MONICA": "MNCFRNDZ", "MONICA_FERNANDEZ": "MNCFRNDZ",
         # Keep the common spoken/transcription typo usable as well.
         "MONICA_FERNANDEX": "MNCFRNDZ",
+        "MAIMAIFD": "MAIMAIFD",
     }
     mapping_key = "ME3_TELEGRAM_CHAT_" + aliases.get(slug, slug)
     chat_id = raw if re.fullmatch(r"-?\d+", raw) else secure_config.get(mapping_key)
@@ -447,9 +448,13 @@ def send_message(contact: str, body: str, channel: str = "telegram",
 
 def telegram_status() -> dict:
     token_ready = bool(secure_config.get("TELEGRAM_BOT_TOKEN"))
-    mapped = bool(secure_config.get("ME3_TELEGRAM_CHAT_MNCFRNDZ"))
+    target = "@" + (secure_config.get("ME3_TELEGRAM_TARGET_USERNAME") or "mncfrndz").lstrip("@")
+    target_key = "ME3_TELEGRAM_CHAT_" + re.sub(r"[^A-Z0-9]+", "_", target.lstrip("@").upper()).strip("_")
+    mapped = bool(secure_config.get(target_key))
+    if not mapped and target.lstrip("@").lower() == "mncfrndz":
+        mapped = bool(secure_config.get("ME3_TELEGRAM_CHAT_MNCFRNDZ"))
     return {"configured": token_ready and mapped, "bot_configured": token_ready,
-            "target_mapped": mapped, "target": "@mncfrndz"}
+            "target_mapped": mapped, "target": target}
 
 
 def phone_call_status() -> dict:
@@ -472,12 +477,13 @@ def save_telegram_bot_token(token: str) -> dict:
 
 
 def connect_telegram_target(username: str = "mncfrndz") -> dict:
-    """Map @mncfrndz to its Bot API chat ID after the user starts the bot."""
+    """Map a Telegram username after that user starts the bot once."""
     import requests
 
     username = str(username or "mncfrndz").strip().lstrip("@").lower()
-    if username != "mncfrndz":
-        return {"ok": False, "error": "only_the_configured_target_is_supported"}
+    if not re.fullmatch(r"[a-z0-9_]{3,32}", username):
+        return {"ok": False, "error": "invalid_telegram_username"}
+    secure_config.set_values({"ME3_TELEGRAM_TARGET_USERNAME": username})
     token = secure_config.get("TELEGRAM_BOT_TOKEN")
     if not token:
         return {"ok": False, "error": "telegram_bot_token_required"}
@@ -507,21 +513,23 @@ def connect_telegram_target(username: str = "mncfrndz") -> dict:
                     break
         if not chat_id:
             return {"ok": False, "error": "target_must_start_the_me3_bot_once",
-                    "target": "@mncfrndz"}
-        aliases = {
-            "ME3_TELEGRAM_CHAT_MNCFRNDZ": chat_id,
-            "ME3_TELEGRAM_CHAT_MONICA": chat_id,
-            "ME3_TELEGRAM_CHAT_MONICA_FERNANDEZ": chat_id,
-            "ME3_TELEGRAM_CHAT_MONICA_FERNANDEX": chat_id,
-            "ME3_TELEGRAM_CHAT_WIFE": chat_id,
-            "ME3_TELEGRAM_CHAT_WIFEY": chat_id,
-            "ME3_TELEGRAM_CHAT_WIFEEY": chat_id,
-            "ME3_TELEGRAM_CHAT_WIFEEYY_DUMALAOG_FERNANDEZ": chat_id,
-        }
+                    "target": "@" + username}
+        aliases = {"ME3_TELEGRAM_CHAT_" + re.sub(r"[^A-Z0-9]+", "_", username.upper()).strip("_"): chat_id}
+        if username == "mncfrndz":
+            aliases.update({
+                "ME3_TELEGRAM_CHAT_MNCFRNDZ": chat_id,
+                "ME3_TELEGRAM_CHAT_MONICA": chat_id,
+                "ME3_TELEGRAM_CHAT_MONICA_FERNANDEZ": chat_id,
+                "ME3_TELEGRAM_CHAT_MONICA_FERNANDEX": chat_id,
+                "ME3_TELEGRAM_CHAT_WIFE": chat_id,
+                "ME3_TELEGRAM_CHAT_WIFEY": chat_id,
+                "ME3_TELEGRAM_CHAT_WIFEEY": chat_id,
+                "ME3_TELEGRAM_CHAT_WIFEEYY_DUMALAOG_FERNANDEZ": chat_id,
+            })
         saved = secure_config.set_values(aliases)
         if not saved.get("ok"):
             return saved
-        return {"ok": True, "mapped": True, "target": "@mncfrndz"}
+        return {"ok": True, "mapped": True, "target": "@" + username}
     except Exception as exc:  # noqa: BLE001 - never expose token or response body
         return {"ok": False, "error": "telegram_connect_failed",
                 "error_type": type(exc).__name__}

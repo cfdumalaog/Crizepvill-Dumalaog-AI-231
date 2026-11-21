@@ -9,7 +9,7 @@ Double-click these Windows launchers from File Explorer:
 | `Start-ME3-UI.bat` | Interactive local agent console | Opens `http://127.0.0.1:8124/`; Qwen + tools, GPT-5.6 Luna + tools, or offline stub, tool events, and hard-disabled Telegram/Resend side effects. |
 | `Start-ME3-Web.bat` | Local browser preview | Serves the tracked `web\` presenter surface on `http://127.0.0.1:8123/` and reports LAN URLs. Pass `-Path agent_workspace\voice_webapp` for a generated app. |
 | `Start-ME3-Pi-Web.bat` | ME2-style Pi browser tunnel | Starts the Pi static preview when available, forwards it to `http://127.0.0.1:8090/`, and opens the browser. `Ctrl+C` closes the tunnel. |
-| `Start-ME3-Pi-Qwen.bat` | **Named Qwen Instruct laptop launcher** | Connects to the stable Pi identity (`cfdfnjrpi5.local` first, then the current DHCP lease discovered from the Pi Wi-Fi MAC) and forwards Pi ports 8126/8127 to laptop ports 8100/8101, including the Spotify OAuth callback on port 8100. It does not start a second ME3 server. |
+| `Start-ME3-Pi-Qwen.bat` | **Named Qwen Instruct laptop launcher** | Starts/restarts the active Pi `me3-agent.service`, discovers the stable Pi identity (`cfdfnjrpi5.local` first, then the current DHCP lease discovered from the Pi Wi-Fi MAC), forwards Pi ports 8126/8127 to laptop ports 8100/8101, and opens the local UI. It does not start a second ME3 server. |
 | `pi/ME3-Qwen-Demo.desktop` | **Pi desktop launcher** | Restarts/enables the Pi's `me3-agent.service`, checks the web/audio service and voice loop, and displays current Pi addresses for the laptop launcher. |
 | `Start-Pi-Injection-Demo.bat` | The deployed Pi Qwen/tool demo | Uses reviewed WAV fixtures and a virtual sink; recommended when the physical Fifine input is occupied or the speaker path is not ready. |
 
@@ -115,7 +115,9 @@ public URL. To forward an already-running Pi server without starting one:
 
 Use `-StopServer` only for a server started by this launcher.
 
-For the named Qwen launcher, double-click `Start-ME3-Pi-Qwen.bat`. It selects
+For the named Qwen launcher, double-click `Start-ME3-Pi-Qwen.bat`. It first
+restarts the active `me3-agent.service` on the Pi, waits for
+`/api/health`, then creates the local SSH tunnel and opens the UI. It selects
 the `ME3 QWEN INSTRUCT` profile explicitly. The Pi reads the protected
 `QWEN_INSTRUCT_ASR_BASE_URL`, `QWEN_INSTRUCT_TTS_BASE_URL`, and
 `QWEN_INSTRUCT_API_KEY` values from the dedicated mode-600
@@ -139,7 +141,9 @@ http://cfdfnjrpi5.local:8126/
 The Pi hostname is persistent across DHCP changes. On Windows, VPN software
 can block `.local` mDNS resolution; the launcher then discovers the current
 lease from the Pi's stable Wi-Fi MAC (`2C-CF-67-70-8D-47`) in the local neighbor
-table and uses that address automatically. Therefore `192.168.1.13` is only
-the current lease, not a permanent address. A genuinely fixed IP across one
-specific router requires a DHCP reservation on that router; it cannot be made
-universal across arbitrary demo networks.
+table. If the Pi has just joined the network and is not in that table yet, it
+probes the configured host-key address and accepts it only when the MAC matches
+the Pi. Therefore `192.168.1.13` or `192.168.254.105` is only a current lease,
+not a permanent address. A genuinely fixed IP across one specific router
+requires a DHCP reservation on that router; it cannot be made universal across
+arbitrary demo networks.

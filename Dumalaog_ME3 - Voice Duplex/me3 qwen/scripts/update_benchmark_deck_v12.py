@@ -87,7 +87,7 @@ def main() -> int:
     # Slide 7: current demo voice and language behavior.
     slide = deck.slides[6]
     replace_text(slide.shapes[5], "English by default\nFilipino + Taglish understood")
-    replace_text(slide.shapes[6], "Qwen3-TTS Aiden is the single active demo voice; ElevenLabs Filipino remains optional.")
+    replace_text(slide.shapes[6], "Qwen3-TTS Aiden is the single active demo voice; Piper is the local fallback.")
 
     # Slide 8: make the autonomous next gates actionable.
     slide = deck.slides[7]
