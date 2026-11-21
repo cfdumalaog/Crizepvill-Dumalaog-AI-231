@@ -34,6 +34,15 @@ WER = total insertions + deletions + substitutions
                   total reference words
 ```
 
+The target source of truth is the vendored fd-benchmark target file:
+E2E 4.0 s, ASR final 0.8 s, LLM TTFT 1.5 s, TTS TTFB 0.6 s, barge-in 0.8 s,
+and corpus WER 15%. A latency row is `met` only when both its mean and p95 are
+under target. WER is judged against its aggregate corpus ratio and has no p95.
+For barge-in, the benchmark measures `t_stop`: the end of the assistant
+segment that was playing at overlap onset minus the overlap onset. A trial in
+which the assistant talks through the overlap is counted separately, not as a
+latency sample.
+
 ## Completed full direct-feed run
 
 The latest completed run is retained at:

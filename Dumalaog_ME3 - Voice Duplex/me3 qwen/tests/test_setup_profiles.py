@@ -4,6 +4,7 @@ import json
 
 from me3 import setup_profiles
 from me3 import tools
+from me3.brain import _targeted_setup_request
 
 
 def test_setup_plan_generates_vllm_fields():
@@ -42,6 +43,16 @@ def test_setup_form_is_registered_as_a_tool():
     assert result["setup_form"]["form_kind"] == "spotify"
     assert any(item["function"]["name"] == "setup_form"
                for item in tools.tool_definitions())
+
+
+def test_submitted_setup_form_continuation_does_not_regenerate_form():
+    assert _targeted_setup_request("connect Telegram target @maimaifd") is True
+    continuation = (
+        'I submitted the generated setup form for "Set up Telegram messages". '
+        'Non-secret details: target=@maimaifd. This is a continuation of the '
+        'same setup task; do not generate another setup form.'
+    )
+    assert _targeted_setup_request(continuation) is False
 
 
 def test_custom_profile_is_private_and_status_is_redacted(monkeypatch, tmp_path):

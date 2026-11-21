@@ -343,6 +343,8 @@ benchmark:
     llm_ttft: 1500               # class-group target: 1.5 s
     tts_ttfb: 600                # class-group target: 0.6 s
     barge_in: 800                # class-group target: 0.8 s
+  class_target_ratio:
+    wer: 0.15                    # class-group target: 15% corpus WER
   class_protocol:
     injected_audio_only: true
     open_microphone: false

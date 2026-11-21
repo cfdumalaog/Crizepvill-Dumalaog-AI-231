@@ -1,4 +1,9 @@
-# ME3 Qwen Instruct stage-latency benchmark
+# ME3 Qwen Instruct historical stage-latency benchmark (7 November 2026)
+
+> Historical snapshot. The current benchmark result is the completed
+> 19-November direct-feed receipt in
+> `docs/ME3_QWEN_BENCHMARK_AND_AUDIO_EVIDENCE_20261120.md`; this file is kept
+> to preserve the earlier fallback-provider comparison.
 
 Date: 2026-11-07 (Asia/Manila)
 Variant: ME3 Qwen Instruct on the Raspberry Pi

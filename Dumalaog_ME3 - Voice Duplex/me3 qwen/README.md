@@ -697,17 +697,25 @@ is required by the active project.
 The class latency run is injection-only: it opens no physical microphone or
 speaker, disables tool calls and external agent/harness calls, and disables
 fillers/backchannels. The targets are E2E 4.0 s, ASR final 0.8 s, LLM TTFT
-1.5 s, TTS TTFB 0.6 s, and barge-in 0.8 s. The direct-feed adapter keeps
+1.5 s, TTS TTFB 0.6 s, barge-in 0.8 s, and corpus WER 15%. These values match
+the vendored fd-benchmark `targets.example.json`; the direct-feed adapter keeps
 live-agent tool behavior available separately through `--allow-tools`.
 
-The first complete Pi stage run used 10 phrases × 3 runs and aggregated every
-valid trial rather than choosing the best run. It produced E2E mean/p95 of
-5.81/7.87 s, ASR final 3.38/4.92 s, LLM TTFT 0.21/0.21 s, TTS TTFB
-1.60/2.98 s, and WER 29.3%. The Qwen ASR listener on DGX3 port 8000 was
-unreachable during collection, so the runtime used its documented
-faster-whisper fallback. Treat this as diagnostic deployed-pipeline evidence,
-not a clean Qwen2-Audio ASR claim. The checked-in method and evidence boundary
-are in [docs/ME3_QWEN_STAGE_BENCHMARK_20261107.md](docs/ME3_QWEN_STAGE_BENCHMARK_20261107.md).
+The latest completed direct-feed run is the single current class result:
+10 phrases × 3 stage runs plus one full-duplex round, 40/40 planned trials
+retained, with every valid observation aggregated rather than choosing the
+best run. It produced E2E mean/p95 of 4.30/7.19 s, ASR final 2.68/5.32 s,
+TTS TTFB 0.63/0.62 s, and aggregate corpus WER 17.6% (31 edits / 176
+reference words, n=29). LLM TTFT and barge-in are **not reported** in this
+run because the required stage marks/valid overlap samples were absent. DGX3
+audio services timed out during collection, so the run used the documented
+faster-whisper fallback and is diagnostic deployed-pipeline evidence, not a
+clean Qwen2-Audio ASR claim. The authoritative receipt is
+[`docs/ME3_QWEN_BENCHMARK_AND_AUDIO_EVIDENCE_20261120.md`](docs/ME3_QWEN_BENCHMARK_AND_AUDIO_EVIDENCE_20261120.md).
+
+The 7-November 2026 30-trial result remains available as a historical
+fallback-provider snapshot in
+[`docs/ME3_QWEN_STAGE_BENCHMARK_20261107.md`](docs/ME3_QWEN_STAGE_BENCHMARK_20261107.md); it is not the current score.
 
 ## Pi deployment (tool brain key)
 

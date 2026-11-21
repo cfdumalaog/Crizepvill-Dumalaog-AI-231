@@ -3,9 +3,10 @@
 The source template remains untouched.  The output is a new two-page, 960x540
 PDF that keeps the template's hierarchy, palette, spacing, table structure,
 and footer treatment while replacing placeholders with verified Qwen Instruct
-details. Mean/p95 cells are populated from the recorded 2026-11-07 direct-feed
-full benchmark, including stage marks transported by the custom WebSocket
-adapter. The physical acoustic path remains a separate acceptance gate.
+details. Mean/p95 cells are populated from the recorded 2026-11-19 direct-feed
+benchmark, including stage marks transported by the custom WebSocket adapter.
+The physical acoustic path remains a separate acceptance gate. Missing LLM
+TTFT and barge-in samples are shown as not reported rather than inferred.
 """
 from __future__ import annotations
 
@@ -264,7 +265,7 @@ def build() -> Path:
 
     # Page 1
     header(c, "Full-Duplex Voice Agent on a Raspberry Pi",
-           "QWEN INSTRUCT BUILD | 07 NOV 2026",
+           "QWEN INSTRUCT BUILD | 19 NOV 2026",
            "MACHINE EXERCISE - ME3 QWEN INSTRUCT")
     section(c, "1", "SYSTEM DIAGRAM", "input -> Pi -> agent -> laptop speaker", 48, 418)
     diagram(c, 48, 255, 430, 145)
@@ -315,27 +316,27 @@ def build() -> Path:
 
     metrics = [
         ["Metric", "Definition", "Target", "Mean", "p95"],
-        ["E2E latency", "end of speech -> audio out", "4.0 s", "4.89 s", "7.01 s"],
-        ["ASR final", "VAD end -> transcript", "0.8 s", "1.17 s", "2.16 s"],
-        ["LLM TTFT", "transcript -> first token", "1.5 s", "1.35 s", "4.73 s"],
-        ["TTS TTFB", "text -> first audio chunk", "0.6 s", "2.51 s", "4.28 s"],
-        ["Barge-in", "speech -> playback stopped", "0.8 s", "0.19 s", "0.19 s"],
-        ["WER", "ASR accuracy on test set", "15%", "24.1%", "-"],
+        ["E2E latency", "end of speech -> audio out", "4.0 s", "4.30 s", "7.19 s"],
+        ["ASR final", "VAD end -> transcript", "0.8 s", "2.68 s", "5.32 s"],
+        ["LLM TTFT", "transcript -> first token", "1.5 s", "-", "-"],
+        ["TTS TTFB", "text -> first audio chunk", "0.6 s", "0.63 s", "0.62 s"],
+        ["Barge-in", "playback stop - overlap onset", "0.8 s", "-", "-"],
+        ["WER", "aggregate word edits / reference words", "15%", "17.6%", "-"],
     ]
     draw_table(c, 507, 262, [83, 160, 52, 47, 47], metrics, 17, font_size=6.9)
 
     panel(c, 48, 37, 277, 96, "DEMO (deck 2)", [
         "Operator confirmed Pi Fifine speech -> ME3 -> laptop browser speaker.",
         "Direct commands work without Qwen; complex tasks need model access.",
-        "Barge-in measured 0.19 s mean/p95 over one marked injection trial.",
+        "Physical acoustic echo gate passed; human barge-in remains unmeasured.",
     ])
     panel(c, 339, 37, 277, 96, "RESULTS (deck 2)", [
         "One round completed 40/40 planned trials: 30 stage-latency plus 10 group-level clips; no judge.",
-        "Stage samples: E2E/ASR/LLM/TTS/barge-in n=20/26/26/22/1; WER n=27.",
-        "E2E, ASR, TTS, and WER missed targets; LLM mean met but p95 missed; barge-in met.",
+        "Stage samples: E2E/ASR/TTS n=28/29/29; LLM and barge-in n=0; WER n=29.",
+        "E2E, ASR, TTS, and WER exceeded targets; LLM TTFT and barge-in are not reported.",
     ])
     panel(c, 630, 37, 282, 96, "CHALLENGES & REFERENCES", [
-        "Stage marks now cross the direct-feed adapter; the marked 40/40 run populated the table.",
+        "40/40 planned direct-feed trials completed; all valid observations were retained, not the best run.",
         "Spotify needs API access, Premium, and PKCE; current account lacks API access.",
         "Calendar OAuth, Telegram bot setup, and Android call permissions remain.",
         "Lights/thermostat are simulated. See the benchmark report.",

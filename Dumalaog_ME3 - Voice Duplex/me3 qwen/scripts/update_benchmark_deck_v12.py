@@ -82,7 +82,7 @@ def main() -> int:
     replace_text(slide.shapes[12], "•  Corpus WER 17.6% (n=29); target 15%. WER is aggregate word edits, not p95.")
     replace_text(slide.shapes[13], "•  TTS TTFB 0.63 s / 0.62 s p95; LLM TTFT n=0; barge-in n=0")
     replace_text(slide.shapes[14], "•  Pi defaults: Fifine + USB Audio; playback test: 4,429 canceled / 375 suspect frames; corr 0.807")
-    replace_text(slide.shapes[15], "DGX3 timed out during the run; score is fallback/stub diagnostic. Physical human overlap is still open.", size=10.5)
+    replace_text(slide.shapes[15], "DGX3 timed out during the run; score is faster-whisper fallback diagnostic. Physical human overlap is still open.", size=10.5)
 
     # Slide 7: current demo voice and language behavior.
     slide = deck.slides[6]

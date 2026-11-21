@@ -1,12 +1,12 @@
 {
-  "release_id": "me3-20261121-005030-6904274d",
+  "release_id": "me3-20261121-011625-8b912e64",
   "status": "prepared",
-  "created_utc": "20261121-005030",
-  "source_fingerprint": "6904274d30dcedaade0cea20bd5ff8f6103db58109243a13c32fcd8dc045e672",
+  "created_utc": "20261121-011625",
+  "source_fingerprint": "8b912e645432d8d3621c22047b216272ce2d239108441982cc8af15e019b5bd5",
   "file_count": 613,
-  "archive": "dist/me3-20261121-005030-6904274d/me3_voice_duplex",
-  "zip": "dist/me3-20261121-005030-6904274d.zip",
-  "zip_sha256": "477c9b47912ce938407a97bda8de7ae0839d37f299aea17f1373524a848d75b9",
+  "archive": "dist/me3-20261121-011625-8b912e64/me3_voice_duplex",
+  "zip": "dist/me3-20261121-011625-8b912e64.zip",
+  "zip_sha256": "22aa80fa68820cb14d1bf1df1dcbad4f1340571cc0d0edc49d873b7ff73476a6",
   "target": "rpi",
   "note": "Packaged and integrity-checked locally; deployment receipt is recorded in deployment/last_pi_deployment.json."
 }

@@ -37,6 +37,8 @@ def test_setup_is_conversation_driven_and_has_no_static_service_menu():
     assert "I want to set something up" in html
     assert "setup_form" in html
     assert "Submit in conversation" in html
+    assert "do not generate another setup form" in html
+    assert "form._submitted" in html
     assert "Generate specific fields" not in html
     assert "Choose a service" not in html
     assert "Object.entries(flows)" not in html

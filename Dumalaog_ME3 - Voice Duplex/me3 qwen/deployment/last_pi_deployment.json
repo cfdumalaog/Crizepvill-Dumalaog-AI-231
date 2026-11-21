@@ -1,9 +1,9 @@
 {
   "status": "manual_sync",
-  "at": "2026-11-21T00:52:31Z",
-  "release_id": "me3-20261121-005030-6904274d",
+  "at": "2026-11-21T01:22:24Z",
+  "release_id": "me3-20261121-011625-8b912e64",
   "host": "192.168.254.105",
   "path": "/home/dalmacio/Desktop/dandan-qwen",
-  "zip_sha256": "477c9b47912ce938407a97bda8de7ae0839d37f299aea17f1373524a848d75b9",
-  "reason": "Source-synced manually after formal workstation acceptance was blocked by the shared environment ABI mismatch; the live user service was restarted and health, layer, Telegram-status, audio-device, and Pi syntax checks were verified."
+  "zip_sha256": "22aa80fa68820cb14d1bf1df1dcbad4f1340571cc0d0edc49d873b7ff73476a6",
+  "reason": "Source-synced manually after formal workstation acceptance was blocked by the shared environment ABI mismatch; live me3-agent.service restart, HTTP health/state, active Qwen layer, deployed setup-form markers, and live continuation-classifier checks were verified."
 }

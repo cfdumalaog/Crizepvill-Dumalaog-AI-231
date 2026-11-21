@@ -128,6 +128,7 @@
   }
 
   async function submitGeneratedSetup(form, values, state, buttonEl) {
+    if(form._submitted) return;
     const fields = form.fields || [];
     for(const field of fields) {
       if(field.required !== false && !String(values[field.name] || '').trim()) {
@@ -161,17 +162,21 @@
         await jsonRequest('/api/setup/profile/activate', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({profile_id:saved.activate_profile_id})});
         await jsonRequest('/api/restart-service', {method:'POST'});
       }
+      // Prevent double submission while the continuation turn is processed.
+      form._submitted = true;
+      buttonEl.textContent = 'Submitted';
+      buttonEl.disabled = true;
       Object.keys(values).forEach(name => { if(secretFieldNames.has(name)) values[name] = ''; });
       state.textContent = targetError
         ? 'Token saved. Telegram could not map the target yet: ' + targetError
         : 'Submitted. Private fields were saved on the Pi; the non-secret details are continuing in the conversation.';
-      await sendChat('I submitted the generated setup form for "' + (form.title || 'this setup') + '". Non-secret details: ' + setupSummary(form, values) + (targetError ? '. Telegram target mapping still needs attention: ' + targetError : '') + '. Any credential fields were entered through the protected setup card. Continue the setup and tell me what remains or whether it is ready.', {setupFollowup:true});
+      await sendChat('I submitted the generated setup form for "' + (form.title || 'this setup') + '". Non-secret details: ' + setupSummary(form, values) + (targetError ? '. Telegram target mapping still needs attention: ' + targetError : '') + '. Any credential fields were entered through the protected setup card. This is a continuation of the same setup task; do not generate another setup form. Verify the saved configuration and tell me exactly what remains or whether it is ready.', {setupFollowup:true});
       await refreshSummary();
       setTimeout(loadLayers, 5000);
     } catch(err) {
       state.textContent = err.message;
     } finally {
-      buttonEl.disabled = false;
+      if(!form._submitted) buttonEl.disabled = false;
     }
   }
 
@@ -199,7 +204,7 @@
     }
   }
 
-  async function sendChat(text) {
+  async function sendChat(text, options={}) {
     const value = String(text || '').trim(); if(!value) return;
     if(secretLike(value)) {
       message('system', 'That looks like a credential. Ask ME3 to set up the service, then enter it in the generated private setup card.');
@@ -207,7 +212,7 @@
     }
     try {
       await jsonRequest('/api/chat', {method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({message:value})});
+        body:JSON.stringify({message:value, ...options})});
     } catch(err) {
       message('system', err.message === 'use_private_setup_prompt'
         ? 'Use the generated private setup card for credentials.' : err.message);

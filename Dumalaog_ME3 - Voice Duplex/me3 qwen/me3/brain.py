@@ -26,6 +26,18 @@ log = logging.getLogger("me3.brain")
 def _targeted_setup_request(text: str) -> bool:
     """Detect a setup request whose target is specific enough for a form."""
     value = str(text or "").lower()
+    # A generated setup card submits its non-secret summary back through the
+    # same conversation route. That continuation still contains words such
+    # as "setup form" and "Telegram", so it must not be mistaken for a new
+    # setup request and cause the card to regenerate forever.
+    if re.search(
+        r"\b(?:submitted|filled|completed|saved|entered)\b.{0,80}\bsetup\s+form\b",
+        value,
+    ) or re.search(
+        r"\bsetup\s+form\b.{0,80}\b(?:submitted|filled|completed|saved)\b",
+        value,
+    ):
+        return False
     if not re.search(r"\b(?:set\s*up|setup|configure|connect|credentials?)\b", value):
         return False
     return bool(re.search(
