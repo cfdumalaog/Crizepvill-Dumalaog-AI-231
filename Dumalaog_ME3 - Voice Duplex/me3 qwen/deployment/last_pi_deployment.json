@@ -1,9 +1,9 @@
 {
   "status": "manual_sync",
-  "at": "2026-11-20T23:54:41Z",
-  "release_id": "me3-20261121-000003-6d0bb37e",
+  "at": "2026-11-21T00:52:31Z",
+  "release_id": "me3-20261121-005030-6904274d",
   "host": "192.168.254.105",
   "path": "/home/dalmacio/Desktop/dandan-qwen",
-  "zip_sha256": "0f67efd63b929d4588938165dd8c172eab0f7ad8401f83ad35962d3baa35f056",
+  "zip_sha256": "477c9b47912ce938407a97bda8de7ae0839d37f299aea17f1373524a848d75b9",
   "reason": "Source-synced manually after formal workstation acceptance was blocked by the shared environment ABI mismatch; the live user service was restarted and health, layer, Telegram-status, audio-device, and Pi syntax checks were verified."
 }

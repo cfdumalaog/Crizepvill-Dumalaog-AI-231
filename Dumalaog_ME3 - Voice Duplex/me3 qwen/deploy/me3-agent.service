@@ -5,6 +5,12 @@ Wants=me3-asr.service me3-tts.service me3-vad.service
 
 [Service]
 WorkingDirectory=__ME3_DIR__
+# Keep the selected external USB speaker audible after ME3 restarts. These are
+# best-effort so a headless/early-boot session without PipeWire still starts;
+# WirePlumber also persists the selected sink volume for the next login.
+ExecStartPre=-/usr/bin/wpctl set-mute @DEFAULT_AUDIO_SINK@ 0
+ExecStartPre=-/usr/bin/wpctl set-volume @DEFAULT_AUDIO_SINK@ 0.90
+ExecStartPre=-/usr/bin/amixer -c Audio set PCM 90% unmute
 ExecStart=__VENV__/bin/python __ME3_DIR__/scripts/me3_pi_server.py --host 0.0.0.0 --port 8126 --audio-port 8127 --brain auto --variant qwen_instruct --input-device "fifine Microphone" --output pi --output-device "USB Audio"
 Restart=on-failure
 RestartSec=3
