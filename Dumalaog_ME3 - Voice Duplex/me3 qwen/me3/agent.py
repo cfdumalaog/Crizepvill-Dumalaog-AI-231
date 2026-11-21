@@ -681,15 +681,15 @@ class LocalVoiceLoop:
             log.warning("chat turn failed: %s", type(exc).__name__)
             self.stats.n_errors += 1
             self.state = "idle"
+            self._report_runtime_error("CHAT", exc)
+            rate_limited = any(token in " ".join(str(exc).split()).lower()
+                               for token in ("429", "rate limit", "rate_limit", "quota"))
             if self.status is not None:
-                self.status.report_error(
-                    "CHAT",
-                    f"Text/tool model failed ({type(exc).__name__}); "
-                    "check the selected text provider.",
-                )
                 self.status.report_reply(
                     "I could not complete that turn because the selected text "
-                    "provider is unavailable.",
+                    + ("provider is rate-limited. Switch to Qwen or wait for "
+                       "the provider quota to reset."
+                       if rate_limited else "provider is unavailable."),
                     "error")
 
     def _announce_scheduled_if_idle(self) -> None:
@@ -925,7 +925,17 @@ class LocalVoiceLoop:
         else:
             kind = type(exc).__name__
             raw = " ".join(str(exc).split()).lower()
-            if any(token in raw for token in (
+            provider = str(getattr(self.brain, "provider", "") or
+                           getattr(self.brain, "name", "provider")).lower()
+            provider_label = "Gemini" if "gemini" in provider else (
+                "Qwen" if "qwen" in provider or "remote" in provider else
+                "The selected")
+            if any(token in raw for token in ("429", "rate limit", "rate_limit", "quota")):
+                message = (
+                    f"{provider_label} text/tool provider is rate-limited "
+                    "(HTTP 429); wait for its quota to reset or switch to Qwen."
+                )
+            elif any(token in raw for token in (
                     "connection", "timed out", "timeout", "max retries",
                     "502", "503", "504")):
                 message = (

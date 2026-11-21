@@ -429,6 +429,7 @@ def main() -> int:
         deepgram_status=deepgram_asr.health,
         deepgram_key_set=deepgram_asr.configure_api_key,
         provider_status=provider_choice.status,
+        qwen_key_set=provider_choice.save_qwen_key,
         openai_key_set=provider_choice.save_openai_key,
         gemini_key_set=provider_choice.save_gemini_key,
         provider_select=lambda payload: provider_choice.choose(payload.get("provider")),
@@ -443,6 +444,7 @@ def main() -> int:
         schedule_create=me2_commands.create_clock_action,
         schedule_cancel=me2_commands.cancel_clock_action,
         setup_plan=setup_profiles.setup_plan,
+         setup_form=setup_profiles.setup_form,
         setup_profile_save=setup_profiles.save_profile,
         setup_profile_activate=activate_setup_profile,
     )

@@ -48,6 +48,18 @@ def test_provider_selection_is_private_and_composes_all_three_models(monkeypatch
     assert provider_choice.choose("qwen")["ok"]
 
 
+def test_qwen_key_is_private_and_overrides_stale_environment(monkeypatch, tmp_path):
+    monkeypatch.setenv("ME3_CREDENTIALS_FILE", str(tmp_path / "credentials.json"))
+    monkeypatch.setenv("VLLM_API_KEY", "old-environment-key")
+    key = "sk-vllm-test-only-private-key"
+    result = provider_choice.save_qwen_key(key)
+    assert result["ok"]
+    assert provider_choice.qwen_key() == key
+    assert secure_config.get("VLLM_API_KEY") == key
+    assert provider_choice.status()["qwen_key_configured"]
+    assert key not in str(result) + str(provider_choice.status())
+
+
 def test_openai_audio_uses_transcription_and_fixed_pcm_voice(monkeypatch):
     monkeypatch.setattr("me3.openai_audio._key", lambda: "test-key")
     calls = []
@@ -80,6 +92,7 @@ def test_private_provider_http_setup_and_status(monkeypatch, tmp_path):
         LoopStatus(), html_dir=tmp_path, get_state=lambda: "idle",
         get_stats=lambda: SimpleNamespace(), host="127.0.0.1", port=0,
         provider_status=provider_choice.status,
+        qwen_key_set=provider_choice.save_qwen_key,
         openai_key_set=provider_choice.save_openai_key,
         provider_select=lambda payload: provider_choice.choose(payload.get("provider")),
     )
@@ -102,6 +115,11 @@ def test_private_provider_http_setup_and_status(monkeypatch, tmp_path):
         assert json.loads(chosen)["provider"] == "openai"
         assert json.loads(status)["openai_key_configured"]
         assert key not in saved + chosen + status
+        qwen_key = "sk-vllm-test-only-private-key"
+        qwen_saved = post("/api/integrations/qwen-key", {"api_key": qwen_key})
+        qwen_chosen = post("/api/provider/select", {"provider": "qwen"})
+        assert json.loads(qwen_chosen)["provider"] == "qwen"
+        assert qwen_key not in qwen_saved + qwen_chosen
     finally:
         server.stop()
 

@@ -208,6 +208,36 @@ def test_chat_endpoint_queues_text_and_rejects_pasted_credentials():
         server.stop()
 
 
+def test_setup_form_endpoint_returns_dynamic_schema_without_private_save():
+    st = LoopStatus()
+    server = StatusServer(
+        st, html_dir=PROJECT / "web", get_state=lambda: "idle",
+        get_stats=TurnStats, port=0,
+        setup_form=lambda request: {
+            "ok": True,
+            "setup_form": {
+                "title": "Set up Qwen",
+                "fields": [{"name": "api_key", "type": "password"}],
+            },
+            "message": "generated",
+        },
+    )
+    assert server.start()
+    base = f"http://127.0.0.1:{server.port}"
+    try:
+        request = urllib.request.Request(
+            base + "/api/setup/form",
+            data=json.dumps({"request": "replace the Qwen key"}).encode(),
+            headers={"Content-Type": "application/json"}, method="POST",
+        )
+        with urllib.request.urlopen(request, timeout=3) as response:
+            result = json.loads(response.read().decode())
+        assert result["ok"] is True
+        assert result["setup_form"]["title"] == "Set up Qwen"
+    finally:
+        server.stop()
+
+
 def test_status_server_can_dispatch_service_restart_callback():
     st = LoopStatus()
     calls = []

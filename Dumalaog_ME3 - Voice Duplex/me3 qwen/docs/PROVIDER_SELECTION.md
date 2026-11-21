@@ -40,6 +40,23 @@ The normal chat endpoint rejects credential-shaped text, so a pasted secret
 cannot accidentally become a model turn. There is no fixed “Generate specific
 fields” choice: the ToolBrain generates the form from the actual request.
 
+### Provider outage fallback
+
+Gemini remains an optional tool-brain layer, but its API quota/rate status is
+external to ME3. A Gemini HTTP 429 means that Google's endpoint is reachable
+but is refusing the request because the key/project quota or rate limit has
+been exceeded; it is not an ASR, TTS, or browser-audio failure. Qwen is the
+default brain and can be selected from **Model layers** after its private
+vLLM key is valid.
+
+If the selected brain is unavailable, pressing **Set up** still keeps the
+conversation usable: ME3 asks for a natural-language setup target and calls
+the credential-free `/api/setup/form` schema endpoint. The resulting card is
+generated from the request (for example, “replace the Qwen vLLM key”), while
+the key itself is accepted only by the loopback-protected integration endpoint
+through the SSH-tunneled Assistant. This recovery path is deliberately not a
+predefined service menu and does not send credentials to `/api/chat`.
+
 1. Obtain an OpenAI API key from the OpenAI developer platform with access to
    transcription, chat completions, and speech. An active billing account may
    be required by the provider.

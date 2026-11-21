@@ -66,6 +66,7 @@ def status() -> dict:
         "ok": True,
         "selected": selected(),
         "providers": list(PROVIDERS),
+        "qwen_key_configured": bool(qwen_key()),
         "openai_key_configured": bool(openai_key()),
         "gemini_key_configured": bool(gemini_key()),
         "custom_vllm_configured": bool(custom.get("active", {}).get("llm")),
@@ -81,6 +82,22 @@ def status() -> dict:
 def openai_key() -> str:
     """Prefer the key just saved in the UI over an older service env value."""
     return secure_config._read().get("OPENAI_API_KEY", "").strip() or secure_config.get("OPENAI_API_KEY")
+
+
+def qwen_key() -> str:
+    """Return the protected Qwen/vLLM key, preferring a newer private save."""
+    return secure_config._read().get("VLLM_API_KEY", "").strip() or secure_config.get("VLLM_API_KEY")
+
+
+def save_qwen_key(value: str) -> dict:
+    """Save a Qwen/vLLM key without returning or logging its value."""
+    key = str(value or "").strip()
+    if len(key) < 20 or len(key) > 4096 or "\n" in key or "\r" in key:
+        return {"ok": False, "error": "invalid_qwen_api_key_format"}
+    result = secure_config.set_values({"VLLM_API_KEY": key})
+    return {"ok": bool(result.get("ok")),
+            "configured": bool(result.get("ok")),
+            **({"error": result["error"]} if not result.get("ok") else {})}
 
 
 def save_openai_key(value: str) -> dict:

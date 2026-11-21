@@ -31,14 +31,14 @@ def _setup_kind(request: str) -> str | None:
     adapter and its generated field schema.
     """
     text = str(request or "").lower()
+    if re.search(r"\b(?:qwen|dgx3?|institutional model)\b", text):
+        return "qwen"
     if re.search(r"\b(?:vllm|openai-compatible|custom provider|model endpoint|model server)\b", text):
         return "custom_vllm"
     if re.search(r"\b(?:openai|gpt)\b", text):
         return "openai"
     if re.search(r"\b(?:gemini|google ai|google generative)\b", text):
         return "gemini"
-    if re.search(r"\b(?:qwen|dgx3?|institutional model)\b", text):
-        return "qwen"
     if re.search(r"\bdeepgram\b", text):
         return "deepgram"
     if re.search(r"\bspotify\b", text):
@@ -93,8 +93,9 @@ def setup_form(request: str) -> dict:
         },
         "qwen": {
             "title": "Use the Qwen provider",
-            "help": "Qwen uses the protected institutional endpoints already configured for the Pi. No credential needs to be typed into chat.",
-            "fields": [],
+            "help": "Enter or replace the Qwen/vLLM key in this private conversation card. It is saved only on the Pi and never sent to the model chat. The existing Qwen ASR/TTS endpoints remain unchanged.",
+            "fields": [_field("api_key", "Qwen/vLLM API key", "password", autocomplete="new-password")],
+            "private_save": {"endpoint": "/api/integrations/qwen-key", "fields": ["api_key"]},
             "activation": {"provider": "qwen"},
         },
         "deepgram": {

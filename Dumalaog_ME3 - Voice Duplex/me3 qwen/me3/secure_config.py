@@ -17,6 +17,7 @@ _ALLOWED = {
     "TELEGRAM_BOT_TOKEN", "GOOGLE_OAUTH_CLIENT_ID",
     "GOOGLE_OAUTH_CLIENT_SECRET", "GOOGLE_CALENDAR_REFRESH_TOKEN",
     "DEEPGRAM_API_KEY",
+    "VLLM_API_KEY",
     "GITHUB_TOKEN", "OPENAI_API_KEY", "GEMINI_API_KEY",
     "ME3_TELEGRAM_TARGET_USERNAME",
 }
@@ -45,6 +46,13 @@ def _read() -> dict[str, str]:
 
 
 def get(name: str) -> str:
+    # A newly entered Qwen key must override a stale service environment value
+    # from an older vLLM deployment. Other managed environment variables retain
+    # their normal precedence.
+    if name == "VLLM_API_KEY":
+        stored_value = _read().get(name, "").strip()
+        if stored_value:
+            return stored_value
     env_value = os.getenv(name, "").strip()
     if env_value:
         return env_value

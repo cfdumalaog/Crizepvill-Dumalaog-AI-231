@@ -26,6 +26,15 @@ def test_toolbrain_setup_form_generates_fields_from_confirmed_request():
     assert form["private_save"]["endpoint"] == "/api/integrations/gemini-key"
 
 
+def test_qwen_setup_form_accepts_private_key_replacement():
+    result = setup_profiles.setup_form("replace the Qwen vLLM key and use Qwen")
+    assert result["ok"] is True
+    form = result["setup_form"]
+    assert form["form_kind"] == "qwen"
+    assert [field["name"] for field in form["fields"]] == ["api_key"]
+    assert form["private_save"]["endpoint"] == "/api/integrations/qwen-key"
+
+
 def test_toolbrain_setup_form_generates_custom_provider_fields():
     result = setup_profiles.setup_form(
         "use this OpenAI-compatible vLLM endpoint for the tool model"

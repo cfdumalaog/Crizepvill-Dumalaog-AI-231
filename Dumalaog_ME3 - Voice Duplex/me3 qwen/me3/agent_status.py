@@ -607,14 +607,19 @@ class _StatusHandler(BaseHTTPRequestHandler):
 
     def do_POST(self):  # noqa: N802
         path = urlsplit(self.path).path
-        if path in {"/api/setup/plan", "/api/setup/profile",
+        if path in {"/api/setup/plan", "/api/setup/form", "/api/setup/profile",
                     "/api/setup/profile/activate"}:
-            if path != "/api/setup/plan" and not self._is_loopback_request():
+            # A schema contains no credentials and may be requested by the
+            # browser when the selected model provider is unavailable.  The
+            # save/activate endpoints remain loopback-only because they write
+            # private provider configuration.
+            if path not in {"/api/setup/plan", "/api/setup/form"} and not self._is_loopback_request():
                 self._send(403, b"use the local SSH tunnel for provider setup",
                            "text/plain; charset=utf-8")
                 return
             callback_name = {
                 "/api/setup/plan": "setup_plan",
+                "/api/setup/form": "setup_form",
                 "/api/setup/profile": "setup_profile_save",
                 "/api/setup/profile/activate": "setup_profile_activate",
             }[path]
@@ -628,7 +633,7 @@ class _StatusHandler(BaseHTTPRequestHandler):
                 if length <= 0 or length > 20000:
                     raise ValueError("invalid JSON body")
                 payload = json.loads(self.rfile.read(length).decode("utf-8"))
-                if path == "/api/setup/plan":
+                if path in {"/api/setup/plan", "/api/setup/form"}:
                     result = callback(str(payload.get("request") or ""))
                 elif path == "/api/setup/profile":
                     result = callback(payload)
@@ -776,7 +781,8 @@ class _StatusHandler(BaseHTTPRequestHandler):
                     "error": type(exc).__name__}).encode("utf-8"),
                     "application/json; charset=utf-8")
             return
-        if path in {"/api/integrations/openai-key",
+        if path in {"/api/integrations/qwen-key",
+                    "/api/integrations/openai-key",
                     "/api/integrations/gemini-key",
                     "/api/provider/select"}:
             if not self._is_loopback_request():
@@ -784,6 +790,7 @@ class _StatusHandler(BaseHTTPRequestHandler):
                            "text/plain; charset=utf-8")
                 return
             key_callbacks = {
+                "/api/integrations/qwen-key": "qwen_key_set",
                 "/api/integrations/openai-key": "openai_key_set",
                 "/api/integrations/gemini-key": "gemini_key_set",
             }
@@ -1027,14 +1034,15 @@ class StatusServer:
                  google_client_set=None, telegram_status=None,
                  telegram_token_set=None, telegram_connect_target=None,
                  deepgram_status=None, deepgram_key_set=None,
-                 provider_status=None, openai_key_set=None, gemini_key_set=None,
+                 provider_status=None, qwen_key_set=None, openai_key_set=None,
+                 gemini_key_set=None,
                  provider_select=None,
                   layer_status=None, layer_select=None,
                   permission_status=None, permission_set=None,
                  github_status=None, github_token_set=None,
                  schedules_get=None, schedule_create=None,
                  schedule_cancel=None, chat_submit=None,
-                 setup_plan=None, setup_profile_save=None,
+                  setup_plan=None, setup_form=None, setup_profile_save=None,
                  setup_profile_activate=None):
         self.status = status
         self.html_dir = Path(html_dir)
@@ -1067,6 +1075,7 @@ class StatusServer:
         self.deepgram_status = deepgram_status
         self.deepgram_key_set = deepgram_key_set
         self.provider_status = provider_status
+        self.qwen_key_set = qwen_key_set
         self.openai_key_set = openai_key_set
         self.gemini_key_set = gemini_key_set
         self.provider_select = provider_select
@@ -1081,6 +1090,7 @@ class StatusServer:
         self.schedule_cancel = schedule_cancel
         self.chat_submit = chat_submit
         self.setup_plan = setup_plan
+        self.setup_form = setup_form
         self.setup_profile_save = setup_profile_save
         self.setup_profile_activate = setup_profile_activate
         self._httpd: ThreadingHTTPServer | None = None
@@ -1124,6 +1134,7 @@ class StatusServer:
         self._httpd.deepgram_status = self.deepgram_status
         self._httpd.deepgram_key_set = self.deepgram_key_set
         self._httpd.provider_status = self.provider_status
+        self._httpd.qwen_key_set = self.qwen_key_set
         self._httpd.openai_key_set = self.openai_key_set
         self._httpd.gemini_key_set = self.gemini_key_set
         self._httpd.provider_select = self.provider_select
@@ -1138,6 +1149,7 @@ class StatusServer:
         self._httpd.schedule_cancel = self.schedule_cancel
         self._httpd.chat_submit = self.chat_submit
         self._httpd.setup_plan = self.setup_plan
+        self._httpd.setup_form = self.setup_form
         self._httpd.setup_profile_save = self.setup_profile_save
         self._httpd.setup_profile_activate = self.setup_profile_activate
         self._httpd.release_refresher = (

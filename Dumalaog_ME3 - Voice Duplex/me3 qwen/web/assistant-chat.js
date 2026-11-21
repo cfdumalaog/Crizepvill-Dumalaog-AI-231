@@ -93,7 +93,47 @@
     // configured and calls setup_form only after the target is clear.
     return sendChat(
       'I want to set something up. Ask me what provider, integration, or capability I want to configure. Do not show a fixed service menu; ask only the next useful question and generate a setup form after the target is clear.'
+    ).then(ok => { if(!ok) renderProviderDownSetupPrompt(); return ok; });
+  }
+
+  function renderProviderDownSetupPrompt() {
+    const box = promptBase(
+      'What would you like to set up?',
+      'The selected text/tool provider is unavailable right now. Describe the provider, integration, or capability in your own words; ME3 will generate only the fields that request needs.'
     );
+    const entry = document.createElement('input');
+    entry.type = 'text'; entry.autocomplete = 'off'; entry.spellcheck = false;
+    entry.placeholder = 'Example: replace the Qwen vLLM key and use Qwen as the tool brain';
+    box.appendChild(entry);
+    const actions = document.createElement('div'); actions.className = 'setup-actions'; box.appendChild(actions);
+    const state = document.createElement('div'); state.className = 'setup-status'; box.appendChild(state);
+    const submit = button('Generate setup form', async () => {
+      const request = entry.value.trim();
+      if(!request) { state.textContent = 'Describe what you want to configure first.'; return; }
+      submit.disabled = true; entry.disabled = true; state.textContent = 'Generating fields from your request…';
+      try {
+        const result = await jsonRequest('/api/setup/form', {
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({request})
+        });
+        if(result.setup_form) {
+          const form = {...result.setup_form, id: result.setup_form.id || ('offline-setup-' + Date.now())};
+          message('assistant', result.message || 'I generated the fields needed for that setup request.', 'ME3');
+          renderSetupForm(form);
+          state.textContent = 'The generated form is ready below.';
+        } else {
+          state.textContent = result.question || result.error || 'Please describe one provider or integration.';
+          entry.disabled = false; submit.disabled = false;
+        }
+      } catch(err) {
+        state.textContent = err.message || 'The setup form could not be generated.';
+        entry.disabled = false; submit.disabled = false;
+      }
+    }, actions);
+    entry.addEventListener('keydown', ev => {
+      if(ev.key === 'Enter') { ev.preventDefault(); submit.click(); }
+    });
+    entry.focus();
   }
 
   function makeDynamicField(field) {
@@ -208,14 +248,16 @@
     const value = String(text || '').trim(); if(!value) return;
     if(secretLike(value)) {
       message('system', 'That looks like a credential. Ask ME3 to set up the service, then enter it in the generated private setup card.');
-      return;
+      return false;
     }
     try {
       await jsonRequest('/api/chat', {method:'POST',headers:{'Content-Type':'application/json'},
         body:JSON.stringify({message:value, ...options})});
+      return true;
     } catch(err) {
       message('system', err.message === 'use_private_setup_prompt'
         ? 'Use the generated private setup card for credentials.' : err.message);
+      return false;
     }
   }
 
