@@ -74,6 +74,27 @@ def _runtime_date_context() -> str:
     )
 
 
+def _add_system_instruction(messages: list[dict], instruction: str) -> None:
+    """Keep Qwen-compatible message ordering while adding runtime guidance.
+
+    Qwen3.6's chat template requires the system message to be the first
+    message.  The tool loop used to append additional ``system`` messages
+    after assistant/tool turns for development nudges and verification
+    feedback, which works with some OpenAI-compatible servers but is rejected
+    by the deployed Qwen vLLM endpoint.  Merge those instructions into the
+    single leading system message instead of changing the conversation order.
+    """
+    text = " ".join(str(instruction or "").split()).strip()
+    if not text:
+        return
+    for message in messages:
+        if message.get("role") == "system":
+            existing = str(message.get("content") or "").rstrip()
+            message["content"] = f"{existing}\n\n{text}" if existing else text
+            return
+    messages.insert(0, {"role": "system", "content": text})
+
+
 def _fdbench_mark(stage: str, **fields) -> None:
     """Emit an optional course-benchmark mark without coupling live runtime."""
     try:
@@ -356,10 +377,20 @@ def _github_target_from_context(current: str, *, use_default: bool = True) -> di
         r"(?:https?://)?(?:www\.)?github\.com/([A-Za-z0-9_.-]+)/([A-Za-z0-9_.-]+)",
         text, flags=re.IGNORECASE,
     )
-    if not match:
-        match = re.search(r"\b([A-Za-z0-9_.-]+)/([A-Za-z0-9_.-]+)\b", text)
-    if match and match.group(1).lower() not in {"agent_workspace", "github"}:
+    if match:
         owner, repo = match.groups()
+        return {"owner": owner, "repo": repo, "branch": "main",
+                "base_path": "", "pages_path": "/"}
+    # A site path such as ``agent_workspace/me3_github_demo`` can appear
+    # before an explicit ``owner/repository`` pair in the same request.  Do
+    # not let that local path make the configured convenience repository win;
+    # scan all slash pairs and choose the first actual GitHub target.
+    for match in re.finditer(
+        r"\b([A-Za-z0-9_.-]+)/([A-Za-z0-9_.-]+)\b", text,
+    ):
+        owner, repo = match.groups()
+        if owner.lower() in {"agent_workspace", "github"}:
+            continue
         return {"owner": owner, "repo": repo, "branch": "main",
                 "base_path": "", "pages_path": "/"}
     if not use_default:
@@ -410,7 +441,8 @@ def _direct_github_pages_request(history: list[dict], text: str) -> tuple[str, d
         "message": "Deploy website from ME3",
         "enable_pages": True,
         "create_if_missing": bool(re.search(
-            r"\b(?:new repository|create (?:this |a |the )?repository)\b",
+            r"\b(?:new(?:\s+public)?(?:\s+github)?\s+repository|"
+            r"create (?:this |a |the )?repository)\b",
             " ".join(str(item.get("content") or "") for item in history[-12:]) + " " + text,
             flags=re.IGNORECASE,
         )),
@@ -868,16 +900,13 @@ class ToolBrain:
         """Finish a long tool turn without exposing the internal budget."""
         self._progress("response", "Summarizing completed task actions")
         summary_messages = list(messages)
-        summary_messages.append({
-            "role": "system",
-            "content": (
-                "Summarize the completed tool actions for the user. Do not call "
-                "any tools. Use a formal, professional tone, state what was "
-                "completed, and identify any remaining action in one to three "
-                "short spoken sentences. Never mention a tool-call budget or "
-                "internal limit."
-            ),
-        })
+        _add_system_instruction(summary_messages, (
+            "Summarize the completed tool actions for the user. Do not call "
+            "any tools. Use a formal, professional tone, state what was "
+            "completed, and identify any remaining action in one to three "
+            "short spoken sentences. Never mention a tool-call budget or "
+            "internal limit."
+        ))
         message, usage = self._request(summary_messages, include_tools=False)
         self.metrics["n_llm_calls"] += 1
         self.metrics["prompt_tokens"] += usage["prompt_tokens"]
@@ -1029,7 +1058,7 @@ class ToolBrain:
         messages = [{"role": "system", "content": system}]
         software_task = self.allow_tools and is_software_request(user_text)
         if software_task:
-            messages.append({"role": "system", "content": (
+            _add_system_instruction(messages, (
                 "This is an actionable software-development task. Inspect the "
                 "target, make the requested changes with tools, run relevant "
                 "project tests, inspect their output, repair failures, and "
@@ -1037,7 +1066,7 @@ class ToolBrain:
                 "another prompt. Do not claim tests, deployment, or publication "
                 "that the tools did not prove. Ask only for genuinely missing "
                 "requirements or credentials."
-            )})
+            ))
         messages.extend(history[-self.history_messages:])
         messages.append({"role": "user", "content": user_text})
         development_path = "agent_workspace"
@@ -1142,12 +1171,12 @@ class ToolBrain:
                     if development_nudges == 0:
                         development_nudges += 1
                         self._progress("planning", "Continuing software task with tools")
-                        messages.append({"role": "system", "content": (
+                        _add_system_instruction(messages, (
                             "No development tool has run yet. Perform the "
                             "requested work now; a plan or promise alone is "
                             "not completion. If you cannot proceed, state the "
                             "specific blocker."
-                        )})
+                        ))
                         continue
                     return "I have not changed or tested the software yet."
                 if software_task and development_dirty:
@@ -1180,12 +1209,12 @@ class ToolBrain:
                     if isinstance(check, dict) and check.get("ok"):
                         development_dirty = False
                         development_checked = True
-                        messages.append({"role": "system", "content": (
+                        _add_system_instruction(messages, (
                             "The automatic source check passed. It covers syntax "
                             "and local static assets only. State project-specific "
                             "test results only if a test command actually ran. "
                             "Finish with a short, evidence-based result."
-                        )})
+                        ))
                         continue
                     if development_repairs >= 2:
                         errors = check.get("errors") if isinstance(check, dict) else None
@@ -1193,11 +1222,11 @@ class ToolBrain:
                         return ("The software files were changed, but verification "
                                 f"still fails: {detail or (check.get('error') if isinstance(check, dict) else 'unknown error')}.")
                     development_repairs += 1
-                    messages.append({"role": "system", "content": (
+                    _add_system_instruction(messages, (
                         "The automatic source check failed. Inspect the reported "
                         "errors, repair the files with tools, run relevant tests, "
                         "and verify again. Do not claim completion yet."
-                    )})
+                    ))
                     continue
                 if isinstance(content, str) and content.strip():
                     if github_verified_result is not None:

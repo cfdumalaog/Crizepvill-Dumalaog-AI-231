@@ -306,6 +306,26 @@ def test_direct_github_route_accepts_an_explicit_non_default_repository(tmp_path
     assert "confirm" not in args
 
 
+def test_direct_github_route_ignores_local_site_path_before_explicit_target(tmp_path, monkeypatch):
+    project = tmp_path / "project"
+    site = project / "agent_workspace" / "me3_github_demo"
+    site.mkdir(parents=True)
+    (site / "index.html").write_text("<h1>ME3</h1>", encoding="utf-8")
+    monkeypatch.setattr(brain, "project_root", lambda: project)
+    monkeypatch.setattr(brain, "load_config", lambda: {"github_pages": {
+        "owner": "configured-owner", "repository": "configured-only",
+    }})
+    name, args = brain._direct_github_pages_request(
+        [],
+        "Publish agent_workspace/me3_github_demo to cfdumalaog/me3-full-duplex-demo "
+        "as a new public repository.",
+    )
+    assert name == "deploy_github_pages"
+    assert (args["owner"], args["repo"]) == (
+        "cfdumalaog", "me3-full-duplex-demo")
+    assert args["create_if_missing"] is True
+
+
 def test_short_minesweeper_publish_uses_latest_proposed_target(tmp_path, monkeypatch):
     project = tmp_path / "project"
     for name in ("portfolio", "mind-reader", "minesweeper"):

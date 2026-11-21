@@ -1,9 +1,9 @@
 {
-  "status": "manual_sync",
-  "at": "2026-11-21T01:22:24Z",
-  "release_id": "me3-20261121-011625-8b912e64",
-  "host": "192.168.254.105",
+  "status": "deployed",
+  "at": "2026-11-21T02:59:42Z",
+  "release_id": "me3-20261121-025827-b0c5dab0",
+  "host": "cfdfnjrpi5.local",
   "path": "/home/dalmacio/Desktop/dandan-qwen",
-  "zip_sha256": "22aa80fa68820cb14d1bf1df1dcbad4f1340571cc0d0edc49d873b7ff73476a6",
-  "reason": "Source-synced manually after formal workstation acceptance was blocked by the shared environment ABI mismatch; live me3-agent.service restart, HTTP health/state, active Qwen layer, deployed setup-form markers, and live continuation-classifier checks were verified."
+  "zip_sha256": "5af2e484944f413f77f454fd918597dc24a549b60024e287a3974d4e5109a559",
+  "reason": null
 }
